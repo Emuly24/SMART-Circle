@@ -40,6 +40,8 @@ $quizzes = $conn->query("SELECT id, title, note_id FROM quizzes ORDER BY id");
 <!DOCTYPE html>
 <html><head><title>Group Content Locks</title><link rel="stylesheet" href="style.css"></head>
 <body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>🔒 Group Content Locks</h1><a href="admin_dashboard.php">Dashboard</a></div>
 <div class="content-grid">

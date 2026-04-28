@@ -9,7 +9,11 @@ $userStatus = $conn->query("SELECT approved, fullname, class_level, status FROM 
 if (!$userStatus['approved']) {
     ?>
     <!DOCTYPE html><html><head><title>Pending Approval</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></head>
-    <body><div class="container"><div class="header"><h1>Application Required</h1><a href="logout.php" class="logout">Logout</a></div>
+    <body>
+    <?php include_once 'includes/header.php';
+    <?php include_once 'includes/progress_tracker.php'; ?>
+ ?>
+<div class="container"><div class="header"><h1>Application Required</h1><a href="logout.php" class="logout">Logout</a></div>
     <div class="content-grid"><div class="card"><h3>Complete Your Application</h3><p>Your account is not yet approved. Please fill in the application form to join the group.</p><a href="apply.php" class="btn">Apply Now</a></div></div></div></body></html>
     <?php
     exit;
@@ -112,6 +116,7 @@ $paper_count = $paper_pending->fetch_row()[0];
         <div class="card"><i class="fas fa-lightbulb"></i><h3>Request Topic</h3><a href="request_topic.php">Suggest</a></div>
         <div class="card"><i class="fas fa-history"></i><h3>Covered Topics</h3><a href="covered_topics.php">View</a></div>
         <div class="card"><i class="fas fa-exclamation-triangle"></i><h3>Submit a Report</h3><a href="student_report.php">Report Now</a></div>
+        <div class="card"><i class="fas fa-bell"></i><h3>Notifications</h3><a href="notifications.php">View Messages</a></div>
     </div>
 
     <?php include_once 'includes/vision_mission.php'; ?>

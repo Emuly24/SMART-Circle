@@ -16,7 +16,9 @@ $subjects = $conn->query("SELECT DISTINCT n.subject
     ORDER BY n.subject");
 ?>
 <!DOCTYPE html>
-<html><head><title>Subjects</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>📚 Subjects</h1><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
+<html><head><title>Subjects</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>📚 Subjects</h1><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">
 <?php while($s = $subjects->fetch_assoc()): ?>
 <div class="card"><i class="fas fa-chalkboard"></i><h3><?= htmlspecialchars($s['subject']) ?></h3><a href="subject.php?subject=<?= urlencode($s['subject']) ?>">Explore Subject</a></div>

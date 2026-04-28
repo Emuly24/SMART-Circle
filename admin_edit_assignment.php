@@ -45,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html><html><head><title>Edit Assignment</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_edit_assignment</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

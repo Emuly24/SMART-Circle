@@ -35,6 +35,8 @@ $questions = $conn->query("SELECT * FROM exam_questions WHERE exam_id=$exam_id O
 ?>
 <!DOCTYPE html><html><head><title>Add Questions</title><script>function toggleOptions(){var t=document.getElementById('qtype').value; document.getElementById('options_div').style.display=(t=='multiple_choice')?'block':'none';}</script>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_add_questions</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

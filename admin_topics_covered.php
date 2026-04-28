@@ -15,6 +15,8 @@ $covered = $conn->query("SELECT * FROM topics_covered ORDER BY covered_date DESC
 ?>
 <!DOCTYPE html><html><head><title>Covered Topics</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_topics_covered</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

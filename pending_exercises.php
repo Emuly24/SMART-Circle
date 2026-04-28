@@ -12,6 +12,8 @@ $pending = $conn->query("SELECT a.promised_at, e.question, n.title as note_title
     ORDER BY a.promised_at ASC");
 ?>
 <!DOCTYPE html><html><head><title>Pending Paper Exercises</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container"><div class="header"><h1>📋 Pending Exercises (Paper)</h1><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">
 <?php while($p = $pending->fetch_assoc()):

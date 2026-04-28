@@ -21,6 +21,8 @@ $exams = $conn->query("SELECT e.*, (SELECT COUNT(*) FROM exam_questions WHERE ex
 ?>
 <!DOCTYPE html><html><head><title>Manage Exams</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_exams_list</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

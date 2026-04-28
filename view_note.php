@@ -9,7 +9,9 @@ if (!$note) die("Note not found");
 
 // Check if note is unlocked for this student's group
 if (!is_content_unlocked('note', $note_id, $uid)) {
-    die("<!DOCTYPE html><html><head><title>Content Locked</title><link rel='stylesheet' href='style.css'></head><body><div class='container'><div class='header'><h1>Content Locked</h1><a href='library.php'>Library</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This note is not yet available for your group. Please wait until the admin unlocks it after your group meeting.</div><a href='library.php'>← Back to Library</a></div></body></html>");
+    die("<!DOCTYPE html><html><head><title>Content Locked</title><link rel='stylesheet' href='style.css'></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class='container'><div class='header'><h1>Content Locked</h1><a href='library.php'>Library</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This note is not yet available for your group. Please wait until the admin unlocks it after your group meeting.</div><a href='library.php'>← Back to Library</a></div></body></html>");
 }
 
 // Handle digital submission (text / file) – same as before

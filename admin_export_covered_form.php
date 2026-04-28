@@ -13,6 +13,8 @@ if (!isset($_SESSION['admin_logged'])) {
 ?>
 <!DOCTYPE html><html><head><title>Export Covered Topics</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_export_covered_form</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

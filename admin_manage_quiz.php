@@ -69,7 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
 
 $quizzes = $conn->query("SELECT * FROM quizzes WHERE note_id=$note_id");
 ?>
-<!DOCTYPE html><html><head><title>Manage Quiz - <?=htmlspecialchars($note['title'])?></title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>📝 Quiz Manager: <?=htmlspecialchars($note['title'])?></h1><a href="admin_notes_list.php">Back</a></div>
+<!DOCTYPE html><html><head><title>Manage Quiz - <?=htmlspecialchars($note['title'])?></title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>📝 Quiz Manager: <?=htmlspecialchars($note['title'])?></h1><a href="admin_notes_list.php">Back</a></div>
 <?php while($qz = $quizzes->fetch_assoc()): ?>
 <div class="card" style="margin:20px;"><h3><?=htmlspecialchars($qz['title'])?></h3><p><?=nl2br(htmlspecialchars($qz['description']))?></p><p>Time: <?=$qz['time_limit']?> min | Passing: <?=$qz['passing_percentage']?>%</p><a href="?note_id=<?=$note_id?>&delete_quiz=<?=$qz['id']?>" onclick="return confirm('Delete quiz?')">Delete Quiz</a> | <a href="admin_edit_quiz_questions.php?quiz_id=<?=$qz['id']?>">Edit Questions</a></div>
 <?php endwhile; ?>

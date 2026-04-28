@@ -20,13 +20,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo "<script>alert('Note saved');</script>";
 }
 ?>
-<!DOCTYPE html><html><head><title>Write Note</title><script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>    <link rel="stylesheet" href="style.css">
-</head><body>
-<div class="container">
-<div class="header"><h1>admin_note_editor</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
-<div class="content-grid">
-<h1>✍️ Write Note</h1><form method="post"><label>Title</label><input type="text" name="title" required><label>Subject</label><input type="text" name="subject" required><label>Class</label><select name="class_level"><option>Form 3</option><option>Form 4</option></select><label>Content</label><textarea name="content" id="editor"></textarea><button type="submit">Save</button></form><script>ClassicEditor.create(document.querySelector('#editor')).catch(console.error);</script><a href="admin_dashboard.php">Back</a>
+<!DOCTYPE html>
+<html><head><title>Write Note</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+    /* Make the editor fill the available width */
+    .ck-editor__editable {
+        min-height: 500px;
+        width: 100% !important;
+    }
+    .ck-editor {
+        width: 100% !important;
+    }
+</style>
+</head>
+<body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>✍️ Write Note</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
+<div style="padding: 2rem;">
+    <form method="post">
+        <div class="form-group"><label>Title</label><input type="text" name="title" required></div>
+        <div class="form-group"><label>Subject</label><input type="text" name="subject" required></div>
+        <div class="form-group"><label>Class</label><select name="class_level"><option>Form 3</option><option>Form 4</option></select></div>
+        <div class="form-group"><label>Content</label><textarea name="content" id="editor"></textarea></div>
+        <button type="submit">Save Note</button>
+    </form>
 </div>
-<div class="footer">SMART Tutor – Admin Panel</div>
+<div class="footer"><a href="admin_notes_list.php">← Back to Notes List</a></div>
 </div>
+<script>
+    ClassicEditor.create(document.querySelector('#editor'), {}).catch(console.error);
+</script>
 </body></html>

@@ -39,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-page">
+    <?php include_once 'includes/progress_tracker.php'; ?>
+
     <div class="login-container">
         <h2>Welcome Back</h2>
         <?php if ($error): ?>

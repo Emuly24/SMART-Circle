@@ -32,6 +32,8 @@ if ($exam_id && $user_id) {
     $answers = $conn->query("SELECT q.id as qid, q.question_text, q.points, a.id as answer_id, a.answer_text, a.answer_file_path, a.marks_awarded, a.feedback FROM exam_questions q LEFT JOIN exam_answers a ON q.id=a.question_id AND a.exam_id=$exam_id AND a.user_id=$user_id WHERE q.exam_id=$exam_id ORDER BY q.sort_order");
     ?><html><head><title>Mark Exam</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_mark_exams</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

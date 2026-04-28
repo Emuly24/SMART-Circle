@@ -32,6 +32,8 @@ while ($row = $r->fetch_assoc()) $existing[$row['user_id']] = $row['status'];
 ?>
 <!DOCTYPE html><html><head><title>Mark Attendance</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_attendance</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

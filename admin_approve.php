@@ -11,6 +11,24 @@ if (!isset($_SESSION['admin_logged'])) {
     $_SESSION['admin_logged'] = true;
 }
 $conn = getDB();
+
+// Ensure groups exist (run once if needed)
+$groups_exist = $conn->query("SELECT COUNT(*) FROM groups")->fetch_row()[0];
+if ($groups_exist < 10) {
+    // Insert default groups
+    $conn->query("INSERT IGNORE INTO groups (class_level, group_number, max_members, male_limit, female_limit) VALUES
+        ('Form 3', 1, 5, 2, 3),
+        ('Form 3', 2, 5, 2, 3),
+        ('Form 3', 3, 5, 2, 3),
+        ('Form 3', 4, 5, 2, 3),
+        ('Form 3', 5, 5, 2, 3),
+        ('Form 4', 1, 5, 2, 3),
+        ('Form 4', 2, 5, 2, 3),
+        ('Form 4', 3, 5, 2, 3),
+        ('Form 4', 4, 5, 2, 3),
+        ('Form 4', 5, 5, 2, 3)");
+}
+
 $msg = '';
 if (isset($_POST['app_id'])) {
     $app_id = (int)$_POST['app_id'];
@@ -18,31 +36,37 @@ if (isset($_POST['app_id'])) {
     if ($_POST['action'] == 'approve') {
         $class = $app['class_level'];
         $gender = $app['gender'];
-        
-        // Find available group for this class and gender (2 males, 3 females per group, max 5 members)
-        $available_group = null;
-        $groups = $conn->query("SELECT g.id, g.group_number, 
-            (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) as current_count,
-            (SELECT COUNT(*) FROM group_members gm JOIN users u ON gm.user_id=u.id WHERE gm.group_id = g.id AND u.gender='Male') as male_count,
-            (SELECT COUNT(*) FROM group_members gm JOIN users u ON gm.user_id=u.id WHERE gm.group_id = g.id AND u.gender='Female') as female_count
-            FROM groups g WHERE g.class_level = '$class' ORDER BY g.group_number ASC");
-        
-        while ($grp = $groups->fetch_assoc()) {
-            $male_ok = ($gender == 'Male') ? ($grp['male_count'] < 2) : true;
-            $female_ok = ($gender == 'Female') ? ($grp['female_count'] < 3) : true;
-            if ($grp['current_count'] < 5 && $male_ok && $female_ok) {
-                $available_group = $grp['id'];
-                break;
-            }
-        }
-        
-        if (!$available_group) {
-            $msg = "No available group for {$class} ($gender). All groups are full or gender limit reached.";
+        if (empty($class)) {
+            $msg = "Student class level is missing.";
         } else {
-            $conn->query("INSERT INTO group_members (user_id, group_id) VALUES ({$app['uid']}, $available_group)");
-            $conn->query("UPDATE applications SET status='approved' WHERE id=$app_id");
-            $conn->query("UPDATE users SET approved=1 WHERE id={$app['uid']}");
-            $msg = "Approved and assigned to group.";
+            // Find available group
+            $available_group = null;
+            $groups = $conn->query("SELECT g.id, g.group_number, 
+                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) as current_count,
+                (SELECT COUNT(*) FROM group_members gm JOIN users u ON gm.user_id=u.id WHERE gm.group_id = g.id AND u.gender='Male') as male_count,
+                (SELECT COUNT(*) FROM group_members gm JOIN users u ON gm.user_id=u.id WHERE gm.group_id = g.id AND u.gender='Female') as female_count
+                FROM groups g WHERE g.class_level = '$class' ORDER BY g.group_number ASC");
+            
+            while ($grp = $groups->fetch_assoc()) {
+                $male_ok = ($gender == 'Male') ? ($grp['male_count'] < 2) : true;
+                $female_ok = ($gender == 'Female') ? ($grp['female_count'] < 3) : true;
+                if ($grp['current_count'] < 5 && $male_ok && $female_ok) {
+                    $available_group = $grp['id'];
+                    break;
+                }
+            }
+            
+            if (!$available_group) {
+                $msg = "No available group for {$class} ({$gender}). All groups are full or gender limit reached.";
+            } else {
+                $conn->query("INSERT INTO group_members (user_id, group_id) VALUES ({$app['uid']}, $available_group)");
+                $conn->query("UPDATE applications SET status='approved' WHERE id=$app_id");
+                $conn->query("UPDATE users SET approved=1 WHERE id={$app['uid']}");
+                $msg = "Approved and assigned to group.";
+                $app_data = $conn->query("SELECT ambition, university, target_points FROM applications WHERE user_id={$app['uid']}")->fetch_assoc();
+                $motivation = "Congratulations! Your application is approved. Remember your goal: to become {$app_data['ambition']} at {$app_data['university']} with {$app_data['target_points']} points. We believe in you!";
+                $conn->query("INSERT INTO admin_messages (user_id, message) VALUES ({$app['uid']}, '$motivation')");
+            }
         }
     } else {
         $conn->query("UPDATE applications SET status='rejected' WHERE id=$app_id");
@@ -55,9 +79,12 @@ $pending = $conn->query("SELECT a.*, u.fullname, u.phone, u.class_level, u.id as
 $msg = $_GET['msg'] ?? '';
 ?>
 <!DOCTYPE html>
-<html><head><title>Approve Applications</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>Pending Applications</h1><a href="admin_dashboard.php">Dashboard</a></div>
+<html><head><title>Approve Applications</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php';
+    <?php include_once 'includes/progress_tracker.php'; ?>
+ ?>
+<div class="container"><div class="header"><h1>Pending Applications</h1><a href="admin_dashboard.php">Dashboard</a></div>
 <?php if($msg) echo "<div class='success'>$msg</div>"; while($r=$pending->fetch_assoc()): 
-    // Calculate current group counts for display
     $class = $r['class_level'];
     $groups_info = $conn->query("SELECT g.group_number, 
         (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) as cnt,

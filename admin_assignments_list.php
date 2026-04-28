@@ -21,6 +21,8 @@ $assignments = $conn->query("SELECT * FROM assignments ORDER BY due_date ASC");
 ?>
 <!DOCTYPE html><html><head><title>Manage Assignments</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_assignments_list</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

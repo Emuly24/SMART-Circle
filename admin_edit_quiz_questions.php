@@ -8,7 +8,9 @@ $quiz = $conn->query("SELECT * FROM quizzes WHERE id=$quiz_id")->fetch_assoc();
 if (!$quiz) die("Quiz not found.");
 $questions = $conn->query("SELECT * FROM quiz_questions WHERE quiz_id=$quiz_id ORDER BY sort_order");
 ?>
-<!DOCTYPE html><html><head><title>Edit Questions</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>✏️ Edit Questions: <?=htmlspecialchars($quiz['title'])?></h1><a href="admin_manage_quiz.php?note_id=<?=$quiz['note_id']?>">Back</a></div>
+<!DOCTYPE html><html><head><title>Edit Questions</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>✏️ Edit Questions: <?=htmlspecialchars($quiz['title'])?></h1><a href="admin_manage_quiz.php?note_id=<?=$quiz['note_id']?>">Back</a></div>
 <?php while($q=$questions->fetch_assoc()): ?>
 <div class="card"><strong>Q<?=$q['sort_order']?>:</strong> <?=nl2br(htmlspecialchars($q['question_text']))?> (<?=$q['points']?> pts)<br><a href="?delete_question=<?=$q['id']?>" onclick="return confirm('Delete?')">Delete</a></div>
 <?php endwhile; ?>

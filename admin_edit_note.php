@@ -20,16 +20,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $class = $_POST['class_level'];
     $content = $_POST['content'];
     $conn->query("UPDATE notes SET title='$title', subject='$subject', class_level='$class', content='$content' WHERE id=$id");
-    echo "<script>alert('Updated'); window.location='admin_notes_list.php';</script>";
+    echo "<script>alert('Note updated'); window.location='admin_notes_list.php';</script>";
+    exit;
 }
 ?>
-<!DOCTYPE html><html><head><title>Edit Note</title><script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>    <link rel="stylesheet" href="style.css">
-</head><body>
-<div class="container">
-<div class="header"><h1>admin_edit_note</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
-<div class="content-grid">
-<h1>✏️ Edit Note</h1><form method="post"><label>Title</label><input type="text" name="title" value="<?=htmlspecialchars($note['title'])?>" required><label>Subject</label><input type="text" name="subject" value="<?=$note['subject']?>" required><label>Class</label><select name="class_level"><option value="Form 3" <?=($note['class_level']=='Form 3')?'selected':''?>>Form 3</option><option value="Form 4" <?=($note['class_level']=='Form 4')?'selected':''?>>Form 4</option></select><label>Content</label><textarea name="content" id="editor"><?=htmlspecialchars($note['content'])?></textarea><button type="submit">Save</button></form><script>ClassicEditor.create(document.querySelector('#editor')).catch(console.error);</script>
+<!DOCTYPE html><html><head><title>Edit Note</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<style>
+    .ck-editor__editable {
+        min-height: 500px;
+        width: 100% !important;
+    }
+    .ck-editor {
+        width: 100% !important;
+    }
+</style>
+</head>
+<body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>✏️ Edit Note</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
+<div style="padding: 2rem;">
+    <form method="post">
+        <div class="form-group"><label>Title</label><input type="text" name="title" value="<?=htmlspecialchars($note['title'])?>" required></div>
+        <div class="form-group"><label>Subject</label><input type="text" name="subject" value="<?=$note['subject']?>" required></div>
+        <div class="form-group"><label>Class</label><select name="class_level">
+            <option value="Form 3" <?=($note['class_level']=='Form 3')?'selected':''?>>Form 3</option>
+            <option value="Form 4" <?=($note['class_level']=='Form 4')?'selected':''?>>Form 4</option>
+        </select></div>
+        <div class="form-group"><label>Content</label><textarea name="content" id="editor"><?=htmlspecialchars($note['content'])?></textarea></div>
+        <button type="submit">Save Changes</button>
+    </form>
 </div>
-<div class="footer">SMART Tutor – Admin Panel</div>
+<div class="footer"><a href="admin_notes_list.php">← Back to Notes List</a></div>
 </div>
+<script>
+    ClassicEditor.create(document.querySelector('#editor'), {}).catch(console.error);
+</script>
 </body></html>

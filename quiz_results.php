@@ -7,7 +7,9 @@ $quiz_id = (int)$_GET['quiz_id'];
 $quiz = $conn->query("SELECT * FROM quizzes WHERE id=$quiz_id")->fetch_assoc();
 if (!$quiz) die("Quiz not found.");
 if (!is_content_unlocked('quiz', $quiz_id, $uid)) {
-    die("<!DOCTYPE html><html><head><title>Quiz Locked</title><link rel='stylesheet' href='style.css'></head><body><div class='container'><div class='header'><h1>Quiz Locked</h1><a href='dashboard.php'>Dashboard</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This quiz is not yet available for your group.</div><a href='dashboard.php'>← Back</a></div></body></html>");
+    die("<!DOCTYPE html><html><head><title>Quiz Locked</title><link rel='stylesheet' href='style.css'></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class='container'><div class='header'><h1>Quiz Locked</h1><a href='dashboard.php'>Dashboard</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This quiz is not yet available for your group.</div><a href='dashboard.php'>← Back</a></div></body></html>");
 }
 $attempt = $conn->query("SELECT * FROM quiz_attempts WHERE user_id=$uid AND quiz_id=$quiz_id")->fetch_assoc();
 if (!$attempt) die("No attempt found.");

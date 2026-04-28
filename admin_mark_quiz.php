@@ -23,7 +23,9 @@ $pending = $conn->query("SELECT a.id as attempt_id, u.fullname, qa.id as answer_
     JOIN quiz_questions qq ON qa.question_id=qq.id 
     WHERE qq.quiz_id=$quiz_id AND qq.question_type='short_answer' AND qa.points_awarded=0");
 ?>
-<!DOCTYPE html><html><head><title>Mark Quiz Short Answers</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>📝 Mark Short Answers: <?=htmlspecialchars($quiz['title'])?></h1><a href="admin_dashboard.php">Dashboard</a></div>
+<!DOCTYPE html><html><head><title>Mark Quiz Short Answers</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>📝 Mark Short Answers: <?=htmlspecialchars($quiz['title'])?></h1><a href="admin_dashboard.php">Dashboard</a></div>
 <?php while($row = $pending->fetch_assoc()): ?>
 <div class="card"><strong><?=htmlspecialchars($row['fullname'])?></strong><br><strong>Question:</strong> <?=nl2br(htmlspecialchars($row['question_text']))?><br><strong>Student's answer:</strong> <?=nl2br(htmlspecialchars($row['user_answer']))?><br><form method="post"><input type="hidden" name="answer_id" value="<?=$row['answer_id']?>"><label>Marks (max <?=$row['points']?>):</label><input type="number" name="marks" min="0" max="<?=$row['points']?>" required><button type="submit" name="save_marks">Save</button></form></div>
 <?php endwhile; ?>

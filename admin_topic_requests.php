@@ -29,6 +29,8 @@ $classes = ['Form 3', 'Form 4'];
 ?>
 <!DOCTYPE html><html><head><title>Topic Requests</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_topic_requests</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

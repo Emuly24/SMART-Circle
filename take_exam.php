@@ -7,7 +7,9 @@ $exam_id = (int)$_GET['exam_id'];
 $exam = $conn->query("SELECT * FROM exams WHERE id=$exam_id")->fetch_assoc();
 if (!$exam) die("Exam not found.");
 if (!is_content_unlocked('exam', $exam_id, $uid)) {
-    die("<!DOCTYPE html><html><head><title>Exam Locked</title><link rel='stylesheet' href='style.css'></head><body><div class='container'><div class='header'><h1>Exam Locked</h1><a href='exams.php'>Exams</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This exam is not yet available for your group. Please wait until the admin unlocks it.</div><a href='exams.php'>← Back to Exams</a></div></body></html>");
+    die("<!DOCTYPE html><html><head><title>Exam Locked</title><link rel='stylesheet' href='style.css'></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class='container'><div class='header'><h1>Exam Locked</h1><a href='exams.php'>Exams</a><a href='logout.php' class='logout'>Logout</a></div><div class='error'>This exam is not yet available for your group. Please wait until the admin unlocks it.</div><a href='exams.php'>← Back to Exams</a></div></body></html>");
 }
 
 $sub = $conn->query("SELECT * FROM exam_submissions WHERE exam_id=$exam_id AND user_id=$uid")->fetch_assoc();

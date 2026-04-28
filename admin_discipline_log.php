@@ -15,6 +15,8 @@ $log = $conn->query("SELECT d.*, u.fullname, u.class_level FROM discipline_log d
 ?>
 <!DOCTYPE html><html><head><title>Discipline Log</title>    <link rel="stylesheet" href="style.css">
 </head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container">
 <div class="header"><h1>admin_discipline_log</h1><a href="admin_dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">

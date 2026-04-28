@@ -8,7 +8,9 @@ $class = $_SESSION['class_level'];
 $books = $conn->query("SELECT subject, title, file_path FROM books WHERE class_level='$class' ORDER BY subject, title");
 ?>
 <!DOCTYPE html>
-<html><head><title>Library - Books</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1>📚 Library - <?=$class?> Books</h1><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
+<html><head><title>Library - Books</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1>📚 Library - <?=$class?> Books</h1><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 <div class="content-grid">
 <?php
 $current_subject = '';

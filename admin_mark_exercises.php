@@ -40,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_marks'])) {
 $notes = $conn->query("SELECT DISTINCT n.id, n.title FROM notes n JOIN note_exercises e ON n.id=e.note_id ORDER BY n.title");
 ?>
 <!DOCTYPE html><html><head><title>Mark Exercises</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+
 <div class="container"><div class="header"><h1>📝 Mark Student Exercises</h1><a href="admin_dashboard.php">Dashboard</a> <a href="admin_send_reminders.php">Send Reminders</a> <a href="admin_message_templates.php">Manage Templates</a></div>
 <div class="content-grid">
 <?php while($n = $notes->fetch_assoc()): ?>

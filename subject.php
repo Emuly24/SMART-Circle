@@ -41,7 +41,9 @@ $quizzes = $conn->query("SELECT q.id, q.title, q.description, q.time_limit
     ORDER BY q.title");
 ?>
 <!DOCTYPE html>
-<html><head><title><?= htmlspecialchars($subject) ?> - SMART Tutor</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="header"><h1><?= htmlspecialchars($subject) ?></h1><a href="subjects.php">Subjects</a><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
+<html><head><title><?= htmlspecialchars($subject) ?> - SMART Tutor</title><link rel="stylesheet" href="style.css"></head><body>
+    <?php include_once 'includes/header.php'; ?>
+<div class="container"><div class="header"><h1><?= htmlspecialchars($subject) ?></h1><a href="subjects.php">Subjects</a><a href="dashboard.php">Dashboard</a><a href="logout.php" class="logout">Logout</a></div>
 
 <div class="content-grid">
     <!-- Notes Section -->
