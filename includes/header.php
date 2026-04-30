@@ -108,8 +108,6 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
         <label for="menu-toggle" class="menu-icon">☰</label>
         <ul class="menu">
             <?php if ($role == 'admin'): ?>
-                <li><a href="admin_delete_covered_topics.php">🗑️ Delete Covered Topics</a></li>
-                <li><a href="admin_export_covered_form.php">📎 Export Covered Topics</a></li>
                 <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
                 <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
                 <li><a href="admin_class_overview.php">🏫 Class Overview</a></li>
@@ -127,7 +125,7 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
                 <li><a href="student_report.php">⚠️ Submit a Report</a></li>
                 <li><a href="request_topic.php">💡 Request Topic</a></li>
                 <li><a href="covered_topics.php">📜 Covered Topics</a></li>
-                <li><a href="my_group.php">👥 My Group</a></li>   <!-- NEW -->
+                <li><a href="my_group.php">👥 My Group</a></li>   
                 <li><a href="logout.php">🚪 Logout</a></li>
             <?php endif; ?> 
                   </ul>
