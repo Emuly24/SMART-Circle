@@ -1,8 +1,10 @@
 <?php
 require_once 'config.php';
 session_start();
+
+$admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
 if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
         header('WWW-Authenticate: Basic realm="SMART Tutor Admin"');
         header('HTTP/1.0 401 Unauthorized');
         echo 'Access denied';
@@ -14,6 +16,7 @@ if (!isset($_SESSION['admin_logged'])) {
 }
 $conn = getDB();
 $uid = $_GET['user_id'] ?? 0;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = (int)$_POST['user_id'];
     $action = $_POST['action'];
@@ -31,17 +34,45 @@ $student = null;
 if ($uid) $student = $conn->query("SELECT fullname,class_level,status,suspension_end FROM users WHERE id=$uid")->fetch_assoc();
 $history = $uid ? $conn->query("SELECT * FROM discipline_log WHERE user_id=$uid ORDER BY created_at DESC") : null;
 ?>
-<!DOCTYPE html><html><head><title>Discipline</title>    <link rel="stylesheet" href="style.css">
-</head><body>
+<!DOCTYPE html><html><head><title>Discipline</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
-
-<div class="container">
-
-<div class="content-grid">
-<form method="get"><select name="user_id"><option value="">-- Select Student --</option><?php while($s=$students->fetch_assoc()):?><option value="<?=$s['id']?>" <?=($uid==$s['id'])?'selected':''?>><?=htmlspecialchars($s['fullname'])?> (<?=$s['class_level']?>)</option><?php endwhile;?></select><button type="submit">Select</button></form><?php if($student):?><h2><?=htmlspecialchars($student['fullname'])?> (<?=$student['class_level']?>) - Status: <?=$student['status']?> <?php if($student['suspension_end']) echo "until ".$student['suspension_end'];?></h2><h3>History</h3><ul><?php while($h=$history->fetch_assoc()):?><li><?=$h['created_at']?> - <?=strtoupper($h['action'])?>: <?=htmlspecialchars($h['reason'])?><?php if($h['suspension_end']) echo " (until $h[suspension_end])";?></li><?php endwhile;?></ul><form method="post"><input type="hidden" name="user_id" value="<?=$uid?>"><label>Action:</label><select name="action"><option value="warning">Warning</option><option value="suspension">Suspension</option><option value="dismissal">Dismissal</option></select><label>Reason:</label><input type="text" name="reason" required><label>Suspension end (if suspension):</label><input type="date" name="suspension_end"><label>Admin notes:</label><textarea name="admin_notes"></textarea><button type="submit">Apply</button></form><?php endif;?> 
-</div>
-<div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <div class="container">
+        <div class="content-grid">
+            <form method="get">
+                <select name="user_id">
+                    <option value="">-- Select Student --</option>
+                    <?php while($s=$students->fetch_assoc()): ?>
+                        <option value="<?= $s['id'] ?>" <?= ($uid==$s['id'])?'selected':'' ?>><?= htmlspecialchars($s['fullname']) ?> (<?= $s['class_level'] ?>)</option>
+                    <?php endwhile; ?>
+                </select>
+                <button type="submit">Select</button>
+            </form>
+            <?php if($student): ?>
+                <div class="card">
+                    <h2><?= htmlspecialchars($student['fullname']) ?> (<?= $student['class_level'] ?>)</h2>
+                    <p>Status: <?= ucfirst($student['status']) ?> <?php if($student['suspension_end']) echo "until ".$student['suspension_end']; ?></p>
+                    <h3>Discipline History</h3>
+                    <?php if($history->num_rows == 0): ?>
+                        <p>No previous actions.</p>
+                    <?php else: ?>
+                        <ul>
+                        <?php while($h=$history->fetch_assoc()): ?>
+                            <li><?= $h['created_at'] ?> - <?= strtoupper($h['action']) ?>: <?= htmlspecialchars($h['reason']) ?><?php if($h['suspension_end']) echo " (until $h[suspension_end])"; ?></li>
+                        <?php endwhile; ?>
+                        </ul>
+                    <?php endif; ?>
+                    <form method="post">
+                        <input type="hidden" name="user_id" value="<?= $uid ?>">
+                        <div class="form-group"><label>Action:</label><select name="action" class="form-control"><option value="warning">Warning</option><option value="suspension">Suspension</option><option value="dismissal">Dismissal</option></select></div>
+                        <div class="form-group"><label>Reason:</label><input type="text" name="reason" class="form-control" required></div>
+                        <div class="form-group"><label>Suspension end (if suspension):</label><input type="date" name="suspension_end" class="form-control"></div>
+                        <div class="form-group"><label>Admin notes:</label><textarea name="admin_notes" class="form-control"></textarea></div>
+                        <button type="submit" class="btn">Apply</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
+    </div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>

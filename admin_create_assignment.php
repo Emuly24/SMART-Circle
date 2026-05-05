@@ -1,8 +1,10 @@
 <?php
 require_once 'config.php';
 session_start();
+
+$admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
 if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
         header('WWW-Authenticate: Basic realm="SMART Tutor Admin"');
         header('HTTP/1.0 401 Unauthorized');
         echo 'Access denied';
@@ -13,6 +15,7 @@ if (!isset($_SESSION['admin_logged'])) {
     unset($_SESSION['user_id']);
 }
 $conn = getDB();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = $_POST['title'];
     $desc = $_POST['description'];
@@ -31,22 +34,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     $conn->query("INSERT INTO assignments (title,description,attachment_file_path,subject,class_level,due_date) VALUES ('$title','$desc','$attach','$subj','$class','$due')");
-    echo "<script>alert('Assignment created');</script>";
+    echo "<script>alert('Assignment created'); window.location='admin_assignments_list.php';</script>";
+    exit;
 }
 ?>
-<!DOCTYPE html><html><head><title>Create Assignment</title>    <link rel="stylesheet" href="style.css">
-</head><body>
+<!DOCTYPE html><html><head><title>Create Assignment</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
-
-    
-
-<div class="container">
-
-<div class="content-grid">
-<form method="post" enctype="multipart/form-data"><label>Title</label><input type="text" name="title" required><label>Description</label><textarea name="description" rows="4" required></textarea><label>Attachment (optional)</label><input type="file" name="attachment" accept=".jpg,.png,.pdf,.doc,.txt"><label>Subject</label><input type="text" name="subject" required><label>Class</label><select name="class_level"><option>Form 3</option><option>Form 4</option></select><label>Due Date</label><input type="date" name="due_date" required><button type="submit">Create</button></form>
-</div>
-<div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <div class="container">
+        <div class="content-grid">
+            <form method="post" enctype="multipart/form-data">
+                <div class="form-group"><label>Title</label><input type="text" name="title" required></div>
+                <div class="form-group"><label>Description</label><textarea name="description" rows="4" required></textarea></div>
+                <div class="form-group"><label>Attachment (optional)</label><input type="file" name="attachment" accept=".jpg,.png,.pdf,.doc,.txt"></div>
+                <div class="form-group"><label>Subject</label><input type="text" name="subject" required></div>
+                <div class="form-group"><label>Class</label><select name="class_level"><option>Form 3</option><option>Form 4</option></select></div>
+                <div class="form-group"><label>Due Date</label><input type="date" name="due_date" required></div>
+                <button type="submit" class="btn">Create Assignment</button>
+            </form>
+        </div>
+        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
+    </div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>

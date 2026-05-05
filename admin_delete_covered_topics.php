@@ -1,8 +1,10 @@
 <?php
 require_once 'config.php';
 session_start();
+
+$admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
 if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
         header('WWW-Authenticate: Basic realm="SMART Tutor Admin"');
         header('HTTP/1.0 401 Unauthorized');
         echo 'Access denied';
@@ -32,36 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html><html><head><title>Delete Covered Topics</title>    <link rel="stylesheet" href="style.css">
-</head><body>
+<!DOCTYPE html><html><head><title>Delete Covered Topics</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
-
-    
-
-<div class="admin-page">
-    <h2>Batch Delete Covered Topics</h2>
-    <form method="post">
-        <div class="form-group">
-            <label for="class">Class:</label>
-            <select id="class" name="class">
-                <option>All</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="delete_date">Delete older than date:</label>
-            <input type="date" id="delete_date" name="delete_date" placeholder="dd/mm/yyyy">
-        </div>
-
-        <div class="form-actions">
+    <div class="container">
+        <div class="card"><h2>Batch Delete Covered Topics</h2>
+        <?php if($msg) echo "<div class='success'>$msg</div>"; ?>
+        <form method="post">
+            <div class="form-group"><label>Class:</label><select name="class_level"><option>All</option><option>Form 3</option><option>Form 4</option></select></div>
+            <div class="form-group"><label>Delete older than date:</label><input type="date" name="older_than" placeholder="dd/mm/yyyy"></div>
             <button type="submit" class="btn btn-delete">Delete</button>
-        </div>
-    </form>
-</div>
-
-</div>
-<div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+        </form></div>
+        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
+    </div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>

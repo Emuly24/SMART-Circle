@@ -1,5 +1,6 @@
 /* ============================================
-   SMART TUTOR – MASTER STYLE 
+   SMART TUTOR – MASTER STYLE (FINAL)
+   All buttons pill‑styled, fully responsive, no duplicates
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
@@ -1212,4 +1213,43 @@ main, .container > *:not(.top-nav) {
     background: var(--accent);
     color: #1e293b;
     transform: translateY(-2px);
+}
+/* Hamburger menu – vertical scroll only */
+.menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--primary-dark);
+    min-width: 220px;
+    list-style: none;
+    display: none;
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    z-index: 1200;
+    max-height: 70vh;           /* limits height */
+    overflow-y: auto;           /* vertical scroll when needed */
+    overflow-x: hidden;         /* no horizontal scroll */
+}
+.menu li {
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.menu li a {
+    display: block;
+    padding: 0.7rem 1rem;
+    color: white;
+    text-decoration: none;
+    white-space: normal;        /* text wraps, no horizontal overflow */
+    word-break: break-word;     /* prevents long words from breaking layout */
+}
+/* Optional: style the scrollbar for better visibility */
+.menu::-webkit-scrollbar {
+    width: 5px;
+}
+.menu::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+}
+.menu::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 5px;
 }

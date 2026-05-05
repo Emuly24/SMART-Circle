@@ -1,13 +1,32 @@
 <?php
 require_once 'config.php';
 session_start();
-if (!isset($_SESSION['admin_logged'])) die("Access denied");
+
+if (function_exists('getAdminHash')) {
+    $admin_hash = getAdminHash();
+} elseif (defined('ADMIN_HASH')) {
+    $admin_hash = ADMIN_HASH;
+} else {
+    $admin_hash = '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu';
+}
+
+if (!isset($_SESSION['admin_logged'])) {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
+        header('WWW-Authenticate: Basic realm="SMART Tutor Admin"');
+        header('HTTP/1.0 401 Unauthorized');
+        echo 'Access denied';
+        exit;
+    }
+    $_SESSION['admin_logged'] = true;
+    $_SESSION['role'] = 'admin';
+    unset($_SESSION['user_id']);
+}
+
 $conn = getDB();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_marks'])) {
     $ans_id = (int)$_POST['answer_id'];
     $marks = (int)$_POST['marks'];
     $conn->query("UPDATE quiz_answers SET points_awarded=$marks, is_correct=".($marks>0?1:0)." WHERE id=$ans_id");
-    // Recalculate total score for the attempt
     $attempt_id = $conn->query("SELECT attempt_id FROM quiz_answers WHERE id=$ans_id")->fetch_assoc()['attempt_id'];
     $new_total = $conn->query("SELECT SUM(points_awarded) FROM quiz_answers WHERE attempt_id=$attempt_id")->fetch_row()[0];
     $conn->query("UPDATE quiz_attempts SET score=$new_total WHERE id=$attempt_id");
@@ -25,13 +44,28 @@ $pending = $conn->query("SELECT a.id as attempt_id, u.fullname, qa.id as answer_
 ?>
 <!DOCTYPE html><html><head><title>Mark Quiz Short Answers</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
-
-    
-<div class="container">
-<?php while($row = $pending->fetch_assoc()): ?>
-<div class="card"><strong><?=htmlspecialchars($row['fullname'])?></strong><br><strong>Question:</strong> <?=nl2br(htmlspecialchars($row['question_text']))?><br><strong>Student's answer:</strong> <?=nl2br(htmlspecialchars($row['user_answer']))?><br><form method="post"><input type="hidden" name="answer_id" value="<?=$row['answer_id']?>"><label>Marks (max <?=$row['points']?>):</label><input type="number" name="marks" min="0" max="<?=$row['points']?>" required><button type="submit" name="save_marks">Save</button></form></div>
-<?php endwhile; ?>
-</div><div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <div class="container">
+        <h1>Mark Quiz Short Answers – <?= htmlspecialchars($quiz['title']) ?></h1>
+        <div class="content-grid">
+            <?php if($pending->num_rows == 0): ?>
+                <div class="card"><p>No pending short answers to mark.</p></div>
+            <?php else: ?>
+                <?php while($row = $pending->fetch_assoc()): ?>
+                    <div class="card">
+                        <strong><?=htmlspecialchars($row['fullname'])?></strong><br>
+                        <strong>Question:</strong> <?=nl2br(htmlspecialchars($row['question_text']))?><br>
+                        <strong>Student's answer:</strong> <?=nl2br(htmlspecialchars($row['user_answer']))?><br>
+                        <form method="post">
+                            <input type="hidden" name="answer_id" value="<?=$row['answer_id']?>">
+                            <label>Marks (max <?=$row['points']?>):</label>
+                            <input type="number" name="marks" min="0" max="<?=$row['points']?>" required>
+                            <button type="submit" name="save_marks" class="btn">Save</button>
+                        </form>
+                    </div>
+                <?php endwhile; ?>
+            <?php endif; ?>
+        </div>
+        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
+    </div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>

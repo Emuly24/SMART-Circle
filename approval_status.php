@@ -3,7 +3,6 @@ require_once 'config.php';
 require_once 'check_access.php';
 $conn = getDB();
 $uid = $_SESSION['user_id'];
-
 $user = $conn->query("SELECT approved, consent_signed, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
 $application = $conn->query("SELECT status, admin_notes FROM applications WHERE user_id=$uid")->fetch_assoc();
 ?>
