@@ -16,20 +16,29 @@ $subjects = $conn->query("SELECT DISTINCT n.subject
     ORDER BY n.subject");
 ?>
 <!DOCTYPE html>
-<html><head><title>Subjects</title><link rel="stylesheet" href="style.css"></head><body>
+<html><head><title>Subjects - SMART Tutor</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
-
-    
-<div class="container">
-<div class="content-grid">
-<?php while($s = $subjects->fetch_assoc()): ?>
-<div class="card"><i class="fas fa-chalkboard"></i><h3><?= htmlspecialchars($s['subject']) ?></h3><a href="subject.php?subject=<?= urlencode($s['subject']) ?>">Explore Subject</a></div>
-<?php endwhile; ?>
-<?php if($subjects->num_rows == 0): ?>
-<div class="card"><p>No subjects available for your group yet.</p></div>
-<?php endif; ?>
-</div>
-<div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
-</body></html>
+    <div class="container">
+        <div class="content-grid">
+            <?php while($s = $subjects->fetch_assoc()): ?>
+                <div class="card">
+                    <i class="fas fa-chalkboard"></i>
+                    <h3><?= htmlspecialchars($s['subject']) ?></h3>
+                    <div class="card-buttons">
+                        <a href="subject.php?subject=<?= urlencode($s['subject']) ?>">Explore Subject</a>
+                    </div>
+                </div>
+            <?php endwhile; ?>
+            <?php if($subjects->num_rows == 0): ?>
+                <div class="card">
+                    <p>No subjects available for your group yet. Please wait for admin to unlock content.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="footer">
+            <a href="dashboard.php" class="btn-back">← Back to Dashboard</a>
+        </div>
+    </div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
+</body>
+</html>

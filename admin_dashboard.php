@@ -42,13 +42,33 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
 <div class="container">
     <?php include_once 'includes/header.php'; ?>
 
-    <!-- Stats cards -->
-    <div class="stats" style="display: flex; gap: 20px; flex-wrap: wrap; padding: 20px;">
-        <div class="stat card" style="flex:1; min-width:150px;"><i class="fas fa-users"></i><br><strong><?= $total_students ?></strong><br>Active Students</div>
-        <div class="stat card" style="flex:1; min-width:150px;"><i class="fas fa-clock"></i><br><strong><?= $pending_apps ?></strong><br>Pending Applications</div>
-        <div class="stat card" style="flex:1; min-width:150px;"><i class="fas fa-file-alt"></i><br><strong><?= $pending_exams ?></strong><br>Exams Pending Marking</div>
-        <div class="stat card" style="flex:1; min-width:150px;"><i class="fas fa-tasks"></i><br><strong><?= $pending_assign ?></strong><br>Assignments Pending</div>
-        <div class="stat card" style="flex:1; min-width:150px;"><i class="fas fa-ban"></i><br><strong><?= $suspensions ?></strong><br>Suspended Students</div>
+    <!-- Stats cards (no inline style) -->
+    <div class="stats-container">
+        <div class="stat-card-item">
+            <i class="fas fa-users"></i>
+            <div class="stat-number"><?= $total_students ?></div>
+            <div class="stat-label">Active Students</div>
+        </div>
+        <div class="stat-card-item">
+            <i class="fas fa-clock"></i>
+            <div class="stat-number"><?= $pending_apps ?></div>
+            <div class="stat-label">Pending Applications</div>
+        </div>
+        <div class="stat-card-item">
+            <i class="fas fa-file-alt"></i>
+            <div class="stat-number"><?= $pending_exams ?></div>
+            <div class="stat-label">Exams Pending Marking</div>
+        </div>
+        <div class="stat-card-item">
+            <i class="fas fa-tasks"></i>
+            <div class="stat-number"><?= $pending_assign ?></div>
+            <div class="stat-label">Assignments Pending</div>
+        </div>
+        <div class="stat-card-item">
+            <i class="fas fa-ban"></i>
+            <div class="stat-number"><?= $suspensions ?></div>
+            <div class="stat-label">Suspended Students</div>
+        </div>
     </div>
 
     <!-- Admin action cards -->
@@ -62,6 +82,8 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
                 <a href="admin_discipline.php">Discipline</a>
                 <a href="admin_attendance.php">Mark Attendance</a>
                 <a href="admin_reports.php">Student Reports</a>
+                <a href="admin_testimonials.php">⭐ Manage Testimonials</a>
+                <a href="admin_subject_questions.php">❓ Subject Questions</a>
             </div>
         </div>
         <div class="card">
