@@ -138,7 +138,6 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
                 <a href="admin_settings.php">Change Password</a>
                 <a href="admin_notifications_center.php">Notifications Center</a>
                 <a href="admin_feedback.php">Student Feedback</a>
-                <a href="admin_run_pending_exercises.php">⏰ Run Pending Exercise Checks</a>
             </div>
         </div>
     </div>

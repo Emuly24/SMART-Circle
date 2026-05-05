@@ -1,0 +1,15 @@
+name: Scheduled Checks for SMART Tutor
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch:          # allows manual run
+
+jobs:
+  run-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron job script
+        run: |
+          curl -X GET "https://smarttutor.gt.tc/run_cron_jobs.php" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET_TOKEN }}"
