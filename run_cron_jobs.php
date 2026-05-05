@@ -43,6 +43,11 @@ while ($r = $overdue->fetch_assoc()) {
     $conn->query("UPDATE exercise_attempts SET warning_sent=1, suspended_for_exercise=1 WHERE id={$r['id']}");
     $output[] = "Suspended {$r['fullname']}";
 }
+// Send reminder for books due tomorrow
+$overdue = $conn->query("SELECT DISTINCT u.id, u.fullname, u.email FROM borrowed_books b JOIN users u ON b.user_id = u.id WHERE b.due_date = CURDATE() + INTERVAL 1 DAY AND b.returned_at IS NULL");
+while ($r = $overdue->fetch_assoc()) {
+    $conn->query("INSERT INTO admin_messages (user_id, message) VALUES ({$r['id']}, 'Reminder: Your borrowed book is due tomorrow. Please return it on time.')");
+}
 
 $log = date('Y-m-d H:i:s') . " - " . (empty($output) ? "No pending actions." : implode(", ", $output));
 file_put_contents(__DIR__ . '/cron_log.txt', $log . PHP_EOL, FILE_APPEND);

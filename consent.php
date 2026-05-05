@@ -15,7 +15,6 @@ if ($u['consent_signed']) {
     die("Already agreed. <a href='dashboard.php'>Dashboard</a>");
 }
 
-// Generate a signature from the user's name: first letter of surname + '.' + first name
 function generateSignature($fullname) {
     $parts = explode(' ', $fullname);
     $surname = end($parts);
@@ -77,19 +76,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const leftMargin = 20;
+                const rightMargin = pageWidth - 20;
                 let y = 20;
 
+                // Header with SMART Tutor colors
+                doc.setFillColor(30, 42, 58); // dark blue
+                doc.rect(0, 0, pageWidth, 40, 'F');
+                doc.setTextColor(212, 175, 55); // gold
                 doc.setFontSize(18);
-                doc.text("SMART Tutor Consent Agreement", leftMargin, y);
-                y += 10;
+                doc.text("SMART Tutor Consent Agreement", leftMargin, 25);
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.text("Discipline & Integrity", leftMargin, 35);
+                doc.setTextColor(0, 0, 0);
+                
+                y = 50;
                 doc.setLineWidth(0.5);
-                doc.line(leftMargin, y, pageWidth - leftMargin, y);
+                doc.line(leftMargin, y, rightMargin, y);
                 y += 10;
                 doc.setFontSize(12);
-                doc.text("This document certifies that the student named below has read, understood, and agreed to the rules and commitments of the SMART Tutor program.", leftMargin, y);
-                y += 10;
+                const text = "This document certifies that the student named below has read, understood, and agreed to the rules and commitments of the SMART Tutor program.";
+                const lines = doc.splitTextToSize(text, pageWidth - 40);
+                doc.text(lines, leftMargin, y);
+                y += lines.length * 6 + 10;
+                
+                doc.setFontSize(12);
+                doc.setTextColor(30, 42, 58);
                 doc.text("Student Information:", leftMargin, y);
                 y += 8;
+                doc.setFontSize(11);
                 doc.text("Full Name: <?= addslashes($user['fullname']) ?>", leftMargin + 10, y);
                 y += 7;
                 doc.text("Class Level: <?= addslashes($user['class_level']) ?>", leftMargin + 10, y);
@@ -97,7 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
                 doc.text("School: <?= addslashes($user['school']) ?>", leftMargin + 10, y);
                 y += 7;
                 doc.text("Agreement Date: <?= addslashes($signed_date) ?>", leftMargin + 10, y);
-                y += 10;
+                y += 12;
+                
+                doc.setFontSize(12);
                 doc.text("The student agrees to:", leftMargin, y);
                 y += 8;
                 const rules = [
@@ -108,10 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
                     "Never engage in financial or inappropriate exchanges (dismissal)."
                 ];
                 rules.forEach(line => {
-                    doc.text("• " + line, leftMargin + 5, y);
-                    y += 6;
+                    const bullet = "• " + line;
+                    const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
+                    doc.text(wrapped, leftMargin + 5, y);
+                    y += wrapped.length * 5 + 2;
                 });
-                y += 5;
+                y += 8;
                 doc.text("Consequences of Breach:", leftMargin, y);
                 y += 8;
                 const cons = [
@@ -121,20 +140,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
                     "Permanent dismissal for serious/repeated violations."
                 ];
                 cons.forEach(line => {
-                    doc.text("• " + line, leftMargin + 5, y);
-                    y += 6;
+                    const bullet = "• " + line;
+                    const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
+                    doc.text(wrapped, leftMargin + 5, y);
+                    y += wrapped.length * 5 + 2;
                 });
                 y += 10;
                 doc.text("Electronic Signature: <?= addslashes($signed_by) ?>", leftMargin, y);
                 y += 8;
                 doc.text("Date: <?= addslashes($signed_date) ?>", leftMargin, y);
-                y += 15;
+                y += 20;
                 doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
                 doc.text("SMART Tutor – Discipline & Integrity", leftMargin, y);
                 doc.save("Consent_Agreement_<?= preg_replace('/[^a-zA-Z0-9]/','_', $user['fullname']) ?>.pdf");
             }
         </script>
     <?php else: ?>
+        <!-- ... (the form section remains unchanged) ... -->
         <h1><i class="fas fa-file-signature"></i> SMART Tutor Consent Agreement</h1>
         <p>Dear <strong><?= htmlspecialchars($user['fullname']) ?></strong>, please read the following terms carefully. By signing this document, you commit to the rules below.</p>
 

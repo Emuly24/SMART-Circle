@@ -93,6 +93,7 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
                 <a href="admin_note_editor.php">Write Note</a>
                 <a href="admin_notes_list.php">Manage Notes</a>
                 <a href="admin_upload_book.php">Upload Book</a>
+                <a href="admin_book_questions.php">📚 Book Questions</a>
             </div>
         </div>
         <div class="card">

@@ -62,18 +62,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Determine route
-    $route = null;
-    $has_science = (strpos($subjects_taken, 'Physics') !== false && strpos($subjects_taken, 'Chemistry') !== false);
-    $has_humanities = (strpos($subjects_taken, 'History') !== false && strpos($subjects_taken, 'Bible Knowledge') !== false && strpos($subjects_taken, 'Social Studies') !== false && strpos($subjects_taken, 'Life Skills') !== false);
-    
-    if ($has_science && !$has_humanities) {
-        $route = 'sciences';
-    } elseif ($has_humanities && !$has_science) {
-        $route = 'humanities';
-    } elseif ($has_science && $has_humanities) {
-        $route = 'sciences';
-    }
+    // Determine route based on subjects they need assistance with
+$route = null;
+$science_assist = ['Physics', 'Chemistry', 'Biology', 'Mathematics'];
+$humanities_assist = ['English', 'History', 'Bible Knowledge', 'Social Studies', 'Life Skills', 'Chichewa', 'Geography', 'Agriculture'];
+
+$has_science_need = false;
+$has_humanities_need = false;
+foreach ($science_assist as $subj) {
+    if (strpos($subjects_assist, $subj) !== false) { $has_science_need = true; break; }
+}
+foreach ($humanities_assist as $subj) {
+    if (strpos($subjects_assist, $subj) !== false) { $has_humanities_need = true; break; }
+}
+
+if ($has_science_need && !$has_humanities_need) {
+    $route = 'sciences';
+} elseif ($has_humanities_need && !$has_science_need) {
+    $route = 'humanities';
+} elseif ($has_science_need && $has_humanities_need) {
+    // Both – default to sciences (can be changed by admin later)
+    $route = 'sciences';
+} else {
+    // No subjects selected for assistance – fallback based on subjects taken
+    $has_science_taken = (strpos($subjects_taken, 'Physics') !== false || strpos($subjects_taken, 'Chemistry') !== false || strpos($subjects_taken, 'Biology') !== false);
+    $route = $has_science_taken ? 'sciences' : 'humanities';
+}
     
     if (empty($class_level) || empty($gender) || empty($school) || empty($dob) || empty($subjects_taken) || empty($subjects_assist) || empty($ambition) || empty($career_reason) || empty($university) || empty($why_join)) {
         $error = "Please fill all required fields.";
