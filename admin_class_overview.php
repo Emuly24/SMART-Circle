@@ -25,7 +25,8 @@ $summary = [
     'active' => $conn->query("SELECT COUNT(*) FROM users WHERE status='active' AND approved=1")->fetch_row()[0],
     'suspended' => $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended' AND approved=1")->fetch_row()[0],
     'dismissed' => $conn->query("SELECT COUNT(*) FROM users WHERE status='dismissed' AND approved=1")->fetch_row()[0],
-    'pending' => $conn->query("SELECT COUNT(*) FROM users WHERE approved=0")->fetch_row()[0]
+    'pending' => $conn->query("SELECT COUNT(*) FROM users WHERE approved=0 AND EXISTS (SELECT 1 FROM applications WHERE user_id = users.id)")->fetch_row()[0],
+    'signedup_notapplied' => $conn->query("SELECT COUNT(*) FROM users WHERE approved=0 AND NOT EXISTS (SELECT 1 FROM applications WHERE user_id = users.id)")->fetch_row()[0]
 ];
 
 $classes = ['Form 3', 'Form 4'];
@@ -37,36 +38,46 @@ $routes = ['sciences', 'humanities'];
     <meta charset="UTF-8">
     <title>Class Overview - SMART Tutor</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .overview-buttons {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin: 1rem 0 2rem 0;
+        }
+        .overview-btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: default;
+        }
+        .overview-btn.active { background: var(--success); color: white; }
+        .overview-btn.suspended { background: var(--warning); color: white; }
+        .overview-btn.dismissed { background: var(--error); color: white; }
+        .overview-btn.pending { background: var(--info); color: white; }
+        .overview-btn.signedup { background: var(--primary-medium); color: white; }
+        .overview-btn:hover { transform: translateY(-2px); filter: brightness(0.95); }
+        .no-members { color: var(--text-muted); font-style: italic; }
+    </style>
 </head>
 <body>
     <?php include_once 'includes/header.php'; ?>
-    <div class="class-overview">
-        <!-- Status Legend -->
-        <div class="status-legend">
-            <div class="status-legend-item">
-                <span class="status-badge status-active" tabindex="0">Active</span> Active Students
-                <div class="tooltip">Active = currently enrolled and attending</div>
-            </div>
-            <div class="status-legend-item">
-                <span class="status-badge status-suspended" tabindex="0">Suspended</span> Suspended Students
-                <div class="tooltip">Suspended = temporarily restricted from classes</div>
-            </div>
-            <div class="status-legend-item">
-                <span class="status-badge status-dismissed" tabindex="0">Dismissed</span> Dismissed Students
-                <div class="tooltip">Dismissed = permanently removed from program</div>
-            </div>
-            <div class="status-legend-item">
-                <span class="status-badge status-pending" tabindex="0">Pending</span> Pending Approval
-                <div class="tooltip">Pending = awaiting admin approval</div>
-            </div>
-        </div>
-
-        <!-- Summary Bar -->
-        <div class="summary-bar">
-            <span class="status-badge status-active">Active: <?= $summary['active'] ?></span>
-            <span class="status-badge status-suspended">Suspended: <?= $summary['suspended'] ?></span>
-            <span class="status-badge status-dismissed">Dismissed: <?= $summary['dismissed'] ?></span>
-            <span class="status-badge status-pending">Pending: <?= $summary['pending'] ?></span>
+    <div class="class-overview" style="padding: 0 1.5rem;">
+        
+        <!-- Clean Overview Buttons -->
+        <div class="overview-buttons">
+            <span class="overview-btn active">✅ Active: <?= $summary['active'] ?></span>
+            <span class="overview-btn suspended">⏸️ Suspended: <?= $summary['suspended'] ?></span>
+            <span class="overview-btn dismissed">⛔ Dismissed: <?= $summary['dismissed'] ?></span>
+            <span class="overview-btn pending">⏳ Pending Approval: <?= $summary['pending'] ?></span>
+            <span class="overview-btn signedup">📝 Signed Up (Not Applied): <?= $summary['signedup_notapplied'] ?></span>
         </div>
 
         <?php foreach ($classes as $class): ?>
@@ -82,7 +93,7 @@ $routes = ['sciences', 'humanities'];
                     $route_label = ucfirst($route);
                     ?>
                     <div class="route-section">
-                        <h3><?= $route_label ?></h3>
+                        <h3 style="margin-top: 1.5rem;"><?= $route_label ?></h3>
                         <div class="groups-grid" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <?php while ($g = $groups->fetch_assoc()): ?>
                                 <div class="card" style="flex:1; min-width: 200px;">
@@ -95,7 +106,7 @@ $routes = ['sciences', 'humanities'];
                                             WHERE gm.group_id = {$g['id']} AND u.status != 'dismissed'
                                             ORDER BY u.fullname");
                                         if ($members->num_rows == 0):
-                                            echo "<li><em>No members</em></li>";
+                                            echo "<li><em class='no-members'>No members</em></li>";
                                         else:
                                             while ($m = $members->fetch_assoc()):
                                                 $statusClass = match($m['status']) {
@@ -118,8 +129,5 @@ $routes = ['sciences', 'humanities'];
     </div>
     <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
     <a href="#" class="back-to-top" id="backToTop">↑</a>
-    <script>
-        document.querySelectorAll('.status-badge, .status-legend-item').forEach(el => el.setAttribute('tabindex', '0'));
-    </script>
 </body>
 </html>
