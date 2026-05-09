@@ -91,6 +91,42 @@ $chemistry_book4 = [
     'Unit 8: Waste Management (Disposal methods, Recycling)'
 ];
 
+// Mathematics – Book 3 & Book 4
+$maths_book3 = [
+    'Unit 1: Quadratic Equations',
+    'Unit 2: Irrational Numbers',
+    'Unit 3: Circle Geometry (Chord Properties)',
+    'Unit 4: Algebraic Fractions',
+    'Unit 5: Sets',
+    'Unit 6: Mapping and Functions',
+    'Unit 7: Circle Geometry (Angle Properties)',
+    'Unit 8: Transformation (Reflection, Rotation, Translation, Enlargement)',
+    'Unit 9: Change of Subject of a Formula',
+    'Unit 10: Exponential and Logarithmic Equations',
+    'Unit 11: Trigonometry (Sine & Cosine graphs)',
+    'Unit 12: Similarity',
+    'Unit 13: Coordinate Geometry (Midpoint Formula)',
+    'Unit 14: Variations (Direct & Inverse Proportion)',
+    'Unit 15: Graphs of Quadratic Functions',
+    'Unit 16: Inequalities',
+    'Unit 17: Statistics'
+];
+
+$maths_book4 = [
+    'Unit 1: Matrices (Operations, Determinant, Inverse)',
+    'Unit 2: Tangents to the circle',
+    'Unit 3: Simultaneous Linear and Quadratic Equations',
+    'Unit 4: Progressions (Arithmetic & Geometric)',
+    'Unit 5: Travel Graphs',
+    'Unit 6: Advanced Trigonometry',
+    'Unit 7: Polynomials',
+    'Unit 8: Probability',
+    'Unit 9: Vectors (Addition, Scalar multiplication)',
+    'Unit 10: Linear Programming',
+    'Unit 11: Mensuration (Area, Volume, Surface Area)',
+    'Unit 12: Graphs of Cubic Functions'
+];
+
 // ======================= ENGLISH – SORTED BY PAPER =======================
 $english_paper1 = [
     'Paper I: Question Tags (e.g., "...could it?" / "...shall we?")',

@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="card">
             <h2><i class="fas fa-lightbulb"></i> Request Topics to be Covered</h2>
-            <p>Select a subject, then check the topics you want to request. You can select as many as you need.</p>
+            <p>Select a subject, then choose the topics you want to request. You can select as many as you need.</p>
             <p><a href="covered_topics.php">📜 View already covered topics</a></p>
             <?php if ($error): ?>
                 <div class="error"><?= nl2br(htmlspecialchars($error)) ?></div>
@@ -84,11 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="form-group" id="topicContainer">
                     <label>Select Topics (check the ones you want)</label>
-                    <div id="loadingMessage" style="padding: 20px; text-align: center; color: var(--text-muted); display: none;">
+                    <div id="loadingMessage" class="loading-message" style="text-align: center; color: var(--text-muted); display: none;">
                         <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i>
                     </div>
-                    <div id="topicList" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--card-alt-bg); padding: 10px; border-radius: 8px; display: none;">
-                        <!-- Topics will be loaded here as checkboxes -->
+                    <div id="topicList" class="topic-list-container" style="display: none;">
+                        <!-- Topics will be loaded here as beautifully styled checkboxes -->
                     </div>
                 </div>
                 <button type="submit" name="save_requests" class="btn">Submit Request</button>
@@ -115,6 +115,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
     </div>
     <a href="#" class="back-to-top" id="backToTop">↑</a>
+
+    <!-- ======================= STYLING ======================= -->
+    <style>
+        .topic-list-container {
+            border: 1px solid var(--card-alt-bg);
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Make each topic option a full-width, clickable pill */
+        .topic-option-wrapper {
+            margin: 8px 0;
+        }
+        
+        .topic-option-wrapper .distinct-checkbox {
+            width: 100%;
+            margin: 0;
+            padding: 0.8rem 1rem;
+            border-radius: 0.8rem; /* Slightly less rounded than buttons */
+            background: var(--card-alt-bg);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .topic-option-wrapper .distinct-checkbox:hover {
+            transform: translateX(4px);
+            background: var(--card-bg);
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .topic-option-wrapper .distinct-checkbox input[type="checkbox"] {
+            /* Ensure the checkbox is visually distinct */
+            flex-shrink: 0;
+            margin-right: 0;
+        }
+        
+        .topic-option-wrapper .distinct-checkbox span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+    </style>
+
+    <!-- ======================= JAVASCRIPT ======================= -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const subjectSelect = document.getElementById('subjectSelect');
@@ -142,15 +192,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         topicList.style.display = 'block';
                         
                         if (data.length === 0) {
-                            topicList.innerHTML = '<p style="color:var(--text-muted);">No topics available for this subject.</p>';
+                            topicList.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">No topics available for this subject.</p>';
                             return;
                         }
 
-                        // Create a checkbox for each topic
+                        // Create a beautifully styled checkbox for each topic
                         data.forEach(topic => {
-                            const div = document.createElement('div');
-                            div.style.margin = '5px 0';
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'topic-option-wrapper';
                             
+                            const label = document.createElement('label');
+                            label.className = 'distinct-checkbox';
+
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
                             checkbox.name = 'topics[]';
@@ -162,19 +215,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 checkbox.checked = true;
                             }
 
-                            const label = document.createElement('label');
-                            label.htmlFor = checkbox.id;
-                            label.textContent = ' ' + topic;
+                            const span = document.createElement('span');
+                            span.textContent = topic;
 
-                            div.appendChild(checkbox);
-                            div.appendChild(label);
-                            topicList.appendChild(div);
+                            label.appendChild(checkbox);
+                            label.appendChild(span);
+                            wrapper.appendChild(label);
+                            topicList.appendChild(wrapper);
                         });
                     })
                     .catch(err => {
                         loadingMsg.style.display = 'none';
                         topicList.style.display = 'block';
-                        topicList.innerHTML = '<p style="color:var(--error);">Error loading topics. Please refresh.</p>';
+                        topicList.innerHTML = '<p style="color:var(--error); text-align:center; padding:20px;">Error loading topics. Please refresh.</p>';
                         console.error(err);
                     });
             });
