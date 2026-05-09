@@ -98,7 +98,7 @@ $english_paper1 = [
     'Paper I: Comparative Structures (e.g., "prefers X to Y")',
     'Paper I: Phrasal Verbs (e.g., "put out", "fall out", "pair up with", "make out")',
     'Paper I: Vocabulary / Word Choice (e.g., "released", "discharged", "incurred")',
-    'Paper I: Tenses & Conditionals (e.g., "If he arrives...", "Why didn't you...")',
+    'Paper I: Tenses & Conditionals (e.g., "If he arrives...", "Why didn\'t you...")',
     'Paper I: Parts of Speech (Adverb, Conjunction, Verb, Noun, Adjective)',
     'Paper I: Order of Adjectives (Opinion → Size → Age → Colour → Origin → Material → Type)',
     'Paper I: Phrases & Clauses (Noun phrase, Noun clause, Adjective clause, Adjective phrase)',
@@ -112,7 +112,7 @@ $english_paper2 = [
     'Paper II: Comprehension – Literal Questions (e.g., "Who was preparing his evening meal?")',
     'Paper II: Comprehension – Why / How Questions (e.g., "Why did he think drinking habits were sustained through good eating?")',
     'Paper II: Comprehension – Vocabulary in Context (e.g., "dreadful", "edict", "thrilled", "protracted")',
-    'Paper II: Comprehension – Expressions in Context (e.g., "creating a mountain out of a molehill", "mustn't shoot him down")',
+    'Paper II: Comprehension – Expressions in Context (e.g., "creating a mountain out of a molehill", "mustn\'t shoot him down")',
     'Paper II: Comprehension – Character / Action Analysis',
     'Paper II: Comprehension – Titling a passage (e.g., "The Tragedy of Mtchana")',
     'Paper II: Comprehension – Summarising a passage (70–100 words)'
@@ -121,7 +121,7 @@ $english_paper2 = [
 $english_paper3 = [
     'Paper III: Poetry – Meaning of phrases (e.g., "true minds" = genuine lovers)',
     'Paper III: Poetry – Metaphors (e.g., "It is an ever‑fixed mark", "It is the star to every wandering bark")',
-    'Paper III: Poetry – Figures of Speech (Personification: "Love's not Time's fool")',
+    'Paper III: Poetry – Figures of Speech (Personification: "Love\'s not Time\'s fool")',
     'Paper III: Poetry – Tone of the poem (e.g., calm and certain)',
     'Paper III: Poetry – Consequences of error (e.g., "If this be error, then I never writ")',
     'Paper III: Poetry – Themes (e.g., True love is unchanging)',
