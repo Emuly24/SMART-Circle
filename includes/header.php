@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Helper function to uppercase acronyms inside parentheses (e.g., (must) → (MUST))
 function formatUniversityName($uni) {

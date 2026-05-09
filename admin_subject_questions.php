@@ -2,7 +2,9 @@
 require_once 'check_remember_me.php';
 
 require_once 'config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (function_exists('getAdminHash')) {
     $admin_hash = getAdminHash();

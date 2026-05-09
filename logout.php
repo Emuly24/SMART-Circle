@@ -1,7 +1,9 @@
 <?php
 require_once 'check_remember_me.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (isset($_COOKIE['remember_me'])) {
     $token = $_COOKIE['remember_me'];

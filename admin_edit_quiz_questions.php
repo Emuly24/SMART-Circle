@@ -2,7 +2,9 @@
 require_once 'check_remember_me.php';
 
 require_once 'config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['admin_logged'])) die("Access denied");
 $conn = getDB();
 $quiz_id = (int)$_GET['quiz_id'];

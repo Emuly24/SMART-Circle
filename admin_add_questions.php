@@ -2,7 +2,9 @@
 require_once 'check_remember_me.php';
 
 require_once 'config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['admin_logged'])) {
     if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
         header('WWW-Authenticate: Basic realm="SMART Tutor Admin"');

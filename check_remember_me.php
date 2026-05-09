@@ -5,7 +5,9 @@ require_once 'config.php';
 
 // Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
+    if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
 }
 
 // If user already logged in, do nothing

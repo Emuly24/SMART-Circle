@@ -2,7 +2,9 @@
 require_once 'check_remember_me.php';
 
 // admin_download.php - Secure file delivery for admin only
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
     require_once 'config.php';
     if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {

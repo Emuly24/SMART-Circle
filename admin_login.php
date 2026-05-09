@@ -22,7 +22,9 @@ if (!function_exists('getAdminHash')) {
     }
 }
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $admin_hash = getAdminHash();
 $error = '';
 

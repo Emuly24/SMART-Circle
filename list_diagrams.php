@@ -3,7 +3,9 @@ require_once 'check_remember_me.php';
 
 // list_diagrams.php - Admin-only API to get uploaded diagrams
 require_once 'config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Ensure only admin can access this endpoint
 $admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
