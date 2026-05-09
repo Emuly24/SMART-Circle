@@ -5,14 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-<?php
-// === Already logged in ===
+// === Already logged in (uses session, no extra DB call) ===
 if (isset($_SESSION['user_id'])) {
-    $conn = getDB();
-    $uid = (int)$_SESSION['user_id'];
-    $result = $conn->query("SELECT fullname FROM users WHERE id = $uid");
-    $user = $result->fetch_assoc();
-    $fullname = $user['fullname'] ?? '';
+    $fullname = $_SESSION['fullname'] ?? '';
     $first_name = trim(explode(' ', $fullname)[0]);
     ?>
     <!DOCTYPE html>
@@ -35,7 +30,7 @@ if (isset($_SESSION['user_id'])) {
     <?php
     exit;
 }
-?>
+
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = $_POST['login'];
@@ -53,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && password_verify($pass, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
+            $_SESSION['fullname'] = $user['fullname'];
+
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
@@ -61,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($user['role']) && $user['role'] === 'admin') {
                 $_SESSION['role'] = 'admin';
                 $_SESSION['admin_logged'] = true;
-                unset($_SESSION['user_id']); // Admin uses admin_logged, not user_id
+                unset($_SESSION['user_id']);
             } else {
                 $_SESSION['role'] = 'student';
                 unset($_SESSION['admin_logged']);
