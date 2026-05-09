@@ -44,7 +44,7 @@ $books = $conn->query($sql);
             <div class="book-item" style="border-bottom:1px solid #eee; padding:0.5rem 0;">
                 <strong><?= htmlspecialchars($b['title']) ?></strong>
                 <div class="card-buttons" style="margin-top:0.5rem;">
-                    <a href="read_book.php?id=<?= $b['id'] ?>" class="btn" target="_blank">📖 Read Online</a>
+                    <a href="read_book.php?id=<?= $b['id'] ?>" class="btn">📖 Read Online</a>
                     <a href="download_book.php?id=<?= $b['id'] ?>" class="btn-success">⬇️ Download PDF</a>
                 </div>
             </div>

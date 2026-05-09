@@ -306,6 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action'])) {
         <span class="page-total">/ <span id="totalPages">1</span></span>
         <button id="viewNext" title="Next"><i class="fas fa-chevron-right"></i></button>
         <button id="viewLast" title="Last Page"><i class="fas fa-fast-forward"></i></button>
+        <button id="askQuestionBtn" title="Ask admin about selected text"><i class="fas fa-question-circle"></i></button>
 
         <div class="separator"></div>
 
@@ -812,6 +813,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action'])) {
             setTimeout(() => toast.remove(), 300);
         }, 2500);
     }
+    let selectedTextForQuestion = '';
+let selectedPageForQuestion = 0;
+let selectedPositionForQuestion = null;
+
+// Override mouseup to capture selected text for questions
+document.addEventListener('mouseup', function() {
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    if (!text) {
+        selectedTextForQuestion = '';
+        return;
+    }
+    selectedTextForQuestion = text;
+    // Find which page wrapper the selection is in
+    const range = selection.getRangeAt(0);
+    const pageWrappers = container.querySelectorAll('.page-wrapper');
+    pageWrappers.forEach(wrapper => {
+        const rect = wrapper.getBoundingClientRect();
+        if (rect.top <= range.getClientRects()[0].top && rect.bottom >= range.getClientRects()[0].bottom) {
+            selectedPageForQuestion = parseInt(wrapper.dataset.page);
+            const wrapperRect = wrapper.getBoundingClientRect();
+            selectedPositionForQuestion = {
+                x: range.getClientRects()[0].left - wrapperRect.left,
+                y: range.getClientRects()[0].top - wrapperRect.top,
+                width: range.getClientRects()[0].width,
+                height: range.getClientRects()[0].height
+            };
+        }
+    });
+});
+
+// Ask Question button click
+document.getElementById('askQuestionBtn').addEventListener('click', function() {
+    if (!selectedTextForQuestion) {
+        showToast('Please highlight some text first.');
+        return;
+    }
+    $('#selectedTextDisplay').text(selectedTextForQuestion);
+    $('#questionInput').val('');
+    $('#askQuestionDialog').dialog({
+        modal: true,
+        width: 500,
+        buttons: {
+            "Send Question": function() {
+                const question = $('#questionInput').val().trim();
+                if (!question) {
+                    showToast('Please write a question.');
+                    return;
+                }
+                // Send to server
+                $.post('save_book_question.php', {
+                    book_id: bookId,
+                    page_number: selectedPageForQuestion,
+                    highlighted_text: selectedTextForQuestion,
+                    question_text: question,
+                    position: JSON.stringify(selectedPositionForQuestion)
+                }, function(res) {
+                    if (res.success) {
+                        showToast('Your question has been sent to the admin.');
+                        $(this).dialog("close");
+                    } else {
+                        showToast('Error: ' + (res.error || 'Unknown error'));
+                    }
+                }, 'json');
+            },
+            "Cancel": function() { $(this).dialog("close"); }
+        }
+    });
+}); 
 
     // --- Animation Keyframes ---
     const styleSheet = document.createElement('style');
@@ -823,6 +893,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action'])) {
 </script>
 <div class="footer" style="margin-top: 2rem;">
     <a href="library.php" class="btn-back" style="display:inline-block; background:var(--accent); color:#1e293b; padding:0.6rem 1.5rem; border-radius:2rem; text-decoration:none; font-weight:600;">← Back to Library</a>
+</div>
+<!-- Ask Question Modal -->
+<div id="askQuestionDialog" title="Ask Admin About This Text" style="display:none;">
+    <div class="form-group">
+        <label>Selected text:</label>
+        <div id="selectedTextDisplay" style="background:var(--card-alt-bg); padding:0.5rem; border-radius:0.5rem; margin-bottom:0.5rem; max-height:150px; overflow-y:auto;"></div>
+    </div>
+    <div class="form-group">
+        <label for="questionInput">Your question:</label>
+        <textarea id="questionInput" rows="3" cols="30" placeholder="What do you need help with?" style="width:100%;"></textarea>
+    </div>
 </div>
 </body>
 </html>
