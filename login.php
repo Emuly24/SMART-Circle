@@ -5,10 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// === Already logged in (uses session, no extra DB call) ===
+// === Already logged in (captures first name) ===
 if (isset($_SESSION['user_id'])) {
+    // Get fullname from session
     $fullname = $_SESSION['fullname'] ?? '';
-    $first_name = trim(explode(' ', $fullname)[0]);
+    // Extract first name only
+    $name_parts = explode(' ', trim($fullname));
+    $first_name = $name_parts[0] ?? '';
     ?>
     <!DOCTYPE html>
     <html><head><title>Already Logged In</title><link rel="stylesheet" href="style.css"></head>
