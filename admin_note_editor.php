@@ -70,10 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="style.css">
 <!-- TinyMCE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.7.0/tinymce.min.js"></script>
-<!-- MathQuill -->
-<script src="js/tinymce/plugins/mathquill/plugin.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+<!-- MathQuill CSS (load this early) -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+<!-- 1. Load the MathQuill Library FIRST -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+<!-- 2. Load the TinyMCE MathQuill Plugin AFTER the library -->
+<script src="js/tinymce/plugins/mathquill/plugin.js"></script>
 <!-- MathJax -->
 <script>MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
