@@ -1207,25 +1207,28 @@ flowchart LR
 </section>
 
 <script>
-    function copyCode(btn) {
-        const pre = btn.previousElementSibling;
-        let text = pre.textContent;
-        if (text.includes('```mermaid')) text = text.split('```mermaid')[1].split('```')[0].trim();
-        else if (text.includes('```')) text = text.split('```')[1].split('```')[0].trim();
-        navigator.clipboard.writeText(text.trim()).then(() => {
-            btn.textContent = '✅ Copied!';
-            setTimeout(() => btn.textContent = 'Copy', 2000);
-        }).catch(() => {
-            const ta = document.createElement('textarea');
-            ta.value = text.trim();
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            btn.textContent = '✅ Copied!';
-            setTimeout(() => btn.textContent = 'Copy', 2000);
-        });
+
+    function insertTemplateToEditor(text) {
+        if (tinymce.activeEditor) {
+            tinymce.activeEditor.insertContent(text);
+        } else {
+            alert('Click inside the editor first.');
+        }
     }
+
+    // Attach click handlers to each "Copy" button
+    document.querySelectorAll('.btn-copy').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const pre = this.previousElementSibling;
+            let text = pre.textContent;
+            if (text.includes('```mermaid')) {
+                text = text.split('```mermaid')[1].split('```')[0].trim();
+            } else if (text.includes('```')) {
+                text = text.split('```')[1].split('```')[0].trim();
+            }
+            insertTemplateToEditor(text);
+        });
+    });
 </script>
 </body>
 </html>

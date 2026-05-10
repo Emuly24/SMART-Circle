@@ -151,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="button" id="footerBtn">📄 Insert Footer</button>
             <button type="button" id="referenceBtn">📚 Reference Manager</button>
             <button type="button" id="editDiagramBtn">✏️ Edit Diagram Image</button>
+            <button type="button" id="templateBtn">🧩 Templates</button>
         </div>
         <div class="form-group"><label>Content</label><textarea name="content" id="editor"></textarea></div>
         <button type="submit" class="btn">Save Note</button>
@@ -164,6 +165,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
+<!-- Template Library Modal -->
+<div id="templateModal" class="modal">
+    <div class="modal-content" style="max-width: 1200px;">
+        <span class="close">&times;</span>
+        <h3>📚 Template Library</h3>
+        <div style="max-height: 70vh; overflow-y: auto; padding: 10px;">
+            <?php include 'complete_templates.html'; ?>
+        </div>
+    </div>
+</div>
+
 </div>
 
 <!-- All modals (same as before) -->
@@ -241,6 +253,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     classSelect.addEventListener('change', loadGroups);
     routeSelect.addEventListener('change', loadGroups);
+    // ======================= TEMPLATE LIBRARY =======================
+const templateBtn = document.getElementById('templateBtn');
+const templateModal = document.getElementById('templateModal');
+
+if (templateBtn && templateModal) {
+    // Open modal
+    templateBtn.addEventListener('click', function() {
+        templateModal.style.display = 'flex';
+    });
+
+    // Close modal when clicking the 'X'
+    const closeTemplate = templateModal.querySelector('.close');
+    if (closeTemplate) {
+        closeTemplate.addEventListener('click', function() {
+            templateModal.style.display = 'none';
+        });
+    }
+
+    // Close when clicking outside the modal content
+    window.addEventListener('click', function(event) {
+        if (event.target === templateModal) {
+            templateModal.style.display = 'none';
+        }
+    });
+
+    // Attach click handlers to each "Copy" button inside the modal
+    // (the buttons from complete_templates.html)
+    setTimeout(() => {
+        const copyBtns = templateModal.querySelectorAll('.btn-copy');
+        copyBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Prevent the default copy action (just insert into editor)
+                e.stopPropagation();
+                const pre = this.previousElementSibling;
+                let text = pre.textContent;
+                if (text.includes('```mermaid')) {
+                    text = text.split('```mermaid')[1].split('```')[0].trim();
+                } else if (text.includes('```')) {
+                    text = text.split('```')[1].split('```')[0].trim();
+                }
+                if (tinymce.activeEditor) {
+                    tinymce.activeEditor.insertContent(text);
+                    showToast('✅ Template inserted!');
+                } else {
+                    alert('Click inside the editor first.');
+                }
+            });
+        });
+    }, 500);
+}
 
     // ---------- LOCK MANAGER ----------
     let currentNoteId = <?= $last_note_id ?>;
@@ -435,6 +497,7 @@ if (symbolModal && symbolBtn && symbolList) {
     function insertText(text) { if (tinymce.activeEditor) tinymce.activeEditor.insertContent(text); }
     function insertHtml(html) { if (tinymce.activeEditor) tinymce.activeEditor.insertContent(html); }
 });
+
 </script>
 <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>
