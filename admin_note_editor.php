@@ -4,6 +4,10 @@ require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+$conn = getDB();
+if (!$conn) {
+    die("Database connection failed.");
+}
 
 $admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
 if (!isset($_SESSION['admin_logged'])) {
@@ -20,25 +24,49 @@ if (!isset($_SESSION['admin_logged'])) {
 
 $subjects = ['Mathematics', 'Biology', 'English', 'Physics', 'Chemistry'];
 $last_note_id = 0;
+$msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conn = getDB();
-    $title = $_POST['title'];
-    $subject = $_POST['subject'];
-    $class = $_POST['class_level'];
-    $content = $_POST['content'];
+    $title = trim($_POST['title']);
+    $subject = trim($_POST['subject']);
+    $class = trim($_POST['class_level']);
+    $content = trim($_POST['content']);
     $group_id = isset($_POST['group_id']) && $_POST['group_id'] ? (int)$_POST['group_id'] : 0;
     
-    $conn->query("INSERT INTO notes (title, subject, class_level, content) VALUES ('$title', '$subject', '$class', '$content')");
+    if (empty($title) || empty($subject) || empty($content)) {
+        die("Missing required fields.");
+    }
+
+    $title = $conn->real_escape_string($title);
+    $subject = $conn->real_escape_string($subject);
+    $class = $conn->real_escape_string($class);
+    $content = $conn->real_escape_string($content);
+    
+    $sql = "INSERT INTO notes (title, subject, class_level, content) VALUES ('$title', '$subject', '$class', '$content')";
+    if (!$conn->query($sql)) {
+        die("Insert failed: " . $conn->error);
+    }
+    
     $note_id = $conn->insert_id;
     $last_note_id = $note_id;
+    
+    // Delete drafts
     $conn->query("DELETE FROM note_drafts");
     
+    // Handle group locks
     if ($group_id) {
         $all_groups = $conn->query("SELECT id FROM groups WHERE class_level = '$class'");
+        if (!$all_groups) {
+            die("Failed to fetch groups: " . $conn->error);
+        }
         while ($g = $all_groups->fetch_assoc()) {
             $lock = $g['id'] == $group_id ? 0 : 1;
-            $conn->query("INSERT INTO group_content_locks (group_id, content_type, content_id, is_locked) VALUES ({$g['id']}, 'note', $note_id, $lock) ON DUPLICATE KEY UPDATE is_locked = $lock");
+            $lock_sql = "INSERT INTO group_content_locks (group_id, content_type, content_id, is_locked) 
+                        VALUES ({$g['id']}, 'note', $note_id, $lock)
+                        ON DUPLICATE KEY UPDATE is_locked = $lock";
+            if (!$conn->query($lock_sql)) {
+                die("Lock insert failed: " . $conn->error);
+            }
         }
         $msg = "Note saved and unlocked for the selected group.";
     } else {
