@@ -5,7 +5,7 @@ require_once 'check_access.php';
 $conn = getDB();
 $uid = $_SESSION['user_id'];
 
-$user = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid")->fetch_assoc();
+$user = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid")->fetch_assop();
 if ($user['approved']) {
     header("Location: dashboard.php");
     exit;
@@ -128,20 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-
-// Preserve submitted values for form repopulation
-$post_class_level = $_POST['class_level'] ?? '';
-$post_gender = $_POST['gender'] ?? '';
-$post_school = $_POST['school'] ?? '';
-$post_dob = $_POST['dob'] ?? '';
-$post_ambition = $_POST['ambition'] ?? '';
-$post_career_reason = $_POST['career_reason'] ?? '';
-$post_university = $_POST['university'] ?? '';
-$post_custom_university = $_POST['custom_university'] ?? '';
-$post_why_join = $_POST['why_join'] ?? '';
-$post_target_points = $_POST['target_points'] ?? '';
-$post_subjects_taken = isset($_POST['subjects_taken']) ? $_POST['subjects_taken'] : [];
-$post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assist'] : [];
 ?>
 <!DOCTYPE html>
 <html><head><title>Application Form – SMART Circle</title><link rel="stylesheet" href="style.css"></head><body class="apply-page">
@@ -157,30 +143,30 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
             <form method="post" id="applyForm">
                 <div class="form-group">
                     <label>Which class are you currently in? *</label>
-                    <select name="class_level" required>
+                    <select name="class_level" id="class_level" required>
                         <option value="">-- Select --</option>
-                        <option value="Form 3" <?= ($post_class_level == 'Form 3' || (empty($post_class_level) && ($user['class_level'] ?? '') == 'Form 3')) ? 'selected' : '' ?>>Form 3</option>
-                        <option value="Form 4" <?= ($post_class_level == 'Form 4' || (empty($post_class_level) && ($user['class_level'] ?? '') == 'Form 4')) ? 'selected' : '' ?>>Form 4</option>
+                        <option value="Form 3">Form 3</option>
+                        <option value="Form 4">Form 4</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Gender *</label>
-                    <select name="gender" required>
+                    <select name="gender" id="gender" required>
                         <option value="">-- Select --</option>
-                        <option value="Male" <?= ($post_gender == 'Male' || (empty($post_gender) && ($user['gender'] ?? '') == 'Male')) ? 'selected' : '' ?>>Male</option>
-                        <option value="Female" <?= ($post_gender == 'Female' || (empty($post_gender) && ($user['gender'] ?? '') == 'Female')) ? 'selected' : '' ?>>Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Date of Birth *</label>
-                    <input type="date" name="dob" value="<?= htmlspecialchars($post_dob ?: ($user['dob'] ?? '')) ?>" required>
+                    <input type="date" name="dob" id="dob" required>
                 </div>
 
                 <div class="form-group">
                     <label>Current School (full name) *</label>
-                    <input type="text" name="school" value="<?= htmlspecialchars($post_school ?: ($user['school'] ?? '')) ?>" placeholder="e.g., Ntcheu Secondary School" required>
+                    <input type="text" name="school" id="school" placeholder="e.g., Ntcheu Secondary School" required>
                 </div>
 
                 <!-- SUBJECTS TAKEN (with Select All / Clear All) -->
@@ -193,10 +179,9 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
                     <div class="checkbox-group" id="subjects_taken_group">
                         <?php $current_subjects = explode(', ', $user['subjects'] ?? ''); ?>
                         <?php foreach ($all_subjects as $s): 
-                            $checked = in_array($s, $post_subjects_taken) || (empty($post_subjects_taken) && in_array($s, $current_subjects));
                             $id = "subj_" . preg_replace('/[^a-zA-Z0-9]/', '_', $s);
                         ?>
-                            <input type="checkbox" name="subjects_taken[]" value="<?= $s ?>" id="<?= $id ?>" <?= $checked ? 'checked' : '' ?>>
+                            <input type="checkbox" name="subjects_taken[]" value="<?= $s ?>" id="<?= $id ?>">
                             <label for="<?= $id ?>"><?= $s ?></label>
                         <?php endforeach; ?>
                     </div>
@@ -213,10 +198,9 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
                     <div class="checkbox-group" id="subjects_assist_group">
                         <?php $assist_subjects = explode(', ', $application['subject_assist'] ?? ''); ?>
                         <?php foreach ($core_subjects as $s):
-                            $checked = in_array($s, $post_subjects_assist) || (empty($post_subjects_assist) && in_array($s, $assist_subjects));
                             $id = "assist_" . preg_replace('/[^a-zA-Z0-9]/', '_', $s);
                         ?>
-                            <input type="checkbox" name="subjects_assist[]" value="<?= $s ?>" id="<?= $id ?>" <?= $checked ? 'checked' : '' ?>>
+                            <input type="checkbox" name="subjects_assist[]" value="<?= $s ?>" id="<?= $id ?>">
                             <label for="<?= $id ?>"><?= $s ?></label>
                         <?php endforeach; ?>
                     </div>
@@ -225,12 +209,12 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
 
                 <div class="form-group">
                     <label>What career do you want to pursue? *</label>
-                    <input type="text" name="ambition" value="<?= htmlspecialchars($post_ambition ?: ($application['ambition'] ?? '')) ?>" placeholder="e.g., Doctor, Engineer, Teacher" required>
+                    <input type="text" name="ambition" id="ambition" placeholder="e.g., Doctor, Engineer, Teacher" required>
                 </div>
 
                 <div class="form-group">
                     <label>Why do you want that career? *</label>
-                    <textarea name="career_reason" rows="3" placeholder="Explain your motivation and passion..." required><?= htmlspecialchars($post_career_reason ?: ($application['career_reason'] ?? '')) ?></textarea>
+                    <textarea name="career_reason" id="career_reason" rows="3" placeholder="Explain your motivation and passion..." required></textarea>
                 </div>
 
                 <div class="form-group">
@@ -238,26 +222,26 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
                     <select name="university" id="universitySelect" required>
                         <option value="">-- Select --</option>
                         <?php foreach ($universities as $u): ?>
-                            <option value="<?= htmlspecialchars($u) ?>" <?= ($post_university == $u || (empty($post_university) && ($application['university'] ?? '') == $u)) ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
+                            <option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option>
                         <?php endforeach; ?>
-                        <option value="Other" <?= ($post_university == 'Other' || (empty($post_university) && ($application['university'] ?? '') == 'Other')) ? 'selected' : '' ?>>Other</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div id="customUniversityDiv" style="display: none;">
                     <div class="form-group">
                         <label>Please specify your university/college name *</label>
-                        <input type="text" name="custom_university" value="<?= htmlspecialchars($post_custom_university ?: ($application['university'] ?? '')) ?>" placeholder="e.g., University of Livingstonia">
+                        <input type="text" name="custom_university" id="custom_university" placeholder="e.g., University of Livingstonia">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Why do you want to join this group? *</label>
-                    <textarea name="why_join" rows="3" placeholder="e.g., To improve my grades, to learn with others..." required><?= htmlspecialchars($post_why_join ?: ($application['why_join'] ?? '')) ?></textarea>
+                    <textarea name="why_join" id="why_join" rows="3" placeholder="e.g., To improve my grades, to learn with others..." required></textarea>
                 </div>
 
                 <div class="form-group">
                     <label>What is your target MSCE points? *</label>
-                    <input type="number" name="target_points" id="targetPoints" min="0" max="20" value="<?= htmlspecialchars($post_target_points ?: ($application['target_points'] ?? '')) ?>" placeholder="e.g., 15" required>
+                    <input type="number" name="target_points" id="targetPoints" min="0" max="20" placeholder="e.g., 15" required>
                     <div id="pointsWarning" class="warning" style="display: none; font-size: 0.8rem;">⚠️ Target points cannot exceed 20.</div>
                 </div>
 
@@ -275,7 +259,7 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
         <?php endif; ?>
     </div>
     <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body>
 <script>
     // 1. Custom university toggle
@@ -321,5 +305,86 @@ $post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assi
             }
         });
     }
+
+    // ===== PERSISTENCE: Save & Restore Form Data =====
+    document.addEventListener('DOMContentLoaded', function() {
+        const formFields = document.querySelectorAll('#applyForm input, #applyForm select, #applyForm textarea');
+        const storageKey = 'apply_form_data';
+
+        // 1. Restore data from sessionStorage
+        const savedData = sessionStorage.getItem(storageKey);
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            formFields.forEach(field => {
+                if (field.type === 'checkbox') {
+                    // Checkboxes are handled in a different way (by name array)
+                    const values = data[field.name];
+                    if (Array.isArray(values) && values.includes(field.value)) {
+                        field.checked = true;
+                    }
+                } else if (field.tagName === 'SELECT') {
+                    const val = data[field.name];
+                    if (val) {
+                        field.value = val;
+                    }
+                } else if (field.type !== 'submit') {
+                    const val = data[field.name];
+                    if (val) {
+                        field.value = val;
+                    }
+                }
+            });
+        } else {
+            // Fallback: pre-fill from user signup data (from PHP)
+            const userData = <?= json_encode($user) ?>;
+            const appData = <?= json_encode($application) ?>;
+            
+            if (userData) {
+                const fields = ['class_level', 'gender', 'school', 'dob'];
+                fields.forEach(f => {
+                    const field = document.getElementById(f);
+                    if (field && userData[f]) {
+                        field.value = userData[f];
+                    }
+                });
+            }
+            if (appData) {
+                const fields = ['ambition', 'career_reason', 'university', 'custom_university', 'why_join', 'target_points'];
+                fields.forEach(f => {
+                    const field = document.getElementById(f);
+                    if (field && appData[f]) {
+                        field.value = appData[f];
+                    }
+                });
+            }
+        }
+
+        // 2. Save data to sessionStorage on input/change
+        formFields.forEach(field => {
+            field.addEventListener('input', function() { saveFormData(); });
+            field.addEventListener('change', function() { saveFormData(); });
+        });
+
+        function saveFormData() {
+            const data = {};
+            formFields.forEach(field => {
+                if (field.type === 'checkbox') {
+                    // Store checkboxes as arrays
+                    const boxes = document.querySelectorAll(`[name="${field.name}"]:checked`);
+                    data[field.name] = Array.from(boxes).map(cb => cb.value);
+                } else if (field.tagName === 'SELECT' || field.type !== 'submit') {
+                    data[field.name] = field.value;
+                }
+            });
+            sessionStorage.setItem(storageKey, JSON.stringify(data));
+        }
+
+       
+        form.addEventListener('submit', function() {
+        });
+    });
+
+    window.addEventListener('beforeunload', function() {
+    });
 </script>
 </html>

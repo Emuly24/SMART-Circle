@@ -1,23 +1,18 @@
 <?php
+ob_start(); // Prevents HTTP 500/Headers already sent error
 require_once 'check_remember_me.php';
 require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// === Already logged in (captures first name) ===
 if (isset($_SESSION['user_id'])) {
     $first_name = '';
-
-    // 1. Try to get fullname from session first
     $fullname = $_SESSION['fullname'] ?? '';
-
     if (!empty($fullname)) {
         $name_parts = explode(' ', trim($fullname));
         $first_name = $name_parts[0] ?? '';
     }
-
-    // 2. If session failed, fall back to database query
     if (empty($first_name)) {
         $conn = getDB();
         $uid = (int)$_SESSION['user_id'];
@@ -28,8 +23,6 @@ if (isset($_SESSION['user_id'])) {
             $first_name = $name_parts[0] ?? '';
         }
     }
-
-    // 3. If still empty, display "User"
     if (empty($first_name)) {
         $first_name = 'User';
     }
@@ -41,8 +34,8 @@ if (isset($_SESSION['user_id'])) {
     <?php include_once 'includes/progress_tracker.php'; ?>
     <div class="container">
         <div class="card">
-            <h2>You are already logged in</h2>
-            <p>You are currently logged in as <strong><?= htmlspecialchars($first_name) ?></strong>.</p>
+            <h2>Welcome back, <?= htmlspecialchars($first_name) ?>!</h2>
+            <p>We wish you a joyful and meaningful use of SMART Circle.</p>
             <div class="card-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
                 <a href="dashboard.php" class="btn">Go to Dashboard</a>
                 <a href="logout.php" class="btn-danger">Logout</a>
@@ -77,7 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
 
-            // --- Role determination ---
             if (isset($user['role']) && $user['role'] === 'admin') {
                 $_SESSION['role'] = 'admin';
                 $_SESSION['admin_logged'] = true;
@@ -93,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['suspension_end'] = $user['suspension_end'];
             }
 
-            // --- Remember Me ---
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
                 $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
@@ -104,9 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_me', $token, time() + 86400 * 30, '/', '', false, true);
             }
 
-            // --- 🔁 CORRECT REDIRECTION BASED ON STATUS ---
             if ($user['approved'] == 0) {
-                // Check if they have an application
                 $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
                 if (!$has_app) {
                     header("Location: apply.php");
@@ -120,7 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            // Default: fully approved and consent signed
             header("Location: dashboard.php");
             exit;
         } else {
@@ -151,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label class="distinct-checkbox">
                     <input type="checkbox" name="remember" value="1">
-                    <span>Remember Me (30 days)</span>
+                    <span>Remember Me</span>
                 </label>
             </div>
             <button type="submit" class="btn btn-login">Login</button>
@@ -164,3 +152,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
 </body>
 </html>
+<?php ob_end_flush(); ?>

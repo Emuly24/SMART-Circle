@@ -1,23 +1,18 @@
 <?php
+ob_start();
 require_once 'check_remember_me.php';
 require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// === Already logged in (captures first name) ===
 if (isset($_SESSION['user_id'])) {
     $first_name = '';
-
-    // 1. Try to get fullname from session first
     $fullname = $_SESSION['fullname'] ?? '';
-
     if (!empty($fullname)) {
         $name_parts = explode(' ', trim($fullname));
         $first_name = $name_parts[0] ?? '';
     }
-
-    // 2. If session failed, fall back to database query
     if (empty($first_name)) {
         $conn = getDB();
         $uid = (int)$_SESSION['user_id'];
@@ -28,8 +23,6 @@ if (isset($_SESSION['user_id'])) {
             $first_name = $name_parts[0] ?? '';
         }
     }
-
-    // 3. If still empty, display "User"
     if (empty($first_name)) {
         $first_name = 'User';
     }
@@ -41,15 +34,11 @@ if (isset($_SESSION['user_id'])) {
     <?php include_once 'includes/progress_tracker.php'; ?>
     <div class="container">
         <div class="card">
-            <h2>You are already logged in</h2>
-            <p>Would you like to delete this account and start over? (This action is permanent and cannot be undone.)</p>
-            <p>Do you want to log out and sign in with a different account?</p>
-            <div class="card-buttons">
-                <form method="post" style="display:inline;">
-                    <button type="submit" name="delete_account" class="btn-danger" onclick="return confirm('Delete your account permanently? All your data will be lost.')">Delete My Account</button>
-                </form>
+            <h2>Welcome back, <?= htmlspecialchars($first_name) ?>!</h2>
+            <p>We wish you a joyful and meaningful use of SMART Circle.</p>
+            <div class="card-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
                 <a href="dashboard.php" class="btn">Go to Dashboard</a>
-                <a href="logout.php" class="btn-secondary">Logout</a>
+                <a href="logout.php" class="btn-danger">Logout</a>
             </div>
         </div>
     </div>
@@ -102,60 +91,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="signup-page">
     <?php include_once 'includes/header.php'; ?>
-
     <?php include_once 'includes/progress_tracker.php'; ?>
-
-<div class="signup-container">
-    
-
-    <?php if($error): ?>
-        <div class="error"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-
-    <?php if($success): ?>
-        <div class="success">
-            <?= htmlspecialchars($success) ?> <a href="login.php">Login now</a>
-        </div>
-    <?php endif; ?>
-
-    <?php if(!$success): ?>
-        <form method="post">
-            <div class="form-group">
-                <label>Full Name *</label>
-                <!-- ✅ VALUE ATTRIBUTE ADDED -->
-                <input type="text" name="fullname" value="<?= htmlspecialchars($_POST['fullname'] ?? '') ?>" required placeholder="e.g., Blessings Emulyn">
+    <div class="signup-container">
+        <?php if($error): ?>
+            <div class="error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <?php if($success): ?>
+            <div class="success">
+                <?= htmlspecialchars($success) ?> <a href="login.php">Login now</a>
             </div>
-            <div class="form-group">
-                <label>Phone Number *</label>
-                <!-- ✅ VALUE ATTRIBUTE ADDED -->
-                <input type="tel" name="phone" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>" required placeholder="e.g., +265 999 123 456">
-            </div>
-            <div class="form-group">
-                <label>Email (optional)</label>
-                <!-- ✅ VALUE ATTRIBUTE ADDED -->
-                <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="e.g., blessings@example.com">
-            </div>
-            <div class="form-group">
-                <label>Current School *</label>
-                <!-- ✅ VALUE ATTRIBUTE ADDED -->
-                <input type="text" name="school" value="<?= htmlspecialchars($_POST['school'] ?? '') ?>" required placeholder="e.g., Ntcheu Secondary School">
-            </div>
-            <div class="form-group">
-                <label>Password * (min 5 characters)</label>
-                <input type="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <label>Confirm Password *</label>
-                <input type="password" name="confirm_password" required>
-            </div>
-            <button type="submit" class="btn">Sign Up</button>
-        </form>
-        <p>Already have an account? <a href="login.php">Login here</a></p>
-    <?php endif; ?>
-</div>
-<div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
+        <?php endif; ?>
+        <?php if(!$success): ?>
+            <form method="post">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" name="fullname" value="<?= htmlspecialchars($_POST['fullname'] ?? '') ?>" required placeholder="e.g., Blessings Emulyn">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" name="phone" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>" required placeholder="e.g., +265 999 123 456">
+                </div>
+                <div class="form-group">
+                    <label>Email (optional)</label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="e.g., blessings@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Current School *</label>
+                    <input type="text" name="school" value="<?= htmlspecialchars($_POST['school'] ?? '') ?>" required placeholder="e.g., Ntcheu Secondary School">
+                </div>
+                <div class="form-group">
+                    <label>Password * (min 5 characters)</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password *</label>
+                    <input type="password" name="confirm_password" required>
+                </div>
+                <button type="submit" class="btn">Sign Up</button>
+            </form>
+            <p>Already have an account? <a href="login.php">Login here</a></p>
+        <?php endif; ?>
+    </div>
+    <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
+    <script>
+        // Save form data to sessionStorage on input change
+        document.querySelectorAll('input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
+            input.addEventListener('input', function() {
+                sessionStorage.setItem('signup_' + this.name, this.value);
+            });
+        });
 
+        // Restore from sessionStorage on page load
+        window.addEventListener('load', function() {
+            document.querySelectorAll('input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
+                const stored = sessionStorage.getItem('signup_' + input.name);
+                if (stored && !input.value) {
+                    input.value = stored;
+                }
+            });
+        });
 
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+        // Clear sessionStorage after successful submission
+        <?php if ($success): ?>
+            sessionStorage.clear();
+        <?php endif; ?>
+    </script>
 </body>
 </html>
+<?php ob_end_flush(); ?>

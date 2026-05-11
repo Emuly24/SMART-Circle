@@ -116,7 +116,6 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
         <input type="checkbox" id="menu-toggle">
         <label for="menu-toggle" class="menu-icon">☰</label>
         <ul class="menu">
-            <li><a href="about.php">👥 About Us</a></li>
             <?php if ($role == 'admin'): ?>
                 <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
                 <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
@@ -156,6 +155,7 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
                     <div class="user-tagline-stacked"><?= htmlspecialchars($tagline) ?></div>
                 <?php endif; ?>
             </div>
+            <a href="about.php" class="btn-about" style="color: white; text-decoration: none; font-weight: 600; margin-right: 0.5rem;">👥 About Us</a>
         <?php endif; ?>
         <button id="theme-toggle" class="theme-btn" aria-label="Toggle theme">🌙</button>
         <a href="<?= ($role == 'admin') ? 'admin_dashboard.php' : 'index.php' ?>" class="btn-home">🏠 Home</a>
