@@ -38,7 +38,7 @@ $_SESSION['consent_signed'] = $user['consent_signed'];
 $_SESSION['status'] = $user['status'];
 
 $current = basename($_SERVER['SCRIPT_NAME']);
-$always_allowed = ['index.php', 'logout.php', 'profile.php', 'notifications.php', 'apply.php'];
+$always_allowed = ['index.php', 'logout.php', 'profile.php', 'notifications.php', 'change_password.php'];
 
 // --- 1. NOT APPROVED (no application) → FORCED TO APPLY.PHP ALWAYS ---
 if (!$user['approved']) {

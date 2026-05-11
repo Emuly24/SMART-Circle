@@ -4,9 +4,31 @@ require_once 'check_remember_me.php';
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SMART Circle – Empowering Malawi's Youth</title>
+    <title>SMART Circle – Free Tutoring in Malawi | Mathematics, English, Physics, Chemistry, Biology</title>
+    <meta name="description" content="SMART Circle is a free learning community for Form 3 & 4 students in Malawi. Get free tutoring in Mathematics, English, Physics, Chemistry, and Biology. Join us today.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- ✅ Structured Data (Moved from body to head) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "SMART Circle",
+      "url": "https://smartcircle.gt.tc",
+      "description": "Free tutoring community for Malawian secondary students.",
+      "areaServed": "Malawi",
+      "founder": {
+        "@type": "Person",
+        "name": "Blessings Emulyn"
+      },
+      "offers": {
+        "@type": "Offer",
+        "name": "Free Tutoring",
+        "availability": "https://schema.org/InStock"
+      }
+    }
+    </script>
 </head>
 <body>
 <div class="container">
@@ -14,14 +36,15 @@ require_once 'check_remember_me.php';
 
     <!-- Hero Section -->
     <div class="hero-section">
-    <h1>Empowering Malawi’s Secondary Students</h1>
-    <p>
-        <span class="brand-highlight">
-            Student Mentorship Academic Readiness Technology <span class="acronym-badge">(SMART)</span> Circle
-        </span>
-        is a free, discipline‑based learning community designed to help hardworking students master challenging subject topics through small study groups, practical examples, and real‑world applications.
-    </p>
-</div>
+        <h1>Empowering Malawi’s Secondary Students</h1>
+        <p>
+            <span class="brand-highlight">
+                Student Mentorship Academic Readiness Technology <span class="acronym-badge">(SMART)</span> Circle
+            </span>
+            is a free, discipline‑based learning community designed to help hardworking students master challenging subject topics through small study groups, practical examples, and real‑world applications.
+        </p>
+    </div>
+
     <!-- The Promise (Stylized Card) -->
     <div class="promise-card">
         <div class="promise-label">Our Promise to You</div>
@@ -38,7 +61,7 @@ require_once 'check_remember_me.php';
         <?php if (!isset($_SESSION['user_id'])): ?>
             <button id="mainGetStartedBtn" class="btn-hero">Get Started</button>
         <?php else: ?>
-            <a href="dashboard.php" class="btn-hero">Go to Dashboard</a>
+            <a href="dashboard.php" class="btn">Go to Dashboard</a>
         <?php endif; ?>
     </div>
 
@@ -59,7 +82,7 @@ require_once 'check_remember_me.php';
     </div>
 </div>
 
-<!-- Eligibility Modal (unchanged) -->
+<!-- Eligibility Modal -->
 <div id="eligibilityModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
@@ -83,7 +106,7 @@ require_once 'check_remember_me.php';
 <a href="#" class="back-to-top" id="backToTop">↑</a>
 
 <script>
-    // (Your existing JavaScript remains unchanged)
+    // Testimonials logic
     let testimonials = [];
     let currentIndex = 0;
     let interval;

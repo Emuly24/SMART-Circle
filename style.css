@@ -1449,3 +1449,77 @@ main, .container > *:not(.top-nav) {
 .dark-theme .hero-section p .brand-highlight .acronym-badge {
     color: #0f172a;
 }
+/* ============================================
+   PROMISE CARD STYLING
+   ============================================ */
+.promise-card {
+    text-align: center;
+    margin: 2rem auto;
+    padding: 1.5rem 2rem;
+    max-width: 800px;
+    background: var(--card-bg);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--accent);
+    border-right: 4px solid var(--accent);
+    transition: all 0.3s ease;
+}
+.promise-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--hover-shadow);
+}
+.promise-label {
+    font-weight: bold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+.promise-text {
+    font-size: 1.2rem;
+    color: var(--text-color);
+}
+.promise-text span {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ============================================
+   DARK MODE FIXES – MENU & VISION CARDS
+   ============================================ */
+/* Force hamburger menu text to be visible in dark mode */
+.menu {
+    background: var(--card-bg) !important;
+}
+.menu li a {
+    color: var(--text-color) !important;
+}
+.menu li a:hover {
+    color: var(--accent) !important;
+}
+
+/* Fix Vision/Mission cards in dark mode */
+.dark-theme .vmm-card {
+    background: var(--card-alt-bg) !important;
+    color: var(--text-color) !important;
+}
+.dark-theme .vmm-card h4 {
+    color: var(--accent) !important;
+}
+/* Make header float at the top with a glass effect */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 0;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+/* Add space so the main content doesn't hide under the fixed header */
+.container {
+    margin-top: 80px; /* Adjust if header height changes */
+}
