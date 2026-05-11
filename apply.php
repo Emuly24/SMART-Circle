@@ -1,11 +1,17 @@
 <?php
-// ... after $user = ... fetch_assoc() ...
+require_once 'check_remember_me.php';
+require_once 'config.php';
+require_once 'check_access.php';
+$conn = getDB();
+$uid = $_SESSION['user_id'];
+
+$user = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid")->fetch_assoc();
 if ($user['approved']) {
     header("Location: dashboard.php");
     exit;
 }
 
-// === CHANGE START: Check if already has an application ===
+// === Check if already has an application ===
 $has_app = $conn->query("SELECT id FROM applications WHERE user_id=$uid")->num_rows > 0;
 if ($has_app) {
     ?>
@@ -29,7 +35,6 @@ if ($has_app) {
     <?php
     exit;
 }
-// === CHANGE END ===
 
 $application = $conn->query("SELECT * FROM applications WHERE user_id=$uid")->fetch_assoc();
 $error = $success = '';
@@ -82,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Determine route – prioritize humanities, then sciences, with neutral subjects ignored
+    // Determine route
     $route = null;
     $has_humanities_subjects = (strpos($subjects_taken, 'History') !== false || strpos($subjects_taken, 'Bible Knowledge') !== false || strpos($subjects_taken, 'Social Studies') !== false || strpos($subjects_taken, 'Life Skills') !== false);
     $has_science_subjects = (strpos($subjects_taken, 'Physics') !== false && strpos($subjects_taken, 'Chemistry') !== false);
@@ -92,10 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($has_science_subjects && !$has_humanities_subjects) {
         $route = 'sciences';
     } elseif ($has_humanities_subjects && $has_science_subjects) {
-        // Mixed – default to sciences (admin can override later)
         $route = 'sciences';
     } else {
-        // Only neutral subjects (Math, English, Biology, etc.) – default to sciences
         $route = 'sciences';
     }
     
@@ -108,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $seriousness = json_encode(['agree' => true]);
         if ($application) {
-            // UPDATE existing application (including re-submission after rejection)
             $conn->query("UPDATE applications SET 
                 ambition='$ambition', 
                 career_reason='$career_reason', 
@@ -122,16 +124,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 admin_notes = NULL 
                 WHERE user_id=$uid");
         } else {
-            // INSERT new application
             $conn->query("INSERT INTO applications (user_id, ambition, career_reason, university, why_join, subject_assist, target_points, seriousness_answers) VALUES ($uid, '$ambition', '$career_reason', '$university', '$why_join', '$subjects_assist', $target_points, '$seriousness')");
         }
         header("Location: pending.php");
         exit;
     }
 }
+
+// Preserve submitted values for form repopulation
+$post_class_level = $_POST['class_level'] ?? '';
+$post_gender = $_POST['gender'] ?? '';
+$post_school = $_POST['school'] ?? '';
+$post_dob = $_POST['dob'] ?? '';
+$post_ambition = $_POST['ambition'] ?? '';
+$post_career_reason = $_POST['career_reason'] ?? '';
+$post_university = $_POST['university'] ?? '';
+$post_custom_university = $_POST['custom_university'] ?? '';
+$post_why_join = $_POST['why_join'] ?? '';
+$post_target_points = $_POST['target_points'] ?? '';
+$post_subjects_taken = isset($_POST['subjects_taken']) ? $_POST['subjects_taken'] : [];
+$post_subjects_assist = isset($_POST['subjects_assist']) ? $_POST['subjects_assist'] : [];
 ?>
 <!DOCTYPE html>
-<html><head><title>Application Form</title><link rel="stylesheet" href="style.css"></head><body class="apply-page">
+<html><head><title>Application Form – SMART Circle</title><link rel="stylesheet" href="style.css"></head><body class="apply-page">
     <?php include_once 'includes/header.php'; ?>
     <?php include_once 'includes/progress_tracker.php'; ?>
     <div class="apply-container">
@@ -146,8 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>Which class are you currently in? *</label>
                     <select name="class_level" required>
                         <option value="">-- Select --</option>
-                        <option value="Form 3" <?= (($user['class_level'] ?? '') == 'Form 3') ? 'selected' : '' ?>>Form 3</option>
-                        <option value="Form 4" <?= (($user['class_level'] ?? '') == 'Form 4') ? 'selected' : '' ?>>Form 4</option>
+                        <option value="Form 3" <?= ($post_class_level == 'Form 3' || (empty($post_class_level) && ($user['class_level'] ?? '') == 'Form 3')) ? 'selected' : '' ?>>Form 3</option>
+                        <option value="Form 4" <?= ($post_class_level == 'Form 4' || (empty($post_class_level) && ($user['class_level'] ?? '') == 'Form 4')) ? 'selected' : '' ?>>Form 4</option>
                     </select>
                 </div>
 
@@ -155,19 +170,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>Gender *</label>
                     <select name="gender" required>
                         <option value="">-- Select --</option>
-                        <option value="Male" <?= (($user['gender'] ?? '') == 'Male') ? 'selected' : '' ?>>Male</option>
-                        <option value="Female" <?= (($user['gender'] ?? '') == 'Female') ? 'selected' : '' ?>>Female</option>
+                        <option value="Male" <?= ($post_gender == 'Male' || (empty($post_gender) && ($user['gender'] ?? '') == 'Male')) ? 'selected' : '' ?>>Male</option>
+                        <option value="Female" <?= ($post_gender == 'Female' || (empty($post_gender) && ($user['gender'] ?? '') == 'Female')) ? 'selected' : '' ?>>Female</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Date of Birth *</label>
-                    <input type="date" name="dob" value="<?= htmlspecialchars($user['dob'] ?? '') ?>" required>
+                    <input type="date" name="dob" value="<?= htmlspecialchars($post_dob ?: ($user['dob'] ?? '')) ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label>Current School (full name) *</label>
-                    <input type="text" name="school" value="<?= htmlspecialchars($user['school'] ?? '') ?>" placeholder="e.g., Ntcheu Secondary School" required>
+                    <input type="text" name="school" value="<?= htmlspecialchars($post_school ?: ($user['school'] ?? '')) ?>" placeholder="e.g., Ntcheu Secondary School" required>
                 </div>
 
                 <!-- SUBJECTS TAKEN (with Select All / Clear All) -->
@@ -180,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="checkbox-group" id="subjects_taken_group">
                         <?php $current_subjects = explode(', ', $user['subjects'] ?? ''); ?>
                         <?php foreach ($all_subjects as $s): 
-                            $checked = in_array($s, $current_subjects);
+                            $checked = in_array($s, $post_subjects_taken) || (empty($post_subjects_taken) && in_array($s, $current_subjects));
                             $id = "subj_" . preg_replace('/[^a-zA-Z0-9]/', '_', $s);
                         ?>
                             <input type="checkbox" name="subjects_taken[]" value="<?= $s ?>" id="<?= $id ?>" <?= $checked ? 'checked' : '' ?>>
@@ -200,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="checkbox-group" id="subjects_assist_group">
                         <?php $assist_subjects = explode(', ', $application['subject_assist'] ?? ''); ?>
                         <?php foreach ($core_subjects as $s):
-                            $checked = in_array($s, $assist_subjects);
+                            $checked = in_array($s, $post_subjects_assist) || (empty($post_subjects_assist) && in_array($s, $assist_subjects));
                             $id = "assist_" . preg_replace('/[^a-zA-Z0-9]/', '_', $s);
                         ?>
                             <input type="checkbox" name="subjects_assist[]" value="<?= $s ?>" id="<?= $id ?>" <?= $checked ? 'checked' : '' ?>>
@@ -212,12 +227,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-group">
                     <label>What career do you want to pursue? *</label>
-                    <input type="text" name="ambition" value="<?= htmlspecialchars($application['ambition'] ?? '') ?>" placeholder="e.g., Doctor, Engineer, Teacher" required>
+                    <input type="text" name="ambition" value="<?= htmlspecialchars($post_ambition ?: ($application['ambition'] ?? '')) ?>" placeholder="e.g., Doctor, Engineer, Teacher" required>
                 </div>
 
                 <div class="form-group">
                     <label>Why do you want that career? *</label>
-                    <textarea name="career_reason" rows="3" placeholder="Explain your motivation and passion..." required><?= htmlspecialchars($application['career_reason'] ?? '') ?></textarea>
+                    <textarea name="career_reason" rows="3" placeholder="Explain your motivation and passion..." required><?= htmlspecialchars($post_career_reason ?: ($application['career_reason'] ?? '')) ?></textarea>
                 </div>
 
                 <div class="form-group">
@@ -225,26 +240,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="university" id="universitySelect" required>
                         <option value="">-- Select --</option>
                         <?php foreach ($universities as $u): ?>
-                            <option value="<?= htmlspecialchars($u) ?>" <?= (($application['university'] ?? '') == $u) ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
+                            <option value="<?= htmlspecialchars($u) ?>" <?= ($post_university == $u || (empty($post_university) && ($application['university'] ?? '') == $u)) ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
                         <?php endforeach; ?>
-                        <option value="Other" <?= (($application['university'] ?? '') == 'Other') ? 'selected' : '' ?>>Other</option>
+                        <option value="Other" <?= ($post_university == 'Other' || (empty($post_university) && ($application['university'] ?? '') == 'Other')) ? 'selected' : '' ?>>Other</option>
                     </select>
                 </div>
                 <div id="customUniversityDiv" style="display: none;">
                     <div class="form-group">
                         <label>Please specify your university/college name *</label>
-                        <input type="text" name="custom_university" placeholder="e.g., University of Livingstonia" value="<?= htmlspecialchars($application['university'] ?? '') ?>">
+                        <input type="text" name="custom_university" value="<?= htmlspecialchars($post_custom_university ?: ($application['university'] ?? '')) ?>" placeholder="e.g., University of Livingstonia">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Why do you want to join this group? *</label>
-                    <textarea name="why_join" rows="3" placeholder="e.g., To improve my grades, to learn with others..." required><?= htmlspecialchars($application['why_join'] ?? '') ?></textarea>
+                    <textarea name="why_join" rows="3" placeholder="e.g., To improve my grades, to learn with others..." required><?= htmlspecialchars($post_why_join ?: ($application['why_join'] ?? '')) ?></textarea>
                 </div>
 
                 <div class="form-group">
                     <label>What is your target MSCE points? *</label>
-                    <input type="number" name="target_points" id="targetPoints" min="0" max="20" value="<?= htmlspecialchars($application['target_points'] ?? '') ?>" placeholder="e.g., 15" required>
+                    <input type="number" name="target_points" id="targetPoints" min="0" max="20" value="<?= htmlspecialchars($post_target_points ?: ($application['target_points'] ?? '')) ?>" placeholder="e.g., 15" required>
                     <div id="pointsWarning" class="warning" style="display: none; font-size: 0.8rem;">⚠️ Target points cannot exceed 20.</div>
                 </div>
 
@@ -257,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="date" value="<?= date('Y-m-d') ?>" readonly>
                 </div>
 
-                <button type="submit" id="submitBtn">Submit Application</button>
+                <button type="submit" class="btn">Submit Application</button>
             </form>
         <?php endif; ?>
     </div>

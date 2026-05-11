@@ -57,7 +57,6 @@ if (isset($_SESSION['user_id'])) {
     <?php
     exit;
 }
-// === CHANGE END ===
 
 $error = $success = '';
 
@@ -98,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sign Up - SMART Tutor</title>
+    <title>Sign Up - SMART Circle</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="signup-page">
@@ -123,19 +122,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post">
             <div class="form-group">
                 <label>Full Name *</label>
-                <input type="text" name="fullname" required placeholder="e.g., Blessings Emulyn">
+                <!-- ✅ VALUE ATTRIBUTE ADDED -->
+                <input type="text" name="fullname" value="<?= htmlspecialchars($_POST['fullname'] ?? '') ?>" required placeholder="e.g., Blessings Emulyn">
             </div>
             <div class="form-group">
                 <label>Phone Number *</label>
-                <input type="tel" name="phone" required placeholder="e.g., +265 999 123 456">
+                <!-- ✅ VALUE ATTRIBUTE ADDED -->
+                <input type="tel" name="phone" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>" required placeholder="e.g., +265 999 123 456">
             </div>
             <div class="form-group">
                 <label>Email (optional)</label>
-                <input type="email" name="email" placeholder="e.g., blessings@example.com">
+                <!-- ✅ VALUE ATTRIBUTE ADDED -->
+                <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="e.g., blessings@example.com">
             </div>
             <div class="form-group">
                 <label>Current School *</label>
-                <input type="text" name="school" required placeholder="e.g., Ntcheu Secondary School">
+                <!-- ✅ VALUE ATTRIBUTE ADDED -->
+                <input type="text" name="school" value="<?= htmlspecialchars($_POST['school'] ?? '') ?>" required placeholder="e.g., Ntcheu Secondary School">
             </div>
             <div class="form-group">
                 <label>Password * (min 5 characters)</label>
