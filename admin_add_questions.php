@@ -50,8 +50,6 @@ $questions = $conn->query("SELECT * FROM exam_questions WHERE exam_id=$exam_id O
 <div class="content-grid">
 <h2>Existing Questions</h2><?php while($q=$questions->fetch_assoc()):?><div><strong>Q<?=$q['sort_order']?>:</strong> <?=nl2br(htmlspecialchars($q['question_text']))?> (<?=$q['points']?> pts)</div><?php endwhile;?><h2>Add New Question</h2><form method="post"><label>Question text</label><textarea name="question_text" rows="3" required></textarea><label>Type</label><select name="question_type" id="qtype" onchange="toggleOptions()"><option value="essay">Essay</option><option value="short_answer">Short Answer</option><option value="multiple_choice">Multiple Choice</option></select><div id="options_div" style="display:none;"><label>Options (one per line)</label><textarea name="options_raw" rows="4"></textarea><label>Correct answer (exact match)</label><input type="text" name="correct_answer"></div><label>Points</label><input type="number" name="points" value="5"><label>Sort order</label><input type="number" name="sort_order" value="1"><button type="submit">Add Question</button></form><p><a href="admin_exams_list.php">Back</a></p>
 </div>
-<div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

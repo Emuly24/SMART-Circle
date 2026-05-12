@@ -65,12 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </select>
                 </div>
                 <button type="submit"><?= $existing ? 'Update Testimonial' : 'Submit Testimonial' ?></button>
-            </form>
-            <p><a href="dashboard.php">← Back to Dashboard</a></p>
         <?php endif; ?>
     </div>
 </div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 <script>
     const prefill = sessionStorage.getItem('prefill_testimonial');
     if (prefill) {

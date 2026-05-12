@@ -103,7 +103,8 @@ require_once 'check_remember_me.php';
     </div>
 </div>
 
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 
 <script>
     // Testimonials logic

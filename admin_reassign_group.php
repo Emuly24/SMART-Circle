@@ -95,7 +95,6 @@ $groups = $conn->query("SELECT id, class_level, group_number, route FROM groups 
             </div>
         <?php endwhile; ?>
     </div>
-    <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

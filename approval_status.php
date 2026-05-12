@@ -40,10 +40,7 @@ $application = $conn->query("SELECT status, admin_notes FROM applications WHERE 
                 <p>Please check back later. You will be notified once the admin makes a decision.</p>
             </div>
         <?php endif; ?>
-        <p><a href="dashboard.php" class="btn-secondary">Back to Dashboard</a></p>
-    </div>
-    <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

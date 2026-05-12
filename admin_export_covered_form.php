@@ -27,7 +27,6 @@ if (!isset($_SESSION['admin_logged'])) {
             <div class="form-group"><label>Class:</label><select name="class"><option value="all">All</option><option value="Form 3">Form 3</option><option value="Form 4">Form 4</option></select></div>
             <button type="submit" class="btn">Download CSV</button>
         </form></div>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

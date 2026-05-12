@@ -40,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn">Send Message</button>
         </form>
     </div>
-    <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+   <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

@@ -36,7 +36,6 @@ if ($current_subject != '') echo "</div>";
 if ($notes->num_rows == 0) echo "<div class='card'><p>No notes available for your group yet.</p></div>";
 ?>
 </div>
-<div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

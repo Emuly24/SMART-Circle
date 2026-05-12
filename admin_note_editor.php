@@ -20,6 +20,12 @@ $conn = getDB();
 if (!$conn) die("Database connection failed.");
 
 $subjects = ['Mathematics', 'Biology', 'English', 'Physics', 'Chemistry'];
+$note_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$existing_note = null;
+if ($note_id > 0) {
+    $result = $conn->query("SELECT * FROM notes WHERE id = $note_id");
+    if ($result) $existing_note = $result->fetch_assoc();
+}
 $last_note_id = 0;
 $msg = '';
 
@@ -28,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = trim($_POST['subject']);
     $class = trim($_POST['class_level']);
     $content = trim($_POST['content']);
+    $note_id_post = isset($_POST['note_id']) ? (int)$_POST['note_id'] : 0;
     $group_id = isset($_POST['group_id']) && $_POST['group_id'] ? (int)$_POST['group_id'] : 0;
     
     if (empty($title) || empty($subject) || empty($content)) {
@@ -39,30 +46,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $class = $conn->real_escape_string($class);
     $content = $conn->real_escape_string($content);
     
-    // Check if note already exists (using unique key)
-    $existing = $conn->query("SELECT id FROM notes WHERE title='$title' AND subject='$subject' AND class_level='$class'");
-    if ($existing->num_rows > 0) {
-        // Update the existing note
-        $row = $existing->fetch_assoc();
-        $note_id = $row['id'];
-        $conn->query("UPDATE notes SET content='$content', created_at=NOW() WHERE id=$note_id");
+    if ($note_id_post > 0) {
+        // Update existing note
+        $conn->query("UPDATE notes SET title='$title', subject='$subject', class_level='$class', content='$content', created_at=NOW() WHERE id=$note_id_post");
+        $note_id = $note_id_post;
     } else {
         // Insert new note
         $conn->query("INSERT INTO notes (title, subject, class_level, content) VALUES ('$title', '$subject', '$class', '$content')");
         $note_id = $conn->insert_id;
     }
-
     $conn->query("DELETE FROM note_drafts");
 
-    // If the admin clicked "Finish", redirect to locking page
+    // Handle group locks (optional)
+    if ($group_id) {
+        $all_groups = $conn->query("SELECT id FROM groups WHERE class_level = '$class'");
+        while ($g = $all_groups->fetch_assoc()) {
+            $lock = $g['id'] == $group_id ? 0 : 1;
+            $conn->query("INSERT INTO group_content_locks (group_id, content_type, content_id, is_locked) 
+                          VALUES ({$g['id']}, 'note', $note_id, $lock)
+                          ON DUPLICATE KEY UPDATE is_locked = $lock");
+        }
+        $msg = "Note saved and unlocked for the selected group.";
+    } else {
+        $msg = "Note saved. Use the lock manager below to control group access.";
+    }
+
     if (isset($_POST['finish'])) {
         header("Location: admin_group_locks.php?content_type=note&content_id=$note_id&class_level=" . urlencode($class));
         exit;
+    } elseif (isset($_POST['save_as'])) {
+        // Save As: create a new note with a clean ID
+        $conn->query("INSERT INTO notes (title, subject, class_level, content) VALUES ('$title (Copy)', '$subject', '$class', '$content')");
+        $new_id = $conn->insert_id;
+        header("Location: admin_note_editor.php?id=$new_id");
+        exit;
+    } else {
+        // Regular save – stay and show success
+        echo "<script>window.noteId = $note_id; alert('$msg');</script>";
     }
-
-    // If just saving as draft, stay on the page
-    $msg = "Note saved (ID: $note_id)";
-    echo "<script>window.noteId = $note_id; alert('$msg');</script>";
 }
 ?>
 <!DOCTYPE html>
@@ -70,25 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="style.css">
 <!-- TinyMCE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.7.0/tinymce.min.js"></script>
-
 <!-- MathQuill CSS & JS (Custom panel will use this) -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
-
 <!-- MathJax -->
 <script>MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
-
 <!-- Mermaid -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
-
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
 <!-- Highlight.js -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
 <!-- Cropper (for diagrams) -->
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
@@ -96,9 +111,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .ck-editor__editable { min-height: 600px; width: 100% !important; }
     .ck-editor { width: 100% !important; }
     .ck-editor__editable p { text-align: justify; }
-    .toolbar-extras { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; background: var(--card-alt-bg); padding: 10px; border-radius: 8px; }
-    .toolbar-extras button, .toolbar-extras select { background: var(--accent); color: #1e293b; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    .toolbar-extras button:hover, .toolbar-extras select:hover { background: var(--accent-dark); transform: scale(1.02); }
+    .toolbar-extras {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+        background: var(--card-alt-bg);
+        padding: 10px;
+        border-radius: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .toolbar-extras button, .toolbar-extras select {
+        background: var(--accent);
+        color: #1e293b;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .toolbar-extras button:hover, .toolbar-extras select:hover {
+        background: var(--accent-dark);
+        transform: scale(1.02);
+    }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 2000; }
     .modal-content { background: var(--card-bg); padding: 2rem; border-radius: 1rem; max-width: 90%; width: 800px; max-height: 90%; overflow-y: auto; }
     .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; max-height: 500px; overflow-y: auto; }
@@ -113,29 +152,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .image-controls input { width: 100%; }
     .citation-list { background: #f5f5f5; padding: 10px; border-radius: 8px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
     .citation-item { padding: 5px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+    .group-selector { margin-bottom: 1rem; padding: 1rem; background: var(--card-alt-bg); border-radius: 0.75rem; }
+    .group-selector select { margin-right: 10px; margin-bottom: 5px; }
+    .lock-manager { margin-top: 2rem; padding: 1rem; background: var(--card-alt-bg); border-radius: 0.75rem; display: none; }
+    .lock-manager table { width: 100%; }
+    .lock-manager td, .lock-manager th { padding: 8px; }
+    .lock-toggle { cursor: pointer; background: var(--accent); color: #1e293b; border: none; padding: 4px 12px; border-radius: 20px; }
+    .lock-toggle.locked { background: var(--error); color: white; }
     .tox-tinymce { min-height: 600px !important; }
 </style>
 </head>
 <body>
-<?php include_once 'includes/header.php'; ?>
 <div class="container">
 <div style="padding: 2rem;">
     <form method="post" id="noteForm">
-        <div class="form-group"><label>Title</label><input type="text" id="noteTitle" name="title" required></div>
+        <input type="hidden" name="note_id" value="<?= $note_id ?>">
+        <div class="form-group"><label>Title</label><input type="text" id="noteTitle" name="title" value="<?= htmlspecialchars($existing_note['title'] ?? '') ?>" required></div>
         <div class="form-group"><label>Subject</label>
             <select name="subject" required>
                 <option value="">-- Select Subject --</option>
                 <?php foreach ($subjects as $sub): ?>
-                    <option value="<?= htmlspecialchars($sub) ?>"><?= htmlspecialchars($sub) ?></option>
+                    <option value="<?= htmlspecialchars($sub) ?>" <?= (($existing_note['subject'] ?? '') == $sub) ? 'selected' : '' ?>><?= htmlspecialchars($sub) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div class="form-group"><label>Class</label>
             <select id="noteClass" name="class_level" required>
-                <option>Form 3</option><option>Form 4</option>
+                <option value="Form 3" <?= (($existing_note['class_level'] ?? '') == 'Form 3') ? 'selected' : '' ?>>Form 3</option>
+                <option value="Form 4" <?= (($existing_note['class_level'] ?? '') == 'Form 4') ? 'selected' : '' ?>>Form 4</option>
             </select>
         </div>
         
+        <!-- Group selection (optional) -->
+        <div class="group-selector">
+            <h4>🎯 Assign to specific group (optional)</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="routeSelect" style="min-width: 120px;">
+                    <option value="">-- Route --</option>
+                    <option value="sciences">Sciences</option>
+                    <option value="humanities">Humanities</option>
+                </select>
+                <select id="groupSelect" name="group_id" style="min-width: 150px;">
+                    <option value="">-- Any group (use locks later) --</option>
+                </select>
+            </div>
+            <small class="help-text">If you select a group, this note will be instantly unlocked for that group and locked for others.</small>
+        </div>
+
         <div class="toolbar-extras">
             <button type="button" id="symbolBtn">Ω Symbols</button>
             <button type="button" id="fileUploadBtn">📎 Attach File</button>
@@ -154,13 +217,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="button" id="editDiagramBtn">✏️ Edit Diagram Image</button>
             <button type="button" id="templateBtn">🧩 Templates</button>
         </div>
-        <div class="form-group"><label>Content</label><textarea name="content" id="editor"></textarea></div>
+        <div class="form-group"><label>Content</label><textarea name="content" id="editor" style="height: 600px;"><?= htmlspecialchars($existing_note['content'] ?? '') ?></textarea></div>
         
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
             <button type="submit" class="btn">💾 Save Draft</button>
-            <button type="submit" name="finish" class="btn btn-finish">✅ Finish & Lock</button>
+            <button type="submit" name="save_as" class="btn btn-secondary">📄 Save As</button>
+            <button type="submit" name="finish" class="btn btn-finish" style="background:var(--success);color:white;">✅ Finish, Lock & Unlock</button>
         </div>
     </form>
+
+    <!-- Lock Manager (initially hidden, appears after saving a note) -->
+    <div id="lockManager" class="lock-manager">
+        <h3>🔒 Group Access Control for this Note</h3>
+        <p>Toggle lock/unlock for each group. Locked = group cannot see the note. Unlocked = group can see the note.</p>
+        <div id="lockManagerContent"></div>
+    </div>
 </div>
 <div class="footer"><a href="admin_notes_list.php" class="btn-back">← Back to Notes</a></div>
 </div>
@@ -192,155 +263,147 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
     // ---------- TinyMCE CORE ----------
-tinymce.init({
-    selector: '#editor',
-    height: 600,
-    menubar: true,
-    // Remove 'mathquill' from plugins – it's not a real plugin, we're using a custom button
-    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
-    toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | specialchars | charmap | code | mathquill',
-    content_style: 'body { font-family: Inter, sans-serif; }',
-    // Remove the old mathquill config – it's incompatible
-    // mathquill: { version: 'editable' },
-    setup: function(editor) {
-        // ---------- MODERN MATHQUILL PANEL (Fully Integrated) ----------
-        editor.ui.registry.addButton('mathquill', {
-            text: '∫',
-            tooltip: 'Insert Math Equation (MathQuill)',
-            onAction: function() {
-                const panel = editor.windowManager.open({
-                    title: 'MathQuill Equation Editor',
-                    width: 700,
-                    height: 200,
-                    body: {
-                        type: 'panel',
-                        items: [
-                            {
-                                type: 'htmlpanel',
-                                html: `
-                                    <div style="
-                                        padding: 10px;
-                                        text-align: center;
-                                        background: var(--card-bg, #ffffff);
-                                        border-radius: 12px;
-                                        border: 2px solid var(--accent, #d4af37);
-                                    ">
-                                        <div id="mathquill-editor" style="
-                                            background: transparent;
-                                            padding: 10px;
-                                            font-size: 1.5rem;
-                                            min-height: 60px;
-                                            color: var(--text-color, #000);
-                                        "></div>
-                                    </div>
-                                `
-                            }
-                        ]
-                    },
-                    buttons: [
-                        { type: 'submit', text: 'Insert Equation', primary: true },
-                        { type: 'cancel', text: 'Cancel' }
-                    ],
-                    onAction: function(api) {
-                        const latex = this.mathField ? this.mathField.latex() : '';
-                        if (latex) {
-                            editor.execCommand('mceMathQuill', false, latex);
-                        }
-                        api.close();
-                    },
-                    onClose: function() {
-                        if (this.mathField) this.mathField.destroy();
-                    },
-                    onOpen: function() {
-                        const mathFieldSpan = document.getElementById('mathquill-editor');
-                        if (mathFieldSpan && typeof MathQuill !== 'undefined') {
-                            const MQ = MathQuill.getInterface(2);
-                            this.mathField = MQ.MathField(mathFieldSpan, {
-                                spaceBehavesLikeTab: true,
-                                handlers: {
-                                    edit: function() {} // live preview optional
-                                }
-                            });
-                            setTimeout(() => this.mathField.focus(), 100);
-                        }
-                    }
+    tinymce.init({
+        selector: '#editor',
+        height: 600,
+        menubar: true,
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
+        toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | specialchars | charmap | code',
+        content_style: 'body { font-family: Inter, sans-serif; }',
+        setup: function(editor) {
+            // ---------- PRE-FILL EXISTING CONTENT ----------
+            const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
+            if (existingContent) {
+                editor.on('init', function() {
+                    editor.setContent(existingContent);
                 });
             }
-        });
 
-        // ---------- AUTO-SAVE DRAFT ----------
-        setInterval(function() {
-            saveDraft(editor);
-        }, 30000);
+            // ---------- AUTO-SAVE DRAFT ----------
+            setInterval(function() {
+                saveDraft(editor);
+            }, 30000);
 
-        editor.addShortcut('Ctrl+S', 'Save Draft', function() {
-            saveDraft(editor);
-        });
+            editor.addShortcut('Ctrl+S', 'Save Draft', function() {
+                saveDraft(editor);
+            });
 
-        // ---------- MATHJAX & DIAGRAMS ----------
-        editor.on('init', function() {
-            const content = editor.getContent();
-            if (content && window.MathJax) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = content;
-                MathJax.typesetPromise([tempDiv]).then(() => {
-                    editor.setContent(tempDiv.innerHTML);
-                }).catch(() => {});
-            }
-            if (window.mermaid) mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
-            if (window.hljs) hljs.highlightAll();
-        });
+            // ---------- MATHJAX & DIAGRAMS ----------
+            editor.on('init', function() {
+                const content = editor.getContent();
+                if (content && window.MathJax) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = content;
+                    MathJax.typesetPromise([tempDiv]).then(() => {
+                        editor.setContent(tempDiv.innerHTML);
+                    }).catch(() => {});
+                }
+                if (window.mermaid) mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                if (window.hljs) hljs.highlightAll();
+            });
 
-        editor.on('SetContent', function() {
-            if (window.hljs) setTimeout(hljs.highlightAll, 100);
-        });
-    }
-});
-
-    // ---------- TEMPLATE LIBRARY ----------
-    const templateBtn = document.getElementById('templateBtn');
-    const templateModal = document.getElementById('templateModal');
-
-    if (templateBtn && templateModal) {
-        templateBtn.addEventListener('click', function() {
-            templateModal.style.display = 'flex';
-        });
-
-        const closeTemplate = templateModal.querySelector('.close');
-        if (closeTemplate) {
-            closeTemplate.addEventListener('click', function() {
-                templateModal.style.display = 'none';
+            editor.on('SetContent', function() {
+                if (window.hljs) setTimeout(hljs.highlightAll, 100);
             });
         }
+    });
 
-        window.addEventListener('click', function(event) {
-            if (event.target === templateModal) {
-                templateModal.style.display = 'none';
-            }
-        });
-
-        setTimeout(() => {
-            const copyBtns = templateModal.querySelectorAll('.btn-copy');
-            copyBtns.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const pre = this.previousElementSibling;
-                    let text = pre.textContent;
-                    if (text.includes('```mermaid')) {
-                        text = text.split('```mermaid')[1].split('```')[0].trim();
-                    } else if (text.includes('```')) {
-                        text = text.split('```')[1].split('```')[0].trim();
-                    }
-                    if (tinymce.activeEditor) {
-                        tinymce.activeEditor.insertContent(text);
-                        showToast('✅ Template inserted!');
-                    } else {
-                        alert('Click inside the editor first.');
-                    }
-                });
-            });
-        }, 500);
+    // ---------- DRAFT FUNCTIONS ----------
+    function saveDraft(editor) {
+        const title = document.getElementById('noteTitle').value;
+        const subject = document.querySelector('select[name="subject"]').value;
+        const classLevel = document.querySelector('select[name="class_level"]').value;
+        const content = editor.getData();
+        localStorage.setItem('note_draft', JSON.stringify({
+            title: title,
+            subject: subject,
+            class_level: classLevel,
+            content: content
+        }));
+        console.log('Draft saved to localStorage at ' + new Date().toLocaleTimeString());
     }
+
+    // ---------- GROUP LOADER ----------
+    const classSelect = document.getElementById('noteClass');
+    const routeSelect = document.getElementById('routeSelect');
+    const groupSelect = document.getElementById('groupSelect');
+
+    function loadGroups() {
+        const classLevel = classSelect.value;
+        const route = routeSelect.value;
+        if (!classLevel || !route) {
+            groupSelect.innerHTML = '<option value="">-- Select route and class first --</option>';
+            return;
+        }
+        fetch(`admin_get_groups.php?class=${encodeURIComponent(classLevel)}&route=${encodeURIComponent(route)}`)
+            .then(res => res.json())
+            .then(data => {
+                groupSelect.innerHTML = '<option value="">-- Any group (use locks later) --</option>';
+                data.forEach(group => {
+                    groupSelect.innerHTML += `<option value="${group.id}">Group ${group.group_number} (${group.current_members}/5 members)</option>`;
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+            });
+    }
+    classSelect.addEventListener('change', loadGroups);
+    routeSelect.addEventListener('change', loadGroups);
+
+    // ---------- LOCK MANAGER ----------
+    let currentNoteId = <?= $note_id > 0 ? $note_id : 0 ?>;
+    const lockManagerDiv = document.getElementById('lockManager');
+    const lockManagerContent = document.getElementById('lockManagerContent');
+
+    function loadLockManager(noteId) {
+        if (!noteId) {
+            lockManagerDiv.style.display = 'none';
+            return;
+        }
+        fetch(`admin_note_lock_api.php?action=get_locks&note_id=${noteId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.locks) {
+                    let html = '<table class="data-table"><thead><tr><th>Route</th><th>Group</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+                    data.locks.forEach(lock => {
+                        const statusText = lock.is_locked ? '🔒 Locked' : '🔓 Unlocked';
+                        const btnText = lock.is_locked ? 'Unlock' : 'Lock';
+                        html += `<tr>
+                                    <td>${lock.route === 'sciences' ? 'Sciences' : 'Humanities'}</td>
+                                    <td>Group ${lock.group_number}</td>
+                                    <td id="status-${lock.group_id}">${statusText}</td>
+                                    <td><button class="lock-toggle ${lock.is_locked ? 'locked' : ''}" data-note="${noteId}" data-group="${lock.group_id}">${btnText}</button></td>
+                                 </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    lockManagerContent.innerHTML = html;
+                    lockManagerDiv.style.display = 'block';
+                    document.querySelectorAll('.lock-toggle').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const note = this.dataset.note;
+                            const group = this.dataset.group;
+                            fetch(`admin_note_lock_api.php?action=toggle_lock&note_id=${note}&group_id=${group}`)
+                                .then(res => res.json())
+                                .then(res => {
+                                    if (res.success) {
+                                        const statusSpan = document.getElementById(`status-${group}`);
+                                        const isLocked = res.is_locked;
+                                        statusSpan.innerHTML = isLocked ? '🔒 Locked' : '🔓 Unlocked';
+                                        this.innerHTML = isLocked ? 'Unlock' : 'Lock';
+                                        this.classList.toggle('locked', isLocked);
+                                    } else {
+                                        alert('Error toggling lock');
+                                    }
+                                });
+                        });
+                    });
+                } else {
+                    lockManagerDiv.style.display = 'none';
+                }
+            });
+    }
+    if (currentNoteId) loadLockManager(currentNoteId);
 
     // ---------- SYMBOL PALETTE ----------
     const symbolPalette = {
@@ -458,7 +521,7 @@ tinymce.init({
         }
     };
 
-    // ---------- EQUATION HELPER ----------
+    // ---------- EQUATION HELPER (MathJax – now working) ----------
     const mathBtn = document.getElementById('mathBtn');
     const mathHelperModal = document.getElementById('mathHelperModal');
     const closeMathHelperBtn = document.getElementById('closeMathHelperBtn');
@@ -485,7 +548,7 @@ tinymce.init({
     insertHelperEquationBtn.onclick = function() {
         const latex = latexHelperInput?.value;
         if (latex && tinymce.activeEditor) {
-            tinymce.activeEditor.execCommand('mceMathQuill', false, latex);
+            tinymce.activeEditor.insertContent('$$ ' + latex + ' $$');
             mathHelperModal.style.display = 'none';
             latexHelperInput.value = '';
             if (mathHelperPreview) {
@@ -526,6 +589,7 @@ tinymce.init({
     }
 });
 </script>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

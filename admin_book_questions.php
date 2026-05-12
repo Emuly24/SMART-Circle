@@ -61,6 +61,6 @@ $questions = $conn->query("SELECT q.*, u.fullname FROM book_questions q JOIN use
             <div class="card"><p>No questions yet.</p></div>
         <?php endif; ?>
     </div>
-    <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

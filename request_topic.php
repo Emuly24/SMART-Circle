@@ -112,10 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" name="check_topic" class="btn-secondary">Check</button>
             </form>
         </div>
-        <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
-
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
     <!-- ======================= STYLING ======================= -->
     <style>
         .topic-list-container {

@@ -67,6 +67,10 @@ $att_total = $att_stats['total'] ?? 0;
 $att_present = $att_stats['present'] ?? 0;
 $att_late = $att_stats['late'] ?? 0;
 $attendance_rate = $att_total ? round((($att_present + $att_late) / $att_total) * 100) : 0;
+$msg_count = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN read_at IS NULL THEN 1 ELSE 0 END) as unread FROM admin_messages WHERE user_id = $uid");
+$msg_row = $msg_count->fetch_assoc();
+$total_msgs = $msg_row['total'];
+$unread_msgs = $msg_row['unread'];
 ?>
 <!DOCTYPE html>
 <html>
@@ -188,6 +192,17 @@ $attendance_rate = $att_total ? round((($att_present + $att_late) / $att_total) 
         <strong>📊 Quiz Progress:</strong> <?= $done_quizzes ?>/<?= $total_quizzes ?> completed (<?= $total_quizzes ? round(($done_quizzes/$total_quizzes)*100) : 0 ?>%)<br>
         <div class="progress-fill" style="width:<?= $total_quizzes ? round(($done_quizzes/$total_quizzes)*100) : 0 ?>%"></div>
     </div>
+    <div class="stat-card">
+    <i class="fas fa-envelope"></i>
+    <div class="stat-number"><?= $unread_msgs ?></div>
+    <div class="stat-label">Unread Messages</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);">
+        Total: <?= $total_msgs ?>
+        <?php if ($unread_msgs > 0): ?>
+            <span style="color:var(--error);font-weight:bold;">  ●</span>
+        <?php endif; ?>
+    </div>
+</div>
 
     <?php
     $paper_pending = $conn->query("SELECT COUNT(*) FROM exercise_attempts a JOIN note_exercises e ON a.exercise_id=e.id JOIN notes n ON e.note_id=n.id WHERE a.user_id=$uid AND a.status='paper_pending'");
@@ -249,9 +264,7 @@ $attendance_rate = $att_total ? round((($att_present + $att_late) / $att_total) 
         </div>
     </div>
 
-    <?php include_once 'includes/vision_mission.php'; ?>
-    <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

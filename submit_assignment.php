@@ -36,6 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html><html><head><title>Submit Assignment</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="form-container"><form method="post" enctype="multipart/form-data"><div class="form-group"><label>Your Answer (text)</label><textarea name="submission_text" rows="6"></textarea></div><div class="form-group"><label>OR Upload File</label><input type="file" name="submission_file" accept=".jpg,.png,.pdf,.doc,.txt"></div><button type="submit">Submit</button></form></div></div><div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

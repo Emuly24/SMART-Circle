@@ -52,7 +52,6 @@ $books = $conn->query($sql);
         <?php if ($current_subject != '') echo "</div>"; ?>
         <?php if ($books->num_rows == 0) echo "<div class='card'><p>No books found for your class or search term.</p></div>"; ?>
         </div>
-        <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

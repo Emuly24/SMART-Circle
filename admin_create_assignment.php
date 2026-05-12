@@ -56,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn">Create Assignment</button>
             </form>
         </div>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+       <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

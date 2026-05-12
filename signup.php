@@ -42,6 +42,8 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
     </div>
+    <?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
     </body></html>
     <?php
     exit;

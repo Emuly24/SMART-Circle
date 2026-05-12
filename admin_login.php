@@ -62,6 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
 </div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

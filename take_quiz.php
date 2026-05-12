@@ -55,7 +55,6 @@ if ($remaining <= 0) {
 <?php endif; ?></div>
 <?php endwhile; ?>
 <button type="submit">Submit Quiz</button>
-</form></div><div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+</form></div><?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

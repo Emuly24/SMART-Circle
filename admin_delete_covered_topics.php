@@ -48,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group"><label>Delete older than date:</label><input type="date" name="older_than" placeholder="dd/mm/yyyy"></div>
             <button type="submit" class="btn btn-delete">Delete</button>
         </form></div>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

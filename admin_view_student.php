@@ -125,7 +125,6 @@ $has_profile_pic = isset($student['profile_pic']) && !empty($student['profile_pi
             <?php endif; ?>
         </div>
     </div>
-    <div class="footer"><a href="admin_students_list.php" class="btn-back">← Back to Student List</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

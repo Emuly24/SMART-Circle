@@ -17,6 +17,6 @@ $subjects = $conn->query("SELECT DISTINCT subject FROM self_quizzes ORDER BY sub
             <?php endwhile; ?>
         </div>
     </div>
-    <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
+   <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

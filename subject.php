@@ -105,11 +105,7 @@ $quizzes = $conn->query("SELECT q.id, q.title, q.description, q.time_limit
             </div>
         </div>
 
-        <div class="footer">
-            <a href="subjects.php" class="btn-back">← Back to Subjects</a>
-            <a href="dashboard.php" class="btn-back">← Back to Dashboard</a>
-        </div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+       <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

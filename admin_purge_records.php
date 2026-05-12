@@ -137,9 +137,8 @@ $rejected = $conn->query("SELECT a.id, a.user_id, u.fullname, u.class_level, a.a
         </div>
     </form>
 
-    <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 <script>
     // Select All for Dismissed
     const selectAllDismissed = document.getElementById('selectAllDismissed');

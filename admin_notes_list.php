@@ -49,10 +49,10 @@ $notes = $conn->query("SELECT id, title, subject, class_level, created_at FROM n
                         <td><?= $n['class_level'] ?></td>
                         <td><?= $n['created_at'] ?></td>
                         <td class="card-buttons">
-                            <a href="view_note.php?id=<?= $n['id'] ?>" target="_blank" class="btn">View</a>
-                            <a href="admin_note_editor.php?id=<?= $n['id'] ?>" class="btn">Edit</a>
-                            <a href="?delete=<?= $n['id'] ?>" onclick="return confirm('Delete this note?')" class="btn-danger">Delete</a>
-                        </td>
+                        <a href="admin_view_note.php?id=<?= $n['id'] ?>" class="btn">View</a>
+                        <a href="admin_note_editor.php?id=<?= $n['id'] ?>" class="btn">Edit</a>
+                        <a href="?delete=<?= $n['id'] ?>" onclick="return confirm('Delete this note?')" class="btn-danger">Delete</a>
+                    </td>
                     </tr>
                 <?php endwhile; ?>
                 </tbody>

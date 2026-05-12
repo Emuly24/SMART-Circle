@@ -44,7 +44,6 @@ $log = $conn->query("SELECT d.*, u.fullname, u.class_level FROM discipline_log d
                 </tbody>
             </table>
         <?php endif; ?>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

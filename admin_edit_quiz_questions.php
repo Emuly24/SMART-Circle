@@ -22,5 +22,6 @@ $questions = $conn->query("SELECT * FROM quiz_questions WHERE quiz_id=$quiz_id O
 <?php endwhile; ?>
 <p><a href="admin_manage_quiz.php?note_id=<?=$quiz['note_id']?>">Back to Quiz Manager</a></p></div><div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
 
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

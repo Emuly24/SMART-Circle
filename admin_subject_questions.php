@@ -73,8 +73,7 @@ $questions = $conn->query("SELECT sq.*, u.fullname, u.class_level FROM subject_q
         <?php if ($questions->num_rows == 0): ?>
             <div class="card"><p>No student questions yet.</p></div>
         <?php endif; ?>
-    </div>
-    <div class="footer"><a href="admin_dashboard.php">← Back to Dashboard</a></div>
-</div>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

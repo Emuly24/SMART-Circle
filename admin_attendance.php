@@ -133,8 +133,8 @@ while ($row = $r->fetch_assoc()) {
             </table>
             <button type="submit" class="btn">Save Attendance & Send Notifications</button>
         </form>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
     <script>
         function toggleArrivalTime(select, userId) {
             var input = document.querySelector('input[name="arrival_time[' + userId + ']"]');

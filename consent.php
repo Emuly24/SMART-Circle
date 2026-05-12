@@ -136,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
         </form>
     <?php endif; ?>
 </div>
-<div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 <?php include_once 'includes/testimonial_prompt.php'; ?>
 </body>
 <script>

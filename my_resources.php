@@ -58,7 +58,6 @@ $resources = $conn->query("SELECT * FROM student_resources WHERE user_id = $uid 
             <?php endwhile; ?>
         <?php endif; ?>
     </div>
-    <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

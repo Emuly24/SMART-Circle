@@ -113,8 +113,7 @@ $quizzes = $conn->query("SELECT * FROM quizzes WHERE note_id=$note_id");
                 <button type="submit" name="add_question" class="btn">Add Question</button>
             </form>
         </div>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
     <script>function toggleOptions(){var t=document.getElementById('qtype').value; document.getElementById('options_div').style.display=(t=='multiple_choice')?'block':'none';}</script>
 </body></html>

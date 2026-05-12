@@ -75,6 +75,6 @@ if ($questions->num_rows == 0) die("No questions available for this subject.");
             <button type="submit" class="btn">Submit Answers</button>
         </form>
     <?php endif; ?>
-    <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
+    <<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

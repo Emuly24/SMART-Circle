@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-if (session_status() === PHP_SESSION_NONE) if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
@@ -116,27 +116,33 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
         <input type="checkbox" id="menu-toggle">
         <label for="menu-toggle" class="menu-icon">☰</label>
         <ul class="menu">
-            <?php if ($role == 'admin'): ?>
-                <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
-                <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
-                <li><a href="admin_class_overview.php">🏫 Class Overview</a></li>
-                <li><a href="admin_backup.php">💾 Backup Database</a></li>
-                <li><a href="admin_settings.php">⚙️ Settings</a></li>
-                <li><a href="admin_notifications_center.php">🔔 Notifications Center</a></li>
-                <li><a href="admin_feedback.php">💬 Student Feedback</a></li>
-                <li><a href="admin_set_meeting.php">⏰ Set Group Meeting Time</a></li>
-                <li><a href="logout.php">🚪 Logout</a></li>
-            <?php else: ?>
-                <li><a href="profile.php">👤 My Profile</a></li>
-                <li><a href="notifications.php">🔔 Notifications</a></li>
-                <li><a href="student_message.php">📬 Contact Admin</a></li>
-                <li><a href="student_report.php">⚠️ Submit a Report</a></li>
-                <li><a href="request_topic.php">💡 Request Topic</a></li>
-                <li><a href="covered_topics.php">📜 Covered Topics</a></li>
-                <li><a href="my_group.php">👥 My Group</a></li>   
-                <li><a href="upload_resource.php">📤 Share a Learning Resource</a></li>
-                <li><a href="logout.php">🚪 Logout</a></li>
-            <?php endif; ?> 
+            <!-- Public item: About Us – visible to everyone -->
+            <li><a href="about.php">👥 About Us</a></li>
+
+            <!-- Logged‑in only items -->
+            <?php if ($role != 'public'): ?>
+                <?php if ($role == 'admin'): ?>
+                    <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
+                    <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
+                    <li><a href="admin_class_overview.php">🏫 Class Overview</a></li>
+                    <li><a href="admin_backup.php">💾 Backup Database</a></li>
+                    <li><a href="admin_settings.php">⚙️ Settings</a></li>
+                    <li><a href="admin_notifications_center.php">🔔 Notifications Center</a></li>
+                    <li><a href="admin_feedback.php">💬 Student Feedback</a></li>
+                    <li><a href="admin_set_meeting.php">⏰ Set Group Meeting Time</a></li>
+                    <li><a href="logout.php">🚪 Logout</a></li>
+                <?php else: ?>
+                    <li><a href="profile.php">👤 My Profile</a></li>
+                    <li><a href="notifications.php">🔔 Notifications</a></li>
+                    <li><a href="student_message.php">📬 Contact Admin</a></li>
+                    <li><a href="student_report.php">⚠️ Submit a Report</a></li>
+                    <li><a href="request_topic.php">💡 Request Topic</a></li>
+                    <li><a href="covered_topics.php">📜 Covered Topics</a></li>
+                    <li><a href="my_group.php">👥 My Group</a></li>
+                    <li><a href="upload_resource.php">📤 Share a Learning Resource</a></li>
+                    <li><a href="logout.php">🚪 Logout</a></li>
+                <?php endif; ?>
+            <?php endif; ?>
         </ul>
         <div class="menu-overlay"></div>
     </div>
@@ -148,6 +154,7 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
     <div class="page-title"><?= htmlspecialchars($page_title) ?></div>
 
     <div class="nav-right">
+        <!-- User info – only for logged‑in users -->
         <?php if ($role != 'public'): ?>
             <div class="user-info-stacked">
                 <div class="user-name-stacked"><?= htmlspecialchars($fullname) ?></div>
@@ -155,10 +162,21 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
                     <div class="user-tagline-stacked"><?= htmlspecialchars($tagline) ?></div>
                 <?php endif; ?>
             </div>
-            <a href="about.php" class="btn-about" style="color: white; text-decoration: none; font-weight: 600; margin-right: 0.5rem;">👥 About Us</a>
         <?php endif; ?>
+
+        <!-- About Us – only on homepage, visible to everyone -->
+        <?php if ($current_file === 'index'): ?>
+            <a href="about.php" style="color: white; text-decoration: none; font-weight: 600; margin-right: 0.5rem;">👥 About Us</a>
+        <?php endif; ?>
+
         <button id="theme-toggle" class="theme-btn" aria-label="Toggle theme">🌙</button>
-        <a href="<?= ($role == 'admin') ? 'admin_dashboard.php' : 'index.php' ?>" class="btn-home">🏠 Home</a>
+
+        <!-- Dashboard button – only for logged‑in users, on dashboard pages -->
+        <?php if ($role != 'public' && ($current_file === 'dashboard' || $current_file === 'admin_dashboard')): ?>
+            <a href="<?= ($role == 'admin') ? 'admin_dashboard.php' : 'dashboard.php' ?>" class="btn-home">📊 Dashboard</a>
+        <?php endif; ?>
+
+        <!-- Logout – only for logged‑in users -->
         <?php if ($role != 'public'): ?>
             <a href="logout.php" class="btn-logout">🚪 Logout</a>
         <?php endif; ?>

@@ -116,7 +116,6 @@ $notes = $conn->query("SELECT DISTINCT n.id, n.title FROM notes n JOIN note_exer
                 <?php endwhile; ?>
             <?php endif; ?>
         <?php endif; ?>
-        <div class="footer"><a href="admin_dashboard.php" class="btn-back">← Back</a></div>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+        <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

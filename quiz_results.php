@@ -39,7 +39,6 @@ $passed = $percentage >= $quiz['passing_percentage'];
 <?php endwhile; ?>
 </div>
 <a href="view_note.php?id=<?=$quiz['note_id']?>">Back to Note</a>
-</div><div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-
-<a href="#" class="back-to-top" id="backToTop">↑</a>
+</div><<?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

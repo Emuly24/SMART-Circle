@@ -94,9 +94,8 @@ while ($r = $overdue_assignments->fetch_assoc()) {
                     </ul>
                 <?php endif; ?>
             </div>
-            <div class="card-buttons">
-                <a href="admin_dashboard.php" class="btn-back">← Back to Dashboard</a>
-            </div>
+            <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
         </div>
     </div>
 </body>

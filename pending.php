@@ -199,8 +199,7 @@ if ($status === 'rejected') {
     </div>
 
     <div class="footer">
-        <a href="index.php" class="btn-back">← Back to Home</a>
-    </div>
-    <a href="#" class="back-to-top" id="backToTop">↑</a>
+       <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

@@ -149,7 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="forgot_password.php">Forgot password?</a>
         </div>
     </div>
-    <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
+    <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>
 <?php ob_end_flush(); ?>
