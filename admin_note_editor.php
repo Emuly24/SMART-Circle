@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html><head><title>Note Editor</title>
 <link rel="stylesheet" href="style.css">
-<!-- TinyMCE (Now using fast and reliable jsdelivr CDN) -->
+<!-- TinyMCE -->
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6.4.2/tinymce.min.js"></script>
 <!-- MathQuill CSS & JS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
@@ -103,32 +103,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
 <style>
-    /* ✅ Fix 1: Make textarea visible by default (no more blank white box) */
+    /* Textarea visible by default (fallback) */
     #editor { 
         width: 100%; 
         height: 600px; 
         display: block; 
     }
     
-    /* Sticky toolbar container */
+    /* Sticky toolbar containers */
     .sticky-toolbar-wrapper {
         position: sticky;
         top: 0;
         z-index: 1000;
         background: white;
-        padding: 10px 0;
+        padding: 8px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+    
+    /* Gold external toolbar - toggleable */
     .toolbar-extras {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 6px;
+        margin-bottom: 8px;
         background: var(--card-alt-bg);
         padding: 10px;
         border-radius: 8px;
+        transition: all 0.3s ease;
     }
-    .toolbar-extras button, .toolbar-extras select {
+    .toolbar-extras.hidden {
+        display: none;
+    }
+    /* Toggle button */
+    .toggle-toolbar-btn {
         background: var(--accent);
         color: #1e293b;
         border: none;
@@ -137,6 +144,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         font-weight: 600;
         cursor: pointer;
         transition: 0.2s;
+        margin-bottom: 5px;
+    }
+    .toggle-toolbar-btn:hover {
+        background: var(--accent-dark);
+        transform: scale(1.02);
+    }
+    
+    .toolbar-extras button, .toolbar-extras select {
+        background: var(--accent);
+        color: #1e293b;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 14px;
     }
     .toolbar-extras button:hover, .toolbar-extras select:hover {
         background: var(--accent-dark);
@@ -165,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .lock-toggle.locked { background: var(--error); color: white; }
     .tox-tinymce { min-height: 600px !important; }
 
-    /* Bottom action bar */
+    /* Bottom action bar - only Finish button */
     .bottom-action-bar {
         position: fixed;
         bottom: 0;
@@ -182,17 +206,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         box-sizing: border-box;
     }
     .bottom-action-bar .btn {
-        padding: 8px 20px;
+        padding: 8px 24px;
         border: none;
         border-radius: 20px;
         font-weight: 600;
         cursor: pointer;
     }
-    .bottom-action-bar .btn-primary { background: var(--accent); color: #1e293b; }
-    .bottom-action-bar .btn-secondary { background: #e2e8f0; color: #1e293b; }
     .bottom-action-bar .btn-finish { background: var(--success); color: white; }
     .bottom-action-bar .btn-finish:hover { background: #2e7d32; }
-    body { padding-bottom: 80px; } /* prevent content from being hidden behind bottom bar */
+    body { padding-bottom: 80px; }
 </style>
 </head>
 <body>
@@ -233,7 +255,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Sticky wrapper for toolbars -->
         <div class="sticky-toolbar-wrapper">
-            <div class="toolbar-extras">
+            <!-- Toggle Button -->
+            <button id="toggleGoldBtn" class="toggle-toolbar-btn">🛠️ Toggle Tools</button>
+            
+            <div id="goldToolbar" class="toolbar-extras">
                 <button type="button" id="symbolBtn">Ω Symbols</button>
                 <button type="button" id="fileUploadBtn">📎 Attach File</button>
                 <button type="button" id="citationBtn">📚 Cite</button>
@@ -267,10 +292,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Bottom Action Bar -->
+<!-- Bottom Action Bar (Only Finish) -->
 <div class="bottom-action-bar">
-    <button class="btn btn-secondary" onclick="saveDraftAction()">💾 Save Draft</button>
-    <button class="btn btn-secondary" onclick="saveAsAction()">📄 Save As</button>
     <button class="btn btn-finish" onclick="finishAction()">✅ Finish, Lock & Unlock</button>
 </div>
 
@@ -305,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button id="closeMathHelperBtn" class="btn-secondary">Cancel</button>
 </div></div>
 
-<!-- MathQuill Helper Modal -->
+<!-- MathQuill Helper Modal (Fixed) -->
 <div id="mathquillModal" class="modal"><div class="modal-content"><h3>MathQuill Equation Editor</h3>
     <div style="background:#f5f5f5; padding:20px; border-radius:8px; margin:15px 0; text-align:center;">
         <div id="mathquill-field" style="font-size:24px; min-height:60px; background:white; padding:10px; border:1px solid #ccc; border-radius:4px;"></div>
@@ -338,7 +361,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
-    // ---------- TINYMCE CORE ----------
+    // ---------- GOLD TOOLBAR TOGGLE ----------
+    const toggleBtn = document.getElementById('toggleGoldBtn');
+    const goldToolbar = document.getElementById('goldToolbar');
+    // Start hidden?
+    goldToolbar.classList.add('hidden');
+    toggleBtn.addEventListener('click', function() {
+        goldToolbar.classList.toggle('hidden');
+        toggleBtn.textContent = goldToolbar.classList.contains('hidden') ? '🛠️ Show Tools' : '🛠️ Hide Tools';
+    });
+
+    // ---------- TINYMCE CORE (with sticky toolbar) ----------
     tinymce.init({
         selector: '#editor',
         height: 600,
@@ -346,15 +379,16 @@ document.addEventListener('DOMContentLoaded', function() {
         plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
         toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | specialchars | charmap | code',
         toolbar_sticky: true,
+        menubar: 'file edit view insert format tools table',
         content_style: 'body { font-family: Inter, sans-serif; }',
         
-        // ✅ Fix 2: Only hide the textarea after TinyMCE fully loads
+        // Hide raw textarea once loaded
         init_instance_callback: function(editor) {
             document.getElementById('editor').style.display = 'none';
         },
 
         setup: function(editor) {
-            // ---------- SET CONTENT SAFELY ----------
+            // ---------- SET CONTENT ----------
             const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
             if (existingContent) {
                 editor.on('init', function() {
@@ -371,37 +405,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveDraft(editor);
             });
 
-            // ---------- ADD CUSTOM MENU ITEMS ----------
+            // ---------- CUSTOM MENU ITEMS: SAVE & SAVE AS IN FILE MENU ----------
             editor.ui.registry.addMenuItem('save', {
                 text: 'Save',
                 icon: 'save',
                 onAction: function() {
-                    saveDraftAction();
+                    // Submit the form with 'save_draft'
+                    const form = document.getElementById('noteForm');
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'save_draft';
+                    hidden.value = '1';
+                    form.appendChild(hidden);
+                    form.submit();
                 }
             });
             editor.ui.registry.addMenuItem('saveas', {
                 text: 'Save As...',
                 icon: 'newdocument',
                 onAction: function() {
-                    saveAsAction();
+                    const form = document.getElementById('noteForm');
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'save_as';
+                    hidden.value = '1';
+                    form.appendChild(hidden);
+                    form.submit();
                 }
             });
-            // Add them to File menu
-            editor.ui.registry.addMenuItem('savegroup', {
-                type: 'separator'
-            });
-            // Prepend to File menu
+            // Add them to File menu (customize)
             editor.on('init', function() {
-                const menu = editor.menuItems;
-                if (menu['file']) {
-                    // Insert after 'newdocument' (approx)
-                    const fileMenu = menu['file'];
-                    // Better: use custom menu, but for simplicity we add via API
-                    editor.menu.add('file', {
-                        title: 'File',
-                        items: 'newdocument | save | saveas | print'
-                    });
-                }
+                editor.menu.add('file', {
+                    title: 'File',
+                    items: 'newdocument | save | saveas | print'
+                });
             });
 
             // ---------- MATHJAX & DIAGRAMS ----------
@@ -439,26 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Draft saved to localStorage at ' + new Date().toLocaleTimeString());
     }
 
-    // ---------- FORM SUBMIT HELPERS ----------
-    window.saveDraftAction = function() {
-        // Trigger form submit without special flags
-        const form = document.getElementById('noteForm');
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'save_draft';
-        hidden.value = '1';
-        form.appendChild(hidden);
-        form.submit();
-    };
-    window.saveAsAction = function() {
-        const form = document.getElementById('noteForm');
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'save_as';
-        hidden.value = '1';
-        form.appendChild(hidden);
-        form.submit();
-    };
+    // ---------- FINISH ACTION (bottom bar) ----------
     window.finishAction = function() {
         const form = document.getElementById('noteForm');
         const hidden = document.createElement('input');
@@ -667,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- LATEX EQUATION HELPER (Fixed - No Red Errors) ----------
+    // ---------- LATEX EQUATION HELPER (Debounced, working) ----------
     const mathBtn = document.getElementById('mathBtn');
     const mathHelperModal = document.getElementById('mathHelperModal');
     const closeMathHelperBtn = document.getElementById('closeMathHelperBtn');
@@ -682,23 +700,30 @@ document.addEventListener('DOMContentLoaded', function() {
         mathHelperModal.style.display = 'none';
     };
 
+    // Debounce function to prevent errors on incomplete LaTeX
+    let debounceTimer;
     latexHelperInput.addEventListener('input', function() {
-        if (mathHelperPreview) {
-            const rawLatex = latexHelperInput.value.trim();
-            mathHelperPreview.innerHTML = `\\[ ${rawLatex} \\]`;
-            
-            if (window.MathJax) {
-                MathJax.typesetPromise([mathHelperPreview])
-                    .catch((err) => {
-                        console.log("MathJax Error:", err);
-                        // ✅ Fix 3: Show user-friendly message instead of raw MathJax error
-                        const msg = err.message && err.message.includes('Missing superscript or subscript argument') 
-                            ? "✏️ Incomplete LaTeX (missing subscript or superscript content)" 
-                            : "⚠️ Invalid LaTeX syntax. Check your brackets.";
-                        mathHelperPreview.innerHTML = `<span style='color:#d97706; font-weight:bold;'>${msg}</span>`;
-                    });
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            if (mathHelperPreview) {
+                const rawLatex = latexHelperInput.value.trim();
+                // Only try to render if there's content
+                if (rawLatex.length > 0) {
+                    mathHelperPreview.innerHTML = `\\[ ${rawLatex} \\]`;
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([mathHelperPreview])
+                            .catch((err) => {
+                                console.log("MathJax Error:", err);
+                                // Friendly message for incomplete LaTeX
+                                const msg = "✏️ Your LaTeX is incomplete (e.g., missing subscript/superscript). Keep typing!";
+                                mathHelperPreview.innerHTML = `<span style='color:#d97706; font-weight:bold;'>${msg}</span>`;
+                            });
+                    }
+                } else {
+                    mathHelperPreview.innerHTML = '';
+                }
             }
-        }
+        }, 400); // Wait 400ms after user stops typing
     });
 
     insertHelperEquationBtn.onclick = function() {
@@ -713,37 +738,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- MATHQUILL EQUATION HELPER ----------
+    // ---------- MATHQUILL EQUATION HELPER (FIXED) ----------
     const mathquillBtn = document.getElementById('mathquillBtn');
     const mathquillModal = document.getElementById('mathquillModal');
     const closeMathquillBtn = document.getElementById('closeMathquillBtn');
     const insertMathquillBtn = document.getElementById('insertMathquillBtn');
     const mathquillField = document.getElementById('mathquill-field');
 
-    let mqField = null;
+    let mqFieldInstance = null;
     mathquillBtn.onclick = function() {
         mathquillModal.style.display = 'flex';
+        // Ensure mathquill-field is empty and visible before initializing
         setTimeout(() => {
-            if (!mqField && mathquillField) {
+            if (mathquillField) {
+                // Clear any previous content
+                mathquillField.innerHTML = '';
                 const MQ = MathQuill.getInterface(2);
-                mqField = MQ.MathField(mathquillField, {
+                mqFieldInstance = MQ.MathField(mathquillField, {
                     spaceBehavesLikeTab: true,
+                    handlers: {
+                        edit: function() {
+                            // Optional live preview
+                        }
+                    }
                 });
-                mqField.focus();
+                mqFieldInstance.focus();
             }
-        }, 200);
+        }, 300);
     };
     closeMathquillBtn.onclick = function() {
         mathquillModal.style.display = 'none';
+        // Clear instance to reinitialize next time
+        if (mqFieldInstance) {
+            mqFieldInstance = null;
+        }
     };
     insertMathquillBtn.onclick = function() {
-        if (mqField && tinymce.activeEditor) {
-            const latex = mqField.latex();
+        if (mqFieldInstance && tinymce.activeEditor) {
+            const latex = mqFieldInstance.latex();
             if (latex.trim()) {
                 tinymce.activeEditor.insertContent('$$ ' + latex + ' $$');
             }
             mathquillModal.style.display = 'none';
-            mqField = null; 
+            mqFieldInstance = null; // Reset for next time
             mathquillField.innerHTML = '';
         }
     };
