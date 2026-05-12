@@ -111,72 +111,128 @@ $page_titles = [
 ];
 $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $current_file));
 ?>
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* ============================================
+           HEADER STYLES (Removed inline CSS)
+           ============================================ */
+        .header-left-group {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .user-info-stacked {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.3;
+        }
+        .user-tagline-stacked {
+            font-size: 0.75rem;
+            opacity: 0.85;
+        }
+        .header-active-page-title {
+            background: var(--accent);
+            color: #1e293b;
+            padding: 0.2rem 1rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(212,175,55,0.3);
+        }
+        .header-right-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+        }
+        .about-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .about-link:hover {
+            color: var(--accent);
+        }
+        .btn-home {
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .btn-logout {
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
 <nav class="top-nav">
-     <!-- Left Group: Hamburger, Brand, User Info, Page Title -->
-    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; flex: 1;">
-    <div class="hamburger">
-        <input type="checkbox" id="menu-toggle">
-        <label for="menu-toggle" class="menu-icon">☰</label>
-        <ul class="menu">
-            <!-- Public item: About Us – visible to everyone -->
-            <li><a href="about.php">👥 About Us</a></li>
+    <!-- Left Group: Hamburger, Brand, User Info, Page Title -->
+    <div class="header-left-group">
+        <div class="hamburger">
+            <input type="checkbox" id="menu-toggle">
+            <label for="menu-toggle" class="menu-icon">☰</label>
+            <ul class="menu">
+                <!-- Public item: About Us – visible to everyone -->
+                <li><a href="about.php">👥 About Us</a></li>
 
-            <!-- Logged‑in only items -->
-            <?php if ($role != 'public'): ?>
-                <?php if ($role == 'admin'): ?>
-                    <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
-                    <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
-                    <li><a href="admin_class_overview.php">🏫 Class Overview</a></li>
-                    <li><a href="admin_backup.php">💾 Backup Database</a></li>
-                    <li><a href="admin_settings.php">⚙️ Settings</a></li>
-                    <li><a href="admin_notifications_center.php">🔔 Notifications Center</a></li>
-                    <li><a href="admin_feedback.php">💬 Student Feedback</a></li>
-                    <li><a href="admin_set_meeting.php">⏰ Set Group Meeting Time</a></li>
-                    <li><a href="logout.php">🚪 Logout</a></li>
-                <?php else: ?>
-                    <li><a href="profile.php">👤 My Profile</a></li>
-                    <li><a href="notifications.php">🔔 Notifications</a></li>
-                    <li><a href="student_message.php">📬 Contact Admin</a></li>
-                    <li><a href="student_report.php">⚠️ Submit a Report</a></li>
-                    <li><a href="request_topic.php">💡 Request Topic</a></li>
-                    <li><a href="covered_topics.php">📜 Covered Topics</a></li>
-                    <li><a href="my_group.php">👥 My Group</a></li>
-                    <li><a href="upload_resource.php">📤 Share a Learning Resource</a></li>
-                    <li><a href="logout.php">🚪 Logout</a></li>
+                <!-- Logged‑in only items -->
+                <?php if ($role != 'public'): ?>
+                    <?php if ($role == 'admin'): ?>
+                        <li><a href="admin_attendance_report.php">📈 Attendance Report</a></li>
+                        <li><a href="admin_discipline_log.php">📜 Discipline Log</a></li>
+                        <li><a href="admin_class_overview.php">🏫 Class Overview</a></li>
+                        <li><a href="admin_backup.php">💾 Backup Database</a></li>
+                        <li><a href="admin_settings.php">⚙️ Settings</a></li>
+                        <li><a href="admin_notifications_center.php">🔔 Notifications Center</a></li>
+                        <li><a href="admin_feedback.php">💬 Student Feedback</a></li>
+                        <li><a href="admin_set_meeting.php">⏰ Set Group Meeting Time</a></li>
+                        <li><a href="logout.php">🚪 Logout</a></li>
+                    <?php else: ?>
+                        <li><a href="profile.php">👤 My Profile</a></li>
+                        <li><a href="notifications.php">🔔 Notifications</a></li>
+                        <li><a href="student_message.php">📬 Contact Admin</a></li>
+                        <li><a href="student_report.php">⚠️ Submit a Report</a></li>
+                        <li><a href="request_topic.php">💡 Request Topic</a></li>
+                        <li><a href="covered_topics.php">📜 Covered Topics</a></li>
+                        <li><a href="my_group.php">👥 My Group</a></li>
+                        <li><a href="upload_resource.php">📤 Share a Learning Resource</a></li>
+                        <li><a href="logout.php">🚪 Logout</a></li>
+                    <?php endif; ?>
                 <?php endif; ?>
-            <?php endif; ?>
-        </ul>
-        <div class="menu-overlay"></div>
-    </div>
+            </ul>
+            <div class="menu-overlay"></div>
+        </div>
 
-    <div class="nav-title">
-        <i class="fas fa-graduation-cap"></i> SMART Circle
-    </div>
+        <div class="nav-title">
+            <i class="fas fa-graduation-cap"></i> SMART Circle
+        </div>
 
-    <div class="page-title"><?= htmlspecialchars($page_title) ?></div>
-
-    <div class="nav-right">
-                <!-- User Info – Stacked vertically (Name on top, Tagline below) -->
+        <!-- User Info – Stacked vertically (Name on top, Tagline below) -->
         <?php if ($role != 'public'): ?>
-            <div class="user-info-stacked" style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.3;">
+            <div class="user-info-stacked">
                 <div class="user-name-stacked"><?= htmlspecialchars($fullname) ?></div>
                 <?php if ($tagline): ?>
-                    <div class="user-tagline-stacked" style="font-size: 0.75rem; opacity: 0.85;"><?= htmlspecialchars($tagline) ?></div>
+                    <div class="user-tagline-stacked"><?= htmlspecialchars($tagline) ?></div>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
 
         <!-- Active Page Title (with color code) -->
-        <div class="page-title" style="background: var(--accent); color: #1e293b; padding: 0.2rem 1rem; border-radius: 2rem; font-weight: 700; font-size: 0.9rem; box-shadow: 0 2px 8px rgba(212,175,55,0.3);">
+        <div class="header-active-page-title">
             <?= htmlspecialchars($page_title) ?>
         </div>
     </div>
 
     <!-- Right Group: About, Theme, Dashboard, Logout -->
-    <div class="nav-right" style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: nowrap; justify-content: flex-end;">
+    <div class="header-right-group">
         <!-- About Us – only on homepage -->
         <?php if ($current_file === 'index'): ?>
-            <a href="about.php" style="color: white; text-decoration: none; font-weight: 600;">👥 About Us</a>
+            <a href="about.php" class="about-link">👥 About Us</a>
         <?php endif; ?>
 
         <button id="theme-toggle" class="theme-btn" aria-label="Toggle theme">🌙</button>
