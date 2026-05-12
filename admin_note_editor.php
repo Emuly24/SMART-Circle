@@ -84,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html><head><title>Note Editor</title>
 <link rel="stylesheet" href="style.css">
-<!-- TinyMCE -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.7.0/tinymce.min.js"></script>
+<!-- TinyMCE (Now using fast and reliable jsdelivr CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.4.2/tinymce.min.js"></script>
 <!-- MathQuill CSS & JS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
@@ -103,8 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
 <style>
-    /* Hide textarea to prevent raw HTML flash */
-    #editor { display: none; }
+    /* ✅ Fix 1: Make textarea visible by default (no more blank white box) */
+    #editor { 
+        width: 100%; 
+        height: 600px; 
+        display: block; 
+    }
     
     /* Sticky toolbar container */
     .sticky-toolbar-wrapper {
@@ -343,6 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
         toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | specialchars | charmap | code',
         toolbar_sticky: true,
         content_style: 'body { font-family: Inter, sans-serif; }',
+        
+        // ✅ Fix 2: Only hide the textarea after TinyMCE fully loads
+        init_instance_callback: function(editor) {
+            document.getElementById('editor').style.display = 'none';
+        },
+
         setup: function(editor) {
             // ---------- SET CONTENT SAFELY ----------
             const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
@@ -657,7 +667,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- LATEX EQUATION HELPER (Fixed) ----------
+    // ---------- LATEX EQUATION HELPER (Fixed - No Red Errors) ----------
     const mathBtn = document.getElementById('mathBtn');
     const mathHelperModal = document.getElementById('mathHelperModal');
     const closeMathHelperBtn = document.getElementById('closeMathHelperBtn');
@@ -674,15 +684,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     latexHelperInput.addEventListener('input', function() {
         if (mathHelperPreview) {
-            mathHelperPreview.innerHTML = `\\[ ${latexHelperInput.value} \\]`;
+            const rawLatex = latexHelperInput.value.trim();
+            mathHelperPreview.innerHTML = `\\[ ${rawLatex} \\]`;
+            
             if (window.MathJax) {
-                MathJax.typesetPromise([mathHelperPreview]).catch(console.log);
+                MathJax.typesetPromise([mathHelperPreview])
+                    .catch((err) => {
+                        console.log("MathJax Error:", err);
+                        // ✅ Fix 3: Show user-friendly message instead of raw MathJax error
+                        const msg = err.message && err.message.includes('Missing superscript or subscript argument') 
+                            ? "✏️ Incomplete LaTeX (missing subscript or superscript content)" 
+                            : "⚠️ Invalid LaTeX syntax. Check your brackets.";
+                        mathHelperPreview.innerHTML = `<span style='color:#d97706; font-weight:bold;'>${msg}</span>`;
+                    });
             }
         }
     });
 
     insertHelperEquationBtn.onclick = function() {
-        const latex = latexHelperInput?.value;
+        const latex = latexHelperInput?.value.trim();
         if (latex && tinymce.activeEditor) {
             tinymce.activeEditor.insertContent('$$ ' + latex + ' $$');
             mathHelperModal.style.display = 'none';
@@ -693,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- MATHQUILL EQUATION HELPER (New) ----------
+    // ---------- MATHQUILL EQUATION HELPER ----------
     const mathquillBtn = document.getElementById('mathquillBtn');
     const mathquillModal = document.getElementById('mathquillModal');
     const closeMathquillBtn = document.getElementById('closeMathquillBtn');
@@ -708,13 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const MQ = MathQuill.getInterface(2);
                 mqField = MQ.MathField(mathquillField, {
                     spaceBehavesLikeTab: true,
-                    handlers: {
-                        edit: function() {
-                            // optional live preview
-                        }
-                    }
                 });
-                // Focus the field
                 mqField.focus();
             }
         }, 200);
@@ -729,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tinymce.activeEditor.insertContent('$$ ' + latex + ' $$');
             }
             mathquillModal.style.display = 'none';
-            mqField = null; // will reinit next time
+            mqField = null; 
             mathquillField.innerHTML = '';
         }
     };
