@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_id = $conn->insert_id;
         header("Location: admin_note_editor.php?id=$new_id");
         exit;
-    } else {
+    } elseif (!isset($_POST['auto_save'])) {
         echo "<script>window.noteId = $note_id; alert('$msg');</script>";
     }
 }
@@ -103,14 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
 <style>
-    /* Textarea visible by default (fallback) */
-    #editor { 
-        width: 100%; 
-        height: 600px; 
-        display: block; 
-    }
-    
-    /* Sticky toolbar container */
+    #editor { width: 100%; height: 600px; display: block; }
     .sticky-toolbar-wrapper {
         position: sticky;
         top: 0;
@@ -119,8 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         padding: 8px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    
-    /* Gold external toolbar - toggleable */
     .toolbar-extras {
         display: flex;
         flex-wrap: wrap;
@@ -131,12 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         border-radius: 8px;
         transition: all 0.3s ease;
     }
-    .toolbar-extras.hidden {
-        display: none;
-    }
-    .toggle-toolbar-container {
-        margin-bottom: 5px;
-    }
+    .toolbar-extras.hidden { display: none; }
+    .toggle-toolbar-container { margin-bottom: 5px; }
     .toggle-toolbar-btn {
         background: var(--accent);
         color: #1e293b;
@@ -149,11 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         margin-bottom: 5px;
         display: inline-block;
     }
-    .toggle-toolbar-btn:hover {
-        background: var(--accent-dark);
-        transform: scale(1.02);
-    }
-    
+    .toggle-toolbar-btn:hover { background: var(--accent-dark); transform: scale(1.02); }
     .toolbar-extras button, .toolbar-extras select {
         background: var(--accent);
         color: #1e293b;
@@ -191,8 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .lock-toggle { cursor: pointer; background: var(--accent); color: #1e293b; border: none; padding: 4px 12px; border-radius: 20px; }
     .lock-toggle.locked { background: var(--error); color: white; }
     .tox-tinymce { min-height: 600px !important; }
-
-    /* Bottom action bar - only Finish */
     .bottom-action-bar {
         position: fixed;
         bottom: 0;
@@ -208,40 +189,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         z-index: 1500;
         box-sizing: border-box;
     }
-    .bottom-action-bar .btn {
-        padding: 8px 24px;
-        border: none;
-        border-radius: 20px;
-        font-weight: 600;
-        cursor: pointer;
-    }
+    .bottom-action-bar .btn { padding: 8px 24px; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; }
     .bottom-action-bar .btn-finish { background: var(--success); color: white; }
     .bottom-action-bar .btn-finish:hover { background: #2e7d32; }
     body { padding-bottom: 80px; }
-    
-    /* Image editing floating toolbar */
-    .image-edit-toolbar {
-        display: none;
-        position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 6px 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 2000;
-        gap: 6px;
-    }
-    .image-edit-toolbar button {
-        background: var(--card-alt-bg);
-        border: none;
-        padding: 4px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-    }
-    .image-edit-toolbar button:hover {
-        background: var(--accent);
-    }
+    #imageCropperModal .modal-content { max-width: 900px; }
+    #imageCropperModal img { max-width: 100%; max-height: 500px; }
 </style>
 </head>
 <body>
@@ -280,7 +233,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <small class="help-text">If you select a group, this note will be instantly unlocked for that group and locked for others.</small>
         </div>
 
-        <!-- ✅ TOGGLE BUTTON OUTSIDE FORM & STICKY TOOLBAR -->
         <div class="sticky-toolbar-wrapper">
             <div class="toggle-toolbar-container">
                 <button type="button" id="toggleGoldBtn" class="toggle-toolbar-btn">🛠️ Toggle Tools</button>
@@ -311,7 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </form>
 
-    <!-- Lock Manager -->
     <div id="lockManager" class="lock-manager">
         <h3>🔒 Group Access Control for this Note</h3>
         <p>Toggle lock/unlock for each group. Locked = group cannot see the note. Unlocked = group can see the note.</p>
@@ -319,7 +270,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Bottom Action Bar (Only Finish) -->
 <div class="bottom-action-bar">
     <button class="btn btn-finish" onclick="finishAction()">✅ Finish, Lock & Unlock</button>
 </div>
@@ -327,9 +277,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="footer" style="margin-bottom: 80px;"><a href="admin_notes_list.php" class="btn-back">← Back to Notes</a></div>
 </div>
 
-<!-- ====== MODALS ====== -->
+<!-- ========== ALL MODALS (RESTORED) ========== -->
 
-<!-- Template Library Modal -->
 <div id="templateModal" class="modal">
     <div class="modal-content" style="max-width: 1200px;">
         <span class="close">&times;</span>
@@ -340,16 +289,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Symbol Modal -->
 <div id="symbolModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>Insert Symbol</h3><div id="symbolList" style="display:flex;flex-wrap:wrap;gap:8px;max-height:300px;overflow-y:auto;"></div></div></div>
 
-<!-- Citation Modal -->
 <div id="citationModal" class="modal"><div class="modal-content"><h3>Add Citation</h3><div class="form-group"><label>Author(s) (Last, First)</label><input type="text" id="apaAuthor"></div><div class="form-group"><label>Year</label><input type="text" id="apaYear"></div><div class="form-group"><label>Title</label><input type="text" id="apaTitle"></div><div class="form-group"><label>Source</label><input type="text" id="apaSource"></div><div class="form-group"><label>DOI (optional)</label><input type="text" id="apaDoi"></div><button id="addCitationBtn" class="btn">Add</button><button id="closeCitationBtn" class="btn-secondary">Cancel</button></div></div>
 
-<!-- Reference Modal -->
 <div id="referenceModal" class="modal"><div class="modal-content"><h3>Reference List</h3><div id="referenceListContainer" class="citation-list"></div><button id="insertReferencesBtn" class="btn">Insert List</button><button id="closeReferenceBtn" class="btn-secondary">Close</button></div></div>
 
-<!-- LaTeX Equation Helper Modal -->
 <div id="mathHelperModal" class="modal"><div class="modal-content"><h3>Equation Helper (LaTeX)</h3>
     <div class="form-group"><label>LaTeX</label><textarea id="latexHelperInput" rows="3" placeholder="e.g. N(t)=N_0 e^{kt}"></textarea></div>
     <div class="math-preview" id="mathHelperPreview"></div>
@@ -357,7 +302,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button id="closeMathHelperBtn" class="btn-secondary">Cancel</button>
 </div></div>
 
-<!-- MathQuill Helper Modal -->
 <div id="mathquillModal" class="modal"><div class="modal-content"><h3>MathQuill Equation Editor</h3>
     <div style="background:#f5f5f5; padding:20px; border-radius:8px; margin:15px 0; text-align:center;">
         <div id="mathquill-field" style="font-size:24px; min-height:60px; background:white; padding:10px; border:1px solid #ccc; border-radius:4px;"></div>
@@ -367,10 +311,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button id="closeMathquillBtn" class="btn-secondary">Cancel</button>
 </div></div>
 
-<!-- Image Cropper Modal -->
 <div id="imageCropperModal" class="modal">
-    <div class="modal-content" style="max-width:900px;">
-        <h3>✂️ Edit Image</h3>
+    <div class="modal-content">
+        <h3>✂️ Crop Image</h3>
         <div style="max-height:70vh; overflow:hidden; margin:15px 0;">
             <img id="cropperImage" src="" style="max-width:100%; max-height:500px;">
         </div>
@@ -384,37 +327,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Media Upload Modal -->
+<div id="diagramEditorModal" class="modal">
+    <div class="modal-content"><h3>Edit Diagram</h3>
+        <div class="image-editor-container">
+            <div><img id="editorImage" src=""></div>
+            <div class="image-controls">
+                <label>Brightness</label><input type="range" id="brightness" min="-100" max="100" value="0">
+                <label>Contrast</label><input type="range" id="contrast" min="-100" max="100" value="0">
+                <label>Width (px)</label><input type="number" id="resizeWidth">
+                <button id="applyImageChanges" class="btn">Apply</button>
+                <button id="saveEditedImage" class="btn">Save</button>
+            </div>
+        </div>
+        <button id="closeDiagramEditorBtn" class="btn-secondary">Cancel</button>
+    </div>
+</div>
+
 <div id="mediaUploadModal" class="modal"><div class="modal-content"><h3>Upload Audio/Video</h3><input type="file" id="mediaFileInput" accept="audio/*,video/*"><button id="uploadMediaBtn" class="btn">Upload & Embed</button><button id="closeMediaUploadBtn" class="btn-secondary">Cancel</button></div></div>
 
-<!-- Equation Library Modal -->
 <div id="eqLibraryModal" class="modal"><div class="modal-content"><h3>Equation Library</h3><div id="eqLibraryList" class="library-grid"></div><button id="closeEqLibBtn" class="btn-secondary">Close</button></div></div>
 
-<!-- Diagram Library Modal -->
 <div id="diagramLibraryModal" class="modal"><div class="modal-content"><h3>Diagram Library</h3><div id="diagramLibraryList" class="library-grid"></div><button id="closeDiagramLibBtn" class="btn-secondary">Close</button></div></div>
 
-<!-- Chemistry Modal -->
 <div id="chemistryModal" class="modal"><div class="modal-content"><h3>Common Chemistry Equations</h3><select id="chemistrySelect" style="width:100%;padding:8px;margin-bottom:15px;"><option value="">-- Select --</option><option value="Photosynthesis: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂">Photosynthesis</option><option value="Cellular Respiration: C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ATP">Cellular Respiration</option><option value="Hydrochloric Acid: HCl + H₂O → H₃O⁺ + Cl⁻">Hydrochloric Acid</option><option value="Neutralisation: H⁺ + OH⁻ → H₂O">Neutralisation</option><option value="Electrolysis of Water: 2H₂O → 2H₂ + O₂">Electrolysis of Water</option></select><button id="insertChemistryBtn" class="btn">Insert</button><button id="closeChemistryBtn" class="btn-secondary">Cancel</button></div></div>
 
-<!-- Web Research Modal -->
 <div id="webResearchModal" class="modal"><div class="modal-content"><h3>Web Research</h3><div class="form-group"><label>URL</label><input type="text" id="researchUrl" value="https://scholar.google.com/"></div><button id="openBrowserBtn" class="btn">Open</button><div class="form-group"><label>Notes</label><textarea id="researchText" rows="6"></textarea></div><button id="insertResearchNoteBtn" class="btn">Insert Notes</button><button id="closeWebResearchBtn" class="btn-secondary">Cancel</button></div></div>
 
-<!-- Media Embed Modal -->
 <div id="mediaModal" class="modal"><div class="modal-content"><h3>Embed Media (URL)</h3><div class="form-group"><label>Media URL</label><input type="text" id="mediaUrl"></div><button id="insertMediaBtn" class="btn">Embed</button><button id="closeMediaBtn" class="btn-secondary">Cancel</button></div></div>
+
 
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
-    // ---------- GOLD TOOLBAR TOGGLE (FIXED: NO SAVE) ----------
+    // ---------- TOGGLE ----------
     const toggleBtn = document.getElementById('toggleGoldBtn');
     const goldToolbar = document.getElementById('goldToolbar');
-    
     toggleBtn.addEventListener('click', function(e) {
-        e.preventDefault(); // ✅ PREVENT ANY FORM SUBMISSION
+        e.preventDefault();
         goldToolbar.classList.toggle('hidden');
         toggleBtn.textContent = goldToolbar.classList.contains('hidden') ? '🛠️ Show Tools' : '🛠️ Hide Tools';
     });
 
-    // ---------- TINYMCE CORE ----------
+    // ---------- TINYMCE ----------
     tinymce.init({
         selector: '#editor',
         height: 600,
@@ -424,13 +377,14 @@ document.addEventListener('DOMContentLoaded', function() {
         toolbar_sticky: true,
         menubar: 'file edit view insert format tools table',
         content_style: 'body { font-family: Inter, sans-serif; }',
-        
+        images_upload_url: 'note_editor_api.php?action=upload_image',
+        automatic_uploads: true,
+        image_advtab: true,
+        image_caption: true,
         init_instance_callback: function(editor) {
             document.getElementById('editor').style.display = 'none';
         },
-
         setup: function(editor) {
-            // ---------- EXISTING CONTENT ----------
             const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
             if (existingContent) {
                 editor.on('init', function() {
@@ -438,21 +392,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
 
-            // ---------- SAVE & SAVE AS MENU ITEMS IN FILE MENU ----------
+            // ---------- AUTO-SAVE TO SERVER (EVERY 30 SECONDS) ----------
+            setInterval(function() {
+                autoSaveToServer(editor);
+            }, 30000);
+
+            // ---------- CTRL+S TRIGGERS AUTO-SAVE ----------
+            editor.addShortcut('Ctrl+S', 'Auto Save', function() {
+                autoSaveToServer(editor);
+            });
+
+            // ---------- FILE MENU ----------
             editor.ui.registry.addMenuItem('customSave', {
-                text: 'Save',
+                text: 'Save (Auto)',
                 icon: 'save',
                 onAction: function() {
-                    const form = document.getElementById('noteForm');
-                    const hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.name = 'save_draft';
-                    hidden.value = '1';
-                    form.appendChild(hidden);
-                    form.submit();
+                    autoSaveToServer(editor);
                 }
             });
-            
             editor.ui.registry.addMenuItem('customSaveAs', {
                 text: 'Save As...',
                 icon: 'newdocument',
@@ -466,14 +423,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     form.submit();
                 }
             });
-
-            // ✅ Correct way to add items to File menu in TinyMCE 6
             editor.on('init', function() {
-                // Get the existing file menu
                 editor.menu.add('file', {
                     title: 'File',
                     items: 'newdocument | customSave customSaveAs | print'
                 });
+            });
+
+            // ---------- CROP ON IMAGE CLICK ----------
+            editor.on('click', function(e) {
+                const target = e.target;
+                if (target.tagName === 'IMG') {
+                    const imgSrc = target.src;
+                    showImageCropper(imgSrc, target);
+                }
             });
 
             // ---------- MATHJAX ----------
@@ -489,26 +452,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.mermaid) mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
                 if (window.hljs) hljs.highlightAll();
             });
-
             editor.on('SetContent', function() {
                 if (window.hljs) setTimeout(hljs.highlightAll, 100);
-            });
-
-            // ---------- IMAGE CLICK HANDLER (INLINE EDITING) ----------
-            editor.on('click', function(e) {
-                const target = e.target;
-                if (target.tagName === 'IMG') {
-                    // Show image edit toolbar
-                    const rect = target.getBoundingClientRect();
-                    // We'll work with Cropper.js modal instead
-                    const imgSrc = target.src;
-                    showImageCropper(imgSrc, target);
-                }
             });
         }
     });
 
-    // ---------- IMAGE CROPPER FUNCTION ----------
+    // ---------- AUTO SAVE FUNCTION ----------
+    function autoSaveToServer(editor) {
+        if (!editor) return;
+        const title = document.getElementById('noteTitle').value;
+        const subject = document.querySelector('select[name="subject"]').value;
+        const classLevel = document.querySelector('select[name="class_level"]').value;
+        const content = editor.getData();
+        const noteId = <?= $note_id ?>;
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('subject', subject);
+        formData.append('class_level', classLevel);
+        formData.append('content', content);
+        formData.append('note_id', noteId);
+        formData.append('auto_save', '1');
+
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(() => {
+            console.log('✅ Auto-saved at ' + new Date().toLocaleTimeString());
+        })
+        .catch(err => {
+            console.warn('Auto-save failed:', err);
+        });
+    }
+
+    // ---------- IMAGE CROPPER ----------
     let cropper = null;
     let currentImageElement = null;
     const cropperModal = document.getElementById('imageCropperModal');
@@ -518,7 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
         currentImageElement = imgElement;
         cropperImg.src = src;
         cropperModal.style.display = 'flex';
-        
         setTimeout(() => {
             if (cropper) cropper.destroy();
             cropper = new Cropper(cropperImg, {
@@ -530,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     document.getElementById('cropApplyBtn').onclick = function() {
-        if (cropper && currentImageElement) {
+        if (cropper && currentImageElement && tinymce.activeEditor) {
             const canvas = cropper.getCroppedCanvas({
                 maxWidth: 800,
                 maxHeight: 800,
@@ -542,9 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const newSrc = e.target.result;
-                    if (tinymce.activeEditor) {
-                        tinymce.activeEditor.dom.setAttrib(currentImageElement, 'src', newSrc);
-                    }
+                    tinymce.activeEditor.dom.setAttrib(currentImageElement, 'src', newSrc);
                     cropperModal.style.display = 'none';
                     if (cropper) cropper.destroy();
                     cropper = null;
@@ -554,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     };
-    
     document.getElementById('rotateLeftBtn').onclick = function() {
         if (cropper) cropper.rotate(-90);
     };
@@ -571,37 +547,15 @@ document.addEventListener('DOMContentLoaded', function() {
         currentImageElement = null;
     };
 
-    // ---------- DRAFT FUNCTIONS ----------
-    function saveDraft(editor) {
-        const title = document.getElementById('noteTitle').value;
-        const subject = document.querySelector('select[name="subject"]').value;
-        const classLevel = document.querySelector('select[name="class_level"]').value;
-        const content = editor.getData();
-        localStorage.setItem('note_draft', JSON.stringify({
-            title: title,
-            subject: subject,
-            class_level: classLevel,
-            content: content
-        }));
-        console.log('Draft saved to localStorage at ' + new Date().toLocaleTimeString());
-    }
-
     // ---------- FINISH ACTION ----------
     window.finishAction = function() {
-        const form = document.getElementById('noteForm');
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'finish';
-        hidden.value = '1';
-        form.appendChild(hidden);
-        form.submit();
+        document.getElementById('noteForm').submit();
     };
 
-    // ---------- GROUP LOADER ----------
+    // ---------- GROUP ----------
     const classSelect = document.getElementById('noteClass');
     const routeSelect = document.getElementById('routeSelect');
     const groupSelect = document.getElementById('groupSelect');
-
     function loadGroups() {
         const classLevel = classSelect.value;
         const route = routeSelect.value;
@@ -625,11 +579,10 @@ document.addEventListener('DOMContentLoaded', function() {
     classSelect.addEventListener('change', loadGroups);
     routeSelect.addEventListener('change', loadGroups);
 
-    // ---------- LOCK MANAGER ----------
+    // ---------- LOCK ----------
     let currentNoteId = <?= $note_id > 0 ? $note_id : 0 ?>;
     const lockManagerDiv = document.getElementById('lockManager');
     const lockManagerContent = document.getElementById('lockManagerContent');
-
     function loadLockManager(noteId) {
         if (!noteId) {
             lockManagerDiv.style.display = 'none';
@@ -679,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (currentNoteId) loadLockManager(currentNoteId);
 
-    // ---------- SYMBOL PALETTE ----------
+    // ---------- SYMBOL ----------
     const symbolPalette = {
         "📐 Math Symbols": ["+","−","×","÷","±","∓","∗","∙","⋅","∘","√","∛","∜","∞","≈","≅","≠","≤","≥","≡","≢","≪","≫","∑","∏","∫","∮","∯","∂","∇","∅","∎","□","▭","▱","◻","◼","◯"],
         "📊 Set Theory": ["∈","∉","∋","∌","⊂","⊃","⊆","⊇","∪","∩","∖","∨","∧","⊕","⊖","⊗","⊘","⊙","⊚","⊛","⊞","⊟","⊠","⊡","⋂","⋃","⋀","⋁"],
@@ -725,14 +678,12 @@ document.addEventListener('DOMContentLoaded', function() {
         symbolBtn.onclick = function() {
             symbolModal.style.display = 'flex';
         };
-
         const closeSymbol = symbolModal.querySelector('.close');
         if (closeSymbol) {
             closeSymbol.onclick = function() {
                 symbolModal.style.display = 'none';
             };
         }
-
         window.addEventListener('click', function(event) {
             if (event.target === symbolModal) {
                 symbolModal.style.display = 'none';
@@ -795,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- LATEX EQUATION HELPER ----------
+    // ---------- LATEX ----------
     const mathBtn = document.getElementById('mathBtn');
     const mathHelperModal = document.getElementById('mathHelperModal');
     const closeMathHelperBtn = document.getElementById('closeMathHelperBtn');
@@ -882,7 +833,149 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ---------- INSERT EXAMPLE / EXERCISE ----------
+    // ---------- TEMPLATES ----------
+    document.getElementById('templateBtn').onclick = function() {
+        document.getElementById('templateModal').style.display = 'flex';
+    };
+    const closeTemplate = document.querySelector('#templateModal .close');
+    if (closeTemplate) {
+        closeTemplate.onclick = function() {
+            document.getElementById('templateModal').style.display = 'none';
+        };
+    }
+
+    // ---------- CHEMISTRY ----------
+    document.getElementById('chemistryBtn').onclick = function() {
+        document.getElementById('chemistryModal').style.display = 'flex';
+    };
+    document.getElementById('closeChemistryBtn').onclick = function() {
+        document.getElementById('chemistryModal').style.display = 'none';
+    };
+    document.getElementById('insertChemistryBtn').onclick = function() {
+        const val = document.getElementById('chemistrySelect').value;
+        if (val && tinymce.activeEditor) {
+            tinymce.activeEditor.insertContent(val);
+            document.getElementById('chemistryModal').style.display = 'none';
+        }
+    };
+
+    // ---------- DIAGRAM ----------
+    document.getElementById('diagramBtn').onclick = function() {
+        alert('Diagram feature coming soon - upload your diagram image via Insert > Image or Attach File');
+    };
+
+    // ---------- MEDIA ----------
+    document.getElementById('mediaBtn').onclick = function() {
+        document.getElementById('mediaModal').style.display = 'flex';
+    };
+    document.getElementById('closeMediaBtn').onclick = function() {
+        document.getElementById('mediaModal').style.display = 'none';
+    };
+    document.getElementById('insertMediaBtn').onclick = function() {
+        const url = document.getElementById('mediaUrl').value;
+        if (url && tinymce.activeEditor) {
+            const embedHtml = `<iframe src="${url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`;
+            tinymce.activeEditor.insertContent(embedHtml);
+            document.getElementById('mediaModal').style.display = 'none';
+            document.getElementById('mediaUrl').value = '';
+        }
+    };
+
+    // ---------- RESEARCH ----------
+    document.getElementById('researchPanelBtn').onclick = function() {
+        document.getElementById('webResearchModal').style.display = 'flex';
+    };
+    document.getElementById('closeWebResearchBtn').onclick = function() {
+        document.getElementById('webResearchModal').style.display = 'none';
+    };
+    document.getElementById('insertResearchNoteBtn').onclick = function() {
+        const notes = document.getElementById('researchText').value;
+        if (notes && tinymce.activeEditor) {
+            tinymce.activeEditor.insertContent(`<p><strong>Research Note:</strong><br>${notes}</p>`);
+            document.getElementById('webResearchModal').style.display = 'none';
+            document.getElementById('researchText').value = '';
+        }
+    };
+    document.getElementById('openBrowserBtn').onclick = function() {
+        const url = document.getElementById('researchUrl').value;
+        if (url) window.open(url, '_blank');
+    };
+
+    // ---------- EQUATION LIBRARY ----------
+    document.getElementById('libraryEqBtn').onclick = function() {
+        document.getElementById('eqLibraryModal').style.display = 'flex';
+        loadEqLibrary();
+    };
+    document.getElementById('closeEqLibBtn').onclick = function() {
+        document.getElementById('eqLibraryModal').style.display = 'none';
+    };
+    function loadEqLibrary() {
+        const list = document.getElementById('eqLibraryList');
+        list.innerHTML = '';
+        const eqs = [
+            { name: 'Quadratic Formula', latex: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}' },
+            { name: 'Pythagorean Theorem', latex: 'a^2 + b^2 = c^2' },
+            { name: 'Einstein\'s E=mc²', latex: 'E = mc^2' },
+            { name: 'Sine Rule', latex: '\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}' },
+            { name: 'Cosine Rule', latex: 'c^2 = a^2 + b^2 - 2ab\\cos C' },
+            { name: 'Area of Circle', latex: 'A = \\pi r^2' }
+        ];
+        eqs.forEach(eq => {
+            const div = document.createElement('div');
+            div.className = 'library-item';
+            div.innerHTML = `<strong>${eq.name}</strong><br><span style="font-size:1.2em;">$$${eq.latex}$$</span>`;
+            div.onclick = function() {
+                if (tinymce.activeEditor) {
+                    tinymce.activeEditor.insertContent('$$ ' + eq.latex + ' $$');
+                    document.getElementById('eqLibraryModal').style.display = 'none';
+                }
+            };
+            list.appendChild(div);
+        });
+    }
+
+    // ---------- DIAGRAM LIBRARY ----------
+    document.getElementById('libraryDiagramBtn').onclick = function() {
+        document.getElementById('diagramLibraryModal').style.display = 'flex';
+    };
+    document.getElementById('closeDiagramLibBtn').onclick = function() {
+        document.getElementById('diagramLibraryModal').style.display = 'none';
+    };
+
+    // ---------- EDIT DIAGRAM (original brightness/contrast/resize) ----------
+    document.getElementById('editDiagramBtn').onclick = function() {
+        alert('Please click directly on an image in the editor to crop it, or use the image toolbar.');
+    };
+
+    // ---------- MEDIA UPLOAD ----------
+    document.getElementById('mediaUploadBtn').onclick = function() {
+        document.getElementById('mediaUploadModal').style.display = 'flex';
+    };
+    document.getElementById('closeMediaUploadBtn').onclick = function() {
+        document.getElementById('mediaUploadModal').style.display = 'none';
+    };
+    document.getElementById('uploadMediaBtn').onclick = function() {
+        const input = document.getElementById('mediaFileInput');
+        const file = input.files[0];
+        if (!file || !tinymce.activeEditor) return;
+        const fd = new FormData();
+        fd.append('file', file);
+        fetch('note_editor_api.php?action=upload_media', { method: 'POST', body: fd })
+            .then(res => res.json())
+            .then(data => {
+                if (data.url) {
+                    if (file.type.startsWith('audio/')) {
+                        tinymce.activeEditor.insertContent(`<audio controls src="${data.url}"></audio>`);
+                    } else if (file.type.startsWith('video/')) {
+                        tinymce.activeEditor.insertContent(`<video controls src="${data.url}"></video>`);
+                    }
+                    document.getElementById('mediaUploadModal').style.display = 'none';
+                    document.getElementById('mediaFileInput').value = '';
+                }
+            });
+    };
+
+    // ---------- EXAMPLE / EXERCISE / FOOTER ----------
     document.getElementById('exampleBtn').onclick = function() {
         if (tinymce.activeEditor) {
             tinymce.activeEditor.insertContent('<div class="example"><strong>Example:</strong><br>Type your example here.</div>');
@@ -893,23 +986,83 @@ document.addEventListener('DOMContentLoaded', function() {
             tinymce.activeEditor.insertContent('<div class="exercise"><strong>Exercise:</strong><br>Type your exercise question here.</div>');
         }
     };
-
-    // ---------- INSERT FOOTER ----------
     document.getElementById('footerBtn').onclick = function() {
         if (tinymce.activeEditor) {
             tinymce.activeEditor.insertContent('<hr><div style="text-align:center;font-size:smaller;"><p><strong>SMART Circle</strong> – Discipline & Integrity</p><p>Blessings Emulyn, Metallurgy & Materials Engineering, MUST</p></div>');
         }
     };
 
-    // ---------- HELPER FUNCTIONS ----------
+    // ---------- REFERENCE ----------
+    document.getElementById('referenceBtn').onclick = function() {
+        document.getElementById('referenceModal').style.display = 'flex';
+    };
+    document.getElementById('closeReferenceBtn').onclick = function() {
+        document.getElementById('referenceModal').style.display = 'none';
+    };
+    document.getElementById('insertReferencesBtn').onclick = function() {
+        const list = document.getElementById('referenceListContainer');
+        const refs = list.querySelectorAll('.citation-item');
+        if (refs.length === 0) {
+            alert('No references to insert. Use the Citation button to add references first.');
+            return;
+        }
+        let html = '<ul style="list-style:none; padding-left:0;">';
+        refs.forEach(ref => {
+            html += `<li style="margin-bottom:8px;">${ref.textContent}</li>`;
+        });
+        html += '</ul>';
+        if (tinymce.activeEditor) {
+            tinymce.activeEditor.insertContent(html);
+            document.getElementById('referenceModal').style.display = 'none';
+        }
+    };
+
+    // ---------- INSERT CITE (add to reference list) ----------
+    function addToReferenceList(citationText) {
+        const container = document.getElementById('referenceListContainer');
+        const item = document.createElement('div');
+        item.className = 'citation-item';
+        item.textContent = citationText;
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.style.marginLeft = '10px';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.onclick = function() {
+            container.removeChild(item);
+        };
+        item.appendChild(removeBtn);
+        container.appendChild(item);
+    }
+
+    // Override addCitationBtn to also add to reference list
+    const originalAddCitation = addCitationBtn.onclick;
+    addCitationBtn.onclick = function() {
+        const author = document.getElementById('apaAuthor').value;
+        const year = document.getElementById('apaYear').value;
+        const title = document.getElementById('apaTitle').value;
+        const source = document.getElementById('apaSource').value;
+        const doi = document.getElementById('apaDoi').value;
+        if (!author || !year || !title || !source) {
+            alert("Please fill author, year, title, source.");
+            return;
+        }
+        const citationText = `${author} (${year}). ${title}. ${source}${doi ? ' ' + doi : ''}`;
+        addToReferenceList(citationText);
+        document.getElementById('apaAuthor').value = '';
+        document.getElementById('apaYear').value = '';
+        document.getElementById('apaTitle').value = '';
+        document.getElementById('apaSource').value = '';
+        document.getElementById('apaDoi').value = '';
+        if (tinymce.activeEditor) {
+            tinymce.activeEditor.insertContent(citationText);
+        }
+        document.getElementById('citationModal').style.display = 'none';
+    };
+
+    // ---------- HELPER ----------
     function insertText(text) {
         if (tinymce.activeEditor) {
             tinymce.activeEditor.insertContent(text);
-        }
-    }
-    function insertHtml(html) {
-        if (tinymce.activeEditor) {
-            tinymce.activeEditor.insertContent(html);
         }
     }
 });
