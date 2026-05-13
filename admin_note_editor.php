@@ -398,13 +398,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
   // ---------- 1. SAVE NOTIFICATION FUNCTION (GLOBAL) ----------
-function showSavedNotification() {
+function showSavedNotification(message = '✅ Saved successfully') {
     const notif = document.getElementById('saveNotification');
     if (notif) {
+        notif.textContent = message;
+        notif.style.background = message.includes('❌') ? '#ef4444' : '#22c55e';
         notif.classList.add('show');
         setTimeout(() => {
             notif.classList.remove('show');
-        }, 2500);
+        }, 3000);
     }
 }
 
@@ -429,30 +431,66 @@ function autoSaveToServer(editor) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Server error ' + response.status);
+        }
+        return response.text();
+    })
     .then(() => {
-        console.log('✅ Auto-saved at ' + new Date().toLocaleTimeString());
-        showSavedNotification();  
+        showSavedNotification('✅ Saved successfully');
     })
     .catch(err => {
-        console.warn('Auto-save failed:', err);
+        console.error('Auto-save failed:');
+        console.error(err);
+        showSavedNotification('❌ Save failed! Check console for details.');
     });
 }
 
 // ---------- 3. MANUAL SAVE (GLOBAL) ----------
 window.manualSave = function() {
-    if (tinymce.activeEditor) {
-        autoSaveToServer(tinymce.activeEditor);
-    } else {
-        // Fallback if TinyMCE not loaded
-        const form = document.getElementById('noteForm');
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'save_draft';
-        hidden.value = '1';
-        form.appendChild(hidden);
-        form.submit();
-    }
+    let attempts = 0;
+    const checkEditor = setInterval(() => {
+        attempts++;
+        if (tinymce.activeEditor) {
+            clearInterval(checkEditor);
+            autoSaveToServer(tinymce.activeEditor);
+        } else if (attempts > 30) { // 3 seconds
+            clearInterval(checkEditor);
+            // Fallback: auto-save using raw textarea content (no page reload)
+            const title = document.getElementById('noteTitle').value;
+            const subject = document.querySelector('select[name="subject"]').value;
+            const classLevel = document.querySelector('select[name="class_level"]').value;
+            const content = document.getElementById('editor').value;
+            const noteId = <?= $note_id ?>;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('subject', subject);
+            formData.append('class_level', classLevel);
+            formData.append('content', content);
+            formData.append('note_id', noteId);
+            formData.append('auto_save', '1');
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server error ' + response.status);
+                }
+                return response.text();
+            })
+            .then(() => {
+                showSavedNotification('✅ Saved successfully (fallback)');
+            })
+            .catch(err => {
+                console.error('Auto-save failed:', err);
+                showSavedNotification('❌ Save failed! Please try again.');
+            });
+        }
+    }, 100);
 };
 
 // ---------- 4. TINYMCE INIT  ----------
@@ -607,8 +645,14 @@ tinymce.init({
 
     // ---------- FINISH ACTION ----------
     window.finishAction = function() {
-        document.getElementById('noteForm').submit();
-    };
+    const form = document.getElementById('noteForm');
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = 'finish';
+    hidden.value = '1';
+    form.appendChild(hidden);
+    form.submit();
+};
 
     // ---------- GROUP ----------
     const classSelect = document.getElementById('noteClass');
