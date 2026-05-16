@@ -153,16 +153,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         transform: scale(1.02);
     }
     .btn-save {
-    background: #3b82f6;
-    color: white;
-}
-.btn-save:hover {
-    background: #2563eb;
-}
-#saveNotification.show {
-    transform: translateY(0);
-    opacity: 1;
-}
+        background: #3b82f6;
+        color: white;
+    }
+    .btn-save:hover {
+        background: #2563eb;
+    }
+    #saveNotification.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 2000; }
     .modal-content { background: var(--card-bg); padding: 2rem; border-radius: 1rem; max-width: 90%; width: 800px; max-height: 90%; overflow-y: auto; }
     .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; max-height: 500px; overflow-y: auto; }
@@ -288,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="footer" style="margin-bottom: 80px;"><a href="admin_notes_list.php" class="btn-back">← Back to Notes</a></div>
 </div>
+
 <!-- Saved notification toast -->
 <div id="saveNotification" style="
     position: fixed;
@@ -307,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ✅ Saved successfully
 </div>
 
-<!-- ========== ALL MODALS (RESTORED) ========== -->
+<!-- ========== ALL MODALS ========== -->
 
 <div id="templateModal" class="modal">
     <div class="modal-content" style="max-width: 1200px;">
@@ -397,192 +398,201 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleBtn.textContent = goldToolbar.classList.contains('hidden') ? '🛠️ Show Tools' : '🛠️ Hide Tools';
     });
 
-  // ---------- 1. SAVE NOTIFICATION FUNCTION (GLOBAL) ----------
-function showSavedNotification(message = '✅ Saved successfully') {
-    const notif = document.getElementById('saveNotification');
-    if (notif) {
-        notif.textContent = message;
-        notif.style.background = message.includes('❌') ? '#ef4444' : '#22c55e';
-        notif.classList.add('show');
-        setTimeout(() => {
-            notif.classList.remove('show');
-        }, 3000);
+    // ---------- SAVE NOTIFICATION ----------
+    function showSavedNotification(message = '✅ Saved successfully') {
+        const notif = document.getElementById('saveNotification');
+        if (notif) {
+            notif.textContent = message;
+            notif.style.background = message.includes('❌') ? '#ef4444' : '#22c55e';
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 3000);
+        }
     }
-}
 
-// ---------- 2. AUTO SAVE FUNCTION (GLOBAL) ----------
-function autoSaveToServer(editor) {
-    if (!editor) return;
-    const title = document.getElementById('noteTitle').value;
-    const subject = document.querySelector('select[name="subject"]').value;
-    const classLevel = document.querySelector('select[name="class_level"]').value;
-    const content = editor.getData();
-    const noteId = <?= $note_id ?>;
+    // ---------- AUTO SAVE ----------
+    function autoSaveToServer(editor) {
+        if (!editor) return;
+        const title = document.getElementById('noteTitle').value;
+        const subject = document.querySelector('select[name="subject"]').value;
+        const classLevel = document.querySelector('select[name="class_level"]').value;
+        const content = editor.getData();
+        const noteId = <?= $note_id ?>;
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('subject', subject);
-    formData.append('class_level', classLevel);
-    formData.append('content', content);
-    formData.append('note_id', noteId);
-    formData.append('auto_save', '1');
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('subject', subject);
+        formData.append('class_level', classLevel);
+        formData.append('content', content);
+        formData.append('note_id', noteId);
+        formData.append('auto_save', '1');
 
-    fetch(window.location.href, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Server error ' + response.status);
-        }
-        return response.text();
-    })
-    .then(() => {
-        showSavedNotification('✅ Saved successfully');
-    })
-    .catch(err => {
-        console.error('Auto-save failed:');
-        console.error(err);
-        showSavedNotification('❌ Save failed! Check console for details.');
-    });
-}
-
-// ---------- 3. MANUAL SAVE (GLOBAL) ----------
-window.manualSave = function() {
-    let attempts = 0;
-    const checkEditor = setInterval(() => {
-        attempts++;
-        if (tinymce.activeEditor) {
-            clearInterval(checkEditor);
-            autoSaveToServer(tinymce.activeEditor);
-        } else if (attempts > 30) { // 3 seconds
-            clearInterval(checkEditor);
-            // Fallback: auto-save using raw textarea content (no page reload)
-            const title = document.getElementById('noteTitle').value;
-            const subject = document.querySelector('select[name="subject"]').value;
-            const classLevel = document.querySelector('select[name="class_level"]').value;
-            const content = document.getElementById('editor').value;
-            const noteId = <?= $note_id ?>;
-
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('subject', subject);
-            formData.append('class_level', classLevel);
-            formData.append('content', content);
-            formData.append('note_id', noteId);
-            formData.append('auto_save', '1');
-
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server error ' + response.status);
-                }
-                return response.text();
-            })
-            .then(() => {
-                showSavedNotification('✅ Saved successfully (fallback)');
-            })
-            .catch(err => {
-                console.error('Auto-save failed:', err);
-                showSavedNotification('❌ Save failed! Please try again.');
-            });
-        }
-    }, 100);
-};
-
-// ---------- 4. TINYMCE INIT  ----------
-tinymce.init({
-    selector: '#editor',
-    height: 600,
-    menubar: true,
-    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
-    toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code',
-    toolbar_sticky: true,
-    menubar: 'file edit view insert format tools table',
-    content_style: 'body { font-family: Inter, sans-serif; }',
-    images_upload_url: 'note_editor_api.php?action=upload_image',
-    automatic_uploads: true,
-    image_advtab: true,
-    image_caption: true,
-    init_instance_callback: function(editor) {
-        document.getElementById('editor').style.display = 'none';
-    },
-    setup: function(editor) {
-        const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
-        if (existingContent) {
-            editor.on('init', function() {
-                editor.setContent(existingContent);
-            });
-        }
-
-        // ---------- AUTO-SAVE (EVERY 30 SECONDS) ----------
-        setInterval(function() {
-            autoSaveToServer(editor);
-        }, 30000);
-
-        // ---------- CTRL+S TRIGGERS AUTO-SAVE ----------
-        editor.addShortcut('Ctrl+S', 'Auto Save', function() {
-            autoSaveToServer(editor);
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Server error ' + response.status);
+            }
+            return response.text();
+        })
+        .then(() => {
+            showSavedNotification('✅ Saved successfully');
+        })
+        .catch(err => {
+            console.error('Auto-save failed:', err);
+            showSavedNotification('❌ Save failed! Check console for details.');
         });
+    }
 
-        // ---------- FILE MENU ----------
-        editor.ui.registry.addMenuItem('customSave', {
-            text: 'Save (Auto)',
-            icon: 'save',
-            onAction: function() {
+    // ---------- MANUAL SAVE ----------
+    window.manualSave = function() {
+        let attempts = 0;
+        const checkEditor = setInterval(() => {
+            attempts++;
+            if (tinymce.activeEditor) {
+                clearInterval(checkEditor);
+                autoSaveToServer(tinymce.activeEditor);
+            } else if (attempts > 30) {
+                clearInterval(checkEditor);
+                const title = document.getElementById('noteTitle').value;
+                const subject = document.querySelector('select[name="subject"]').value;
+                const classLevel = document.querySelector('select[name="class_level"]').value;
+                const content = document.getElementById('editor').value;
+                const noteId = <?= $note_id ?>;
+
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('subject', subject);
+                formData.append('class_level', classLevel);
+                formData.append('content', content);
+                formData.append('note_id', noteId);
+                formData.append('auto_save', '1');
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server error ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(() => {
+                    showSavedNotification('✅ Saved successfully (fallback)');
+                })
+                .catch(err => {
+                    console.error('Auto-save failed:', err);
+                    showSavedNotification('❌ Save failed! Please try again.');
+                });
+            }
+        }, 100);
+    };
+
+    // ---------- FINISH ACTION ----------
+    window.finishAction = function() {
+        const form = document.getElementById('noteForm');
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'finish';
+        hidden.value = '1';
+        form.appendChild(hidden);
+        form.submit();
+    };
+
+    // ---------- TINYMCE ----------
+    tinymce.init({
+        selector: '#editor',
+        height: 600,
+        menubar: true,
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
+        toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code',
+        toolbar_sticky: true,
+        menubar: 'file edit view insert format tools table',
+        content_style: 'body { font-family: Inter, sans-serif; }',
+        images_upload_url: 'note_editor_api.php?action=upload_image',
+        automatic_uploads: true,
+        image_advtab: true,
+        image_caption: true,
+        init_instance_callback: function(editor) {
+            document.getElementById('editor').style.display = 'none';
+        },
+        setup: function(editor) {
+            const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
+            if (existingContent) {
+                editor.on('init', function() {
+                    editor.setContent(existingContent);
+                });
+            }
+
+            // ---------- AUTO-SAVE (EVERY 30 SECONDS) ----------
+            setInterval(function() {
                 autoSaveToServer(editor);
-            }
-        });
-        editor.ui.registry.addMenuItem('customSaveAs', {
-            text: 'Save As...',
-            icon: 'newdocument',
-            onAction: function() {
-                const form = document.getElementById('noteForm');
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'save_as';
-                hidden.value = '1';
-                form.appendChild(hidden);
-                form.submit();
-            }
-        });
-        editor.on('init', function() {
-            editor.menu.add('file', {
-                title: 'File',
-                items: 'newdocument | customSave customSaveAs | print'
+            }, 30000);
+
+            // ---------- CTRL+S ----------
+            editor.addShortcut('Ctrl+S', 'Auto Save', function() {
+                autoSaveToServer(editor);
             });
-        });
 
-        // ---------- CROP ON IMAGE CLICK ----------
-        editor.on('click', function(e) {
-            const target = e.target;
-            if (target.tagName === 'IMG') {
-                const imgSrc = target.src;
-                showImageCropper(imgSrc, target);
-            }
-        });
+            // ---------- FILE MENU ----------
+            editor.ui.registry.addMenuItem('customSave', {
+                text: 'Save (Auto)',
+                icon: 'save',
+                onAction: function() {
+                    autoSaveToServer(editor);
+                }
+            });
+            editor.ui.registry.addMenuItem('customSaveAs', {
+                text: 'Save As...',
+                icon: 'newdocument',
+                onAction: function() {
+                    const form = document.getElementById('noteForm');
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'save_as';
+                    hidden.value = '1';
+                    form.appendChild(hidden);
+                    form.submit();
+                }
+            });
+            editor.on('init', function() {
+                editor.menu.add('file', {
+                    title: 'File',
+                    items: 'newdocument | customSave customSaveAs | print'
+                });
+            });
 
-        // ---------- MATHJAX ----------
-        editor.on('init', function() {
-            const content = editor.getContent();
-            if (content && window.MathJax) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = content;
-                MathJax.typesetPromise([tempDiv]).then(() => {
-                    editor.setContent(tempDiv.innerHTML);
-                }).catch(() => {});
-            }
-            if (window.mermaid) mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
-            if (window.hljs) hljs.highlightAll();
-        });
-        editor.on('SetContent', function() {
-            if (window.hljs) setTimeout(hljs.highlightAll, 100);
-        });
-    }
-});
+            // ---------- CROP ON IMAGE CLICK ----------
+            editor.on('click', function(e) {
+                const target = e.target;
+                if (target.tagName === 'IMG') {
+                    const imgSrc = target.src;
+                    showImageCropper(imgSrc, target);
+                }
+            });
+
+            // ---------- MATHJAX ----------
+            editor.on('init', function() {
+                const content = editor.getContent();
+                if (content && window.MathJax) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = content;
+                    MathJax.typesetPromise([tempDiv]).then(() => {
+                        editor.setContent(tempDiv.innerHTML);
+                    }).catch(() => {});
+                }
+                if (window.mermaid) mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                if (window.hljs) hljs.highlightAll();
+            });
+            editor.on('SetContent', function() {
+                if (window.hljs) setTimeout(hljs.highlightAll, 100);
+            });
+        }
+    });
 
     // ---------- IMAGE CROPPER ----------
     let cropper = null;
@@ -642,17 +652,6 @@ tinymce.init({
         cropper = null;
         currentImageElement = null;
     };
-
-    // ---------- FINISH ACTION ----------
-    window.finishAction = function() {
-    const form = document.getElementById('noteForm');
-    const hidden = document.createElement('input');
-    hidden.type = 'hidden';
-    hidden.name = 'finish';
-    hidden.value = '1';
-    form.appendChild(hidden);
-    form.submit();
-};
 
     // ---------- GROUP ----------
     const classSelect = document.getElementById('noteClass');
@@ -1044,7 +1043,7 @@ tinymce.init({
         document.getElementById('diagramLibraryModal').style.display = 'none';
     };
 
-    // ---------- EDIT DIAGRAM (original brightness/contrast/resize) ----------
+    // ---------- EDIT DIAGRAM ----------
     document.getElementById('editDiagramBtn').onclick = function() {
         alert('Please click directly on an image in the editor to crop it, or use the image toolbar.');
     };
@@ -1119,7 +1118,7 @@ tinymce.init({
         }
     };
 
-    // ---------- INSERT CITE (add to reference list) ----------
+    // ---------- INSERT CITE ----------
     function addToReferenceList(citationText) {
         const container = document.getElementById('referenceListContainer');
         const item = document.createElement('div');
@@ -1136,7 +1135,6 @@ tinymce.init({
         container.appendChild(item);
     }
 
-    // Override addCitationBtn to also add to reference list
     const originalAddCitation = addCitationBtn.onclick;
     addCitationBtn.onclick = function() {
         const author = document.getElementById('apaAuthor').value;
