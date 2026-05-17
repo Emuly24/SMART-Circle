@@ -3,10 +3,25 @@ ob_start();
 require_once 'check_remember_me.php';
 require_once 'config.php';
 require_once 'check_access.php';
-$conn = getDB();
-$uid = $_SESSION['user_id'];
 
-$user = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid")->fetch_assop();
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+$uid = $_SESSION['user_id'];
+$conn = getDB();
+
+// Fetch user data
+$user_result = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid");
+if (!$user_result) {
+    die("Database error: " . $conn->error);
+}
+$user = $user_result->fetch_assoc();
+if (!$user) {
+    die("User not found.");
+}
+
 if ($user['approved']) {
     header("Location: dashboard.php");
     exit;
@@ -379,13 +394,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             sessionStorage.setItem(storageKey, JSON.stringify(data));
         }
-
-       
-        form.addEventListener('submit', function() {
-        });
-    });
-
-    window.addEventListener('beforeunload', function() {
     });
 </script>
 </html>
