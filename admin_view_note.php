@@ -122,6 +122,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 <?php include_once 'includes/footer.php'; ?>
 <script>mermaid.initialize({startOnLoad:true});</script>
-<?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

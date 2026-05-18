@@ -508,25 +508,60 @@ document.addEventListener('DOMContentLoaded', function() {
         selector: '#editor',
         height: 600,
         menubar: true,
-        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount code',
-        toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code',
+        plugins: 'anchor autolink charmap codesample emoticons image imagetools link lists media searchreplace table visualblocks wordcount code',
+        toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code | editimage',
         toolbar_sticky: true,
         menubar: 'file edit view insert format tools table',
         content_style: 'body { font-family: Inter, sans-serif; }',
         images_upload_url: 'note_editor_api.php?action=upload_image',
         automatic_uploads: true,
+        image_dimensions: true,
         image_advtab: true,
         image_caption: true,
         init_instance_callback: function(editor) {
             document.getElementById('editor').style.display = 'none';
         },
         setup: function(editor) {
+            // ---------- SET CONTENT (WITH LOCALSTORAGE RESTORE) ----------
             const existingContent = <?= json_encode($existing_note['content'] ?? '') ?>;
-            if (existingContent) {
-                editor.on('init', function() {
-                    editor.setContent(existingContent);
-                });
-            }
+            
+            editor.on('init', function() {
+                // 1. Check for a backup FIRST
+                const backupJson = localStorage.getItem('my_perfect_7_hour_backup');
+                let contentToSet = existingContent;
+
+                if (backupJson) {
+                    try {
+                        const backupData = JSON.parse(backupJson);
+                        // Check if the backup has valid content and is not empty
+                        if (backupData.content && backupData.content.length > 100) {
+                            const confirmRestore = confirm(
+                                "⚠️ Unsaved work found in your browser from " + 
+                                new Date(backupData.timestamp).toLocaleString() + 
+                                ".\n\nRestore it now?"
+                            );
+                            if (confirmRestore) {
+                                contentToSet = backupData.content;
+                                // Also restore the title if it exists
+                                if (backupData.title) {
+                                    document.getElementById('noteTitle').value = backupData.title;
+                                }
+                                // Clear the backup so it doesn't ask again on the next refresh
+                                localStorage.removeItem('my_perfect_7_hour_backup');
+                            } else {
+                                // User declined, clear the backup to stop the prompt on future refreshes
+                                localStorage.removeItem('my_perfect_7_hour_backup');
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Backup corrupted or invalid:", e);
+                        localStorage.removeItem('my_perfect_7_hour_backup');
+                    }
+                }
+
+                // 2. Set the final content
+                editor.setContent(contentToSet);
+            });
 
             // ---------- AUTO-SAVE (EVERY 30 SECONDS) ----------
             setInterval(function() {
@@ -566,15 +601,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
 
-            // ---------- CROP ON IMAGE CLICK ----------
-            editor.on('click', function(e) {
-                const target = e.target;
-                if (target.tagName === 'IMG') {
-                    const imgSrc = target.src;
-                    showImageCropper(imgSrc, target);
-                }
-            });
-
             // ---------- MATHJAX ----------
             editor.on('init', function() {
                 const content = editor.getContent();
@@ -593,7 +619,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-
     // ---------- IMAGE CROPPER ----------
     let cropper = null;
     let currentImageElement = null;
@@ -1163,40 +1188,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function insertText(text) {
         if (tinymce.activeEditor) {
             tinymce.activeEditor.insertContent(text);
-        }
-    }
-});
-// ULTIMATE LIFELINE: Save to browser every 10 seconds
-setInterval(function() {
-    if (tinymce.activeEditor) {
-        const content = tinymce.activeEditor.getContent();
-        const title = document.getElementById('noteTitle').value;
-        localStorage.setItem('my_perfect_7_hour_backup', JSON.stringify({
-            title: title,
-            content: content,
-            timestamp: Date.now()
-        }));
-    }
-}, 10000);
-
-// 🚨 AUTO-RECOVERY: When the page loads, check for a backup
-window.addEventListener('load', function() {
-    const backup = localStorage.getItem('my_perfect_7_hour_backup');
-    if (backup) {
-        try {
-            const data = JSON.parse(backup);
-            // If the backup is newer than what's in the database
-            if (data.content && data.content.length > 100) {
-                const confirmRestore = confirm("⚠️ Unsaved work found in your browser from " + new Date(data.timestamp).toLocaleString() + ".\n\nRestore it now?");
-                if (confirmRestore && tinymce.activeEditor) {
-                    tinymce.activeEditor.setContent(data.content);
-                    document.getElementById('noteTitle').value = data.title;
-                    alert('✅ Work restored from browser backup!');
-                    // Don't clear it yet, in case they need it again later
-                }
-            }
-        } catch (e) {
-            console.log("Backup corrupted.");
         }
     }
 });
