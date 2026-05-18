@@ -849,6 +849,62 @@ if (isset($_GET['msg']) && $_GET['msg'] == 'paper_promised') $msg = "Thank you. 
     }
 
     mermaid.initialize({startOnLoad:true});
+// ---------- AUTO-DETECT INLINE EXERCISES ----------
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all forms inside the note container that have the 'data-exercise-key' attribute
+    const inlineForms = document.querySelectorAll('#main-container form[data-exercise-key]');
+    inlineForms.forEach(form => {
+        // Attach the submit handler
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const exerciseKey = this.getAttribute('data-exercise-key');
+            const nextSectionId = this.getAttribute('data-next-section');
+            
+            const textarea = this.querySelector('textarea');
+            const feedbackDiv = document.getElementById(exerciseKey + '-feedback');
+
+            if (!textarea.value.trim() || textarea.value.trim().length < 5) {
+                if (feedbackDiv) {
+                    feedbackDiv.innerHTML = '❌ Please write a full working for all questions.';
+                    feedbackDiv.style.color = '#ef4444';
+                }
+                return;
+            }
+
+            if (feedbackDiv) {
+                feedbackDiv.innerHTML = '⏳ Submitting...';
+                feedbackDiv.style.color = '#f59e0b';
+            }
+
+            const formData = new FormData(this);
+            formData.append('submit_digital', '1');
+
+            fetch('student_view_note.php?id=' + currentNoteId, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data.includes('Digital answer submitted!') || data.includes('success')) {
+                    feedbackDiv.innerHTML = '✅ Exercise submitted successfully! You may proceed.';
+                    feedbackDiv.style.color = '#22c55e';
+                    if (nextSectionId) {
+                        document.getElementById(nextSectionId).classList.add('unlocked');
+                    }
+                    if (window.MathJax) MathJax.typesetPromise();
+                } else {
+                    feedbackDiv.innerHTML = '❌ Submission failed. Please try again.';
+                    feedbackDiv.style.color = '#ef4444';
+                }
+            })
+            .catch(error => {
+                console.error('Submission error:', error);
+                feedbackDiv.innerHTML = '❌ Network error. Please check your connection.';
+                feedbackDiv.style.color = '#ef4444';
+            });
+        });
+    });
+});
 </script>
 <a href="#" class="back-to-top" id="backToTop">↑</a>
 </body></html>
