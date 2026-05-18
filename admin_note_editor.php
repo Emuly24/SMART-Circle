@@ -505,20 +505,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ---------- TINYMCE ----------
     tinymce.init({
-        selector: '#editor',
-        height: 600,
-        menubar: true,
-        plugins: 'anchor autolink charmap codesample emoticons image imagetools link lists media searchreplace table visualblocks wordcount code',
-        toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code | editimage',
-        toolbar_sticky: true,
-        menubar: 'file edit view insert format tools table',
-        content_style: 'body { font-family: Inter, sans-serif; }',
-        images_upload_url: 'note_editor_api.php?action=upload_image',
-        automatic_uploads: true,
-        image_dimensions: true,
-        image_advtab: true,
-        image_caption: true,
-        init_instance_callback: function(editor) {
+    selector: '#editor',
+    height: 600,
+    menubar: true,
+    
+    // Allow ALL tags and attributes (including <style> and <script>)
+    valid_elements: '*[*]',
+    extended_valid_elements: 'script[type|src|async],style[type]',
+    
+    // Prevent TinyMCE from wrapping everything in <p>
+    forced_root_block: false,
+    
+    allow_script_urls: true,
+    sanitize: false,
+    
+    // Plugins & Toolbar (keep your existing ones)
+    plugins: 'anchor autolink charmap codesample emoticons image imagetools link lists media searchreplace table visualblocks wordcount code',
+    toolbar: 'undo redo | styleselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | casechange | charmap | code | editimage',
+    toolbar_sticky: true,
+    menubar: 'file edit view insert format tools table',
+    content_style: 'body { font-family: Inter, sans-serif; }',
+    images_upload_url: 'note_editor_api.php?action=upload_image',
+    automatic_uploads: true,
+    image_advtab: true,
+    image_dimensions: true,
+    image_caption: true,
+            init_instance_callback: function(editor) {
             document.getElementById('editor').style.display = 'none';
         },
         setup: function(editor) {
