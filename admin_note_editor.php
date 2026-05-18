@@ -1166,6 +1166,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+// ULTIMATE LIFELINE: Save to browser every 10 seconds
+setInterval(function() {
+    if (tinymce.activeEditor) {
+        const content = tinymce.activeEditor.getContent();
+        const title = document.getElementById('noteTitle').value;
+        localStorage.setItem('my_perfect_7_hour_backup', JSON.stringify({
+            title: title,
+            content: content,
+            timestamp: Date.now()
+        }));
+    }
+}, 10000);
+
+// 🚨 AUTO-RECOVERY: When the page loads, check for a backup
+window.addEventListener('load', function() {
+    const backup = localStorage.getItem('my_perfect_7_hour_backup');
+    if (backup) {
+        try {
+            const data = JSON.parse(backup);
+            // If the backup is newer than what's in the database
+            if (data.content && data.content.length > 100) {
+                const confirmRestore = confirm("⚠️ Unsaved work found in your browser from " + new Date(data.timestamp).toLocaleString() + ".\n\nRestore it now?");
+                if (confirmRestore && tinymce.activeEditor) {
+                    tinymce.activeEditor.setContent(data.content);
+                    document.getElementById('noteTitle').value = data.title;
+                    alert('✅ Work restored from browser backup!');
+                    // Don't clear it yet, in case they need it again later
+                }
+            }
+        } catch (e) {
+            console.log("Backup corrupted.");
+        }
+    }
+});
 </script>
 <?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>
