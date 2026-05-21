@@ -89,7 +89,6 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
 // ===== FIXED: Only remove literal \r\n – NEVER use stripslashes() =====
 function clean_content($raw) {
     $cleaned = str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
-    // No stripslashes() here - it kills LaTeX backslashes
     return $cleaned;
 }
 
@@ -99,26 +98,21 @@ while($sec = $sections->fetch_assoc()) {
     $sectionData[] = $sec;
 }
 
-// ===== NEW: Find the FIRST incomplete exercise =====
+// ===== NEW LOGIC: Find the FIRST incomplete exercise =====
 $firstIncompleteExerciseId = null;
-$firstExerciseId = null;
-
 foreach ($sectionData as $sec) {
     if ($sec['section_type'] == 'exercise' && $sec['exercise_id']) {
-        if ($firstExerciseId === null) {
-            $firstExerciseId = $sec['exercise_id'];
-        }
         $status = $sec['attempt_status'] ?? 'not_attempted';
         $isCompleted = ($status == 'marked' || $status == 'paper_pending');
-        if (!$isCompleted && $firstIncompleteExerciseId === null) {
+        if (!$isCompleted) {
             $firstIncompleteExerciseId = $sec['exercise_id'];
-            break; // Found the first incomplete exercise
+            break;
         }
     }
 }
 
-// ===== Render sections =====
-$lockEverything = false;
+// ===== RENDER SECTIONS =====
+$lockEverythingAfter = false; // This becomes true AFTER we render the first incomplete exercise
 $exerciseCount = 0;
 ?>
 <!DOCTYPE html>
@@ -151,15 +145,17 @@ $exerciseCount = 0;
         border: 1px solid var(--border);
     }
     
-    /* ===== LOCKING OVERLAY - ENLARGED ===== */
+    /* ===== LOCKING OVERLAY - ENLARGED & SHARP ===== */
     .section-block.locked {
         opacity: 0.5;
         pointer-events: none;
         user-select: none;
-        filter: blur(4px);
+        filter: blur(2px);
         position: relative;
     }
     .section-block.locked::before {
+        /* UPDATED: Makes the message sharp and above the blur */
+        filter: none !important;
         content: "🔒 This section is locked. Complete the previous exercise.";
         display: block;
         position: absolute;
@@ -276,33 +272,32 @@ $exerciseCount = 0;
     </div>
     <div class="student-note-container" id="main-container">
         <?php 
-        $lockEverything = false;
-        $exerciseCount = 0;
-        
         foreach ($sectionData as $sec) {
             $isExercise = ($sec['section_type'] == 'exercise');
             $isLocked = false;
             $isCompleted = false;
             $exerciseNumber = '';
             
+            // Determine if this is the first incomplete exercise
+            $isFirstIncompleteExercise = ($isExercise && $sec['exercise_id'] == $firstIncompleteExerciseId);
+            
+            // Lock logic:
+            // 1. If $lockEverythingAfter is true, everything is locked.
+            // 2. The first incomplete exercise is NEVER locked.
+            // 3. After rendering the first incomplete exercise, $lockEverythingAfter becomes true.
+            
+            if ($isFirstIncompleteExercise) {
+                $isLocked = false;
+                $lockEverythingAfter = true; // Lock everything AFTER this exercise
+            } elseif ($lockEverythingAfter) {
+                $isLocked = true;
+            }
+            
             if ($isExercise && $sec['exercise_id']) {
                 $exerciseCount++;
                 $exerciseNumber = $exerciseCount;
                 $status = $sec['attempt_status'] ?? 'not_attempted';
                 $isCompleted = ($status == 'marked' || $status == 'paper_pending');
-                
-                // Locking logic: 
-                // 1. The first incomplete exercise is UNLOCKED (so they can try it).
-                // 2. Everything after the first incomplete exercise is LOCKED.
-                if ($sec['exercise_id'] == $firstIncompleteExerciseId) {
-                    $lockEverything = true; // Lock everything AFTER this exercise
-                    $isLocked = false;      // This exercise itself is UNLOCKED
-                } else {
-                    $isLocked = $lockEverything;
-                }
-            } else {
-                // Non-exercise sections (Introduction, Section 2, etc.) are locked if $lockEverything is true
-                $isLocked = $lockEverything;
             }
             
             $cleanContent = clean_content($sec['content']);
