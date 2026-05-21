@@ -327,6 +327,7 @@ $intro_content = $sections[0];
         </div>
         <?php
         
+                <?php
         // ===== RENDER EXERCISE SECTIONS WITH LOCKING =====
         $passed_first_incomplete = false;
         
@@ -337,6 +338,12 @@ $intro_content = $sections[0];
             // Get the exercise number and ID
             $ex_num = isset($exercise_order[$i-1]) ? $exercise_order[$i-1] : $i;
             $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : null;
+            
+            // ★★★ FIX: If $ex_id is null, generate a temporary one ★★★
+            if ($ex_id === null) {
+                $ex_id = -($i); // Negative number ensures it's unique
+            }
+            
             $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
             $is_completed = ($status == 'marked' || $status == 'paper_pending');
             
@@ -362,7 +369,7 @@ $intro_content = $sections[0];
             // But if all are completed, everything is unlocked (handled above)
             ?>
             <div class="section-block <?php echo $is_locked ? 'locked' : 'unlocked'; ?> <?php echo $is_completed ? 'completed' : ''; ?>"
-                 data-exercise-id="<?php echo $ex_id ?? ''; ?>"
+                 data-exercise-id="<?php echo $ex_id; ?>" 
                  data-exercise-number="<?php echo $ex_num; ?>">
                 
                 <div class="lock-notification">
