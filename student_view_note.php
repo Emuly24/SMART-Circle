@@ -194,7 +194,7 @@ $intro_content = $sections[0];
     }
     
     .section-block.locked .section-content {
-        filter: blur(2px);
+        filter: blur(4px);
         pointer-events: none;
         user-select: none;
     }
@@ -307,13 +307,6 @@ $intro_content = $sections[0];
         }
     }
     
-    /* Ensure floating actions stay on top and don't disappear unexpectedly */
-    .floating-actions.hidden {
-        display: none !important;
-    }
-    .floating-actions.visible {
-        display: flex !important;
-    }
 </style>
 </head>
 <body>
