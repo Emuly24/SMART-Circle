@@ -306,6 +306,14 @@ $intro_content = $sections[0];
             max-width: 90%;
         }
     }
+    
+    /* Ensure floating actions stay on top and don't disappear unexpectedly */
+    .floating-actions.hidden {
+        display: none !important;
+    }
+    .floating-actions.visible {
+        display: flex !important;
+    }
 </style>
 </head>
 <body>
@@ -443,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
     exerciseBlocks.sort((a, b) => a.number - b.number);
 
     // --- INTERSECTION OBSERVER ---
-    // This only activates the modal when an exercise comes into view.
+    // This activates the modal when an unlocked exercise comes into view.
     // It does NOT hide the modal when the exercise leaves the viewport.
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -471,12 +479,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 floatingFeedback.innerHTML = '';
             }
         });
-    }, { threshold: 0.3 });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }); // Lower threshold and add margin for better trigger
 
     // Observe all exercise blocks
     exerciseBlocks.forEach(ex => {
         observer.observe(ex.block);
     });
+
+    // --- CHECK INITIAL VISIBILITY ---
+    // Check if the first unlocked exercise is already in view on page load
+    setTimeout(() => {
+        let firstUnlockedBlock = null;
+        for (let ex of exerciseBlocks) {
+            if (!ex.completed && !ex.locked) {
+                firstUnlockedBlock = ex;
+                break;
+            }
+        }
+        if (firstUnlockedBlock) {
+            const rect = firstUnlockedBlock.block.getBoundingClientRect();
+            // Check if the block is at least partially in view
+            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                activeExercise = {
+                    id: firstUnlockedBlock.id,
+                    number: firstUnlockedBlock.number
+                };
+                floatingActions.classList.add('visible');
+                activeExerciseIdInput.value = activeExercise.id;
+                activeExerciseIdPaperInput.value = activeExercise.id;
+                exerciseIndicator.textContent = `📝 Exercise ${activeExercise.number}`;
+                floatingFeedback.innerHTML = '';
+            }
+        }
+    }, 500); // Delay to ensure DOM is fully rendered
 
     // --- DIGITAL SUBMIT ---
     digitalForm.addEventListener('submit', function(e) {
