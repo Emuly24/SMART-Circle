@@ -86,9 +86,22 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
     WHERE s.note_id = $note_id
     ORDER BY s.sort_order");
 
-// Helper function to clean literal \r\n without stripping HTML
+// Helper: Clean literal \r\n – NO stripslashes()
 function clean_content($raw) {
     return str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
+}
+
+// Helper: Fix common LaTeX rendering issues on the fly (NO database change)
+function fix_latex_rendering($content) {
+    // 1. Replace raw (aeqO) with proper LaTeX
+    $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content);
+    $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content); // double replace just in case
+    
+    // 2. Remove newlines inside \left( ... \right) pairs
+    $content = preg_replace('/\\\\left\\s*\\(([^\\"]*?)\\s*\\\\)\\s*\\)/', '\\left($1\\right)', $content);
+    $content = preg_replace('/\\\\left\\s*\\(([^\\"]*?)\\s*\\)/', '\\left($1\\right)', $content);
+    
+    return $content;
 }
 
 // Collect all sections
@@ -97,7 +110,39 @@ while($sec = $sections->fetch_assoc()) {
     $sectionData[] = $sec;
 }
 
-// Find the first incomplete exercise to use as a lock boundary
+// FALLBACK: If note_sections is empty or has empty content, use the raw note content
+$useRawContent = false;
+if (empty($sectionData)) {
+    $useRawContent = true;
+} else {
+    $hasRealContent = false;
+    foreach ($sectionData as $sec) {
+        if (!empty(trim($sec['content']))) {
+            $hasRealContent = true;
+            break;
+        }
+    }
+    if (!$hasRealContent) {
+        $useRawContent = true;
+    }
+}
+
+// If no valid sections, fallback to raw note
+if ($useRawContent) {
+    $sectionData = [];
+    $sectionData[] = [
+        'id' => 0,
+        'note_id' => $note_id,
+        'sort_order' => 1,
+        'section_type' => 'introduction',
+        'content' => $note['content'],
+        'exercise_id' => null,
+        'attempt_status' => null,
+        'answer_text' => null
+    ];
+}
+
+// ----- LOGIC: Lock everything AFTER the first incomplete exercise -----
 $firstIncompleteExerciseId = null;
 foreach ($sectionData as $sec) {
     if ($sec['section_type'] == 'exercise' && $sec['exercise_id']) {
@@ -110,8 +155,7 @@ foreach ($sectionData as $sec) {
     }
 }
 
-// Locking flag
-$lockEverythingAfter = false;
+$isLocked = false;
 $exerciseCount = 0;
 ?>
 <!DOCTYPE html>
@@ -135,6 +179,42 @@ $exerciseCount = 0;
         text-align: inherit;
     }
     
+    /* ----- NOTE HEADINGS ----- */
+    .student-note-container h1 {
+        font-size: 2.2rem;
+        color: var(--text-color);
+        margin: 2rem 0 1rem;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 0.5rem;
+    }
+    .student-note-container h2 {
+        font-size: 1.8rem;
+        color: var(--text-color);
+        margin: 1.8rem 0 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+    }
+    .student-note-container h3 {
+        font-size: 1.5rem;
+        color: var(--text-color);
+        margin: 1.5rem 0 0.8rem;
+        font-weight: 600;
+    }
+    .student-note-container h4 {
+        font-size: 1.2rem;
+        color: var(--text-color);
+        margin: 1.2rem 0 0.6rem;
+        font-weight: 600;
+    }
+    .student-note-container .section-content h1,
+    .student-note-container .section-content h2,
+    .student-note-container .section-content h3,
+    .student-note-container .section-content h4 {
+        /* same as above, to cover content inside .section-content */
+        font-size: inherit; /* let parent class handle */
+    }
+    
+    /* ----- SECTION BLOCKS ----- */
     .section-block {
         position: relative;
         margin: 2rem 0;
@@ -144,17 +224,21 @@ $exerciseCount = 0;
         border: 1px solid var(--border);
     }
     
+    /* ----- LOCKED STATE ----- */
     .section-block.locked {
-        opacity: 0.4;
+        opacity: 0.6;
         pointer-events: none;
         user-select: none;
-        filter: blur(2px);
         position: relative;
     }
-    .section-block.locked::before {
-        /* FIXED: makes the message sharp and prominent */
-        filter: none !important;
-        content: "🔒 This section is locked. Complete the previous exercise.";
+    
+    .section-block.locked .section-content {
+        filter: blur(2px);
+        pointer-events: none;
+        user-select: none;
+    }
+    
+    .section-block.locked .lock-notification {
         display: block;
         position: absolute;
         top: 50%;
@@ -167,21 +251,22 @@ $exerciseCount = 0;
         font-weight: bold;
         color: #e74c3c;
         border: 3px solid #e74c3c;
-        z-index: 20;
+        z-index: 9999;
         box-shadow: 0 8px 40px rgba(0,0,0,0.3);
         width: 90%;
         max-width: 650px;
         text-align: center;
         line-height: 1.6;
+        pointer-events: auto;
+        filter: none !important;
     }
     
     .section-block.unlocked {
         opacity: 1;
         pointer-events: auto;
         user-select: auto;
-        filter: none;
     }
-    .section-block.unlocked::before {
+    .section-block.unlocked .lock-notification {
         display: none;
     }
     .section-block.completed {
@@ -189,6 +274,7 @@ $exerciseCount = 0;
         background: #f0fdf4;
     }
     
+    /* ----- FLOATING BUTTONS ----- */
     .floating-actions {
         display: none;
         position: fixed;
@@ -253,7 +339,7 @@ $exerciseCount = 0;
             min-width: 160px;
             padding: 0.8rem;
         }
-        .section-block.locked::before {
+        .section-block.locked .lock-notification {
             padding: 1.5rem;
             font-size: 1.1rem;
             max-width: 90%;
@@ -270,28 +356,23 @@ $exerciseCount = 0;
     </div>
     <div class="student-note-container" id="main-container">
         <?php 
-        // Reset counters for clean rendering
+        $isLocked = false;
         $exerciseCount = 0;
-        $lockEverythingAfter = false;
         
         foreach ($sectionData as $sec) {
             $isExercise = ($sec['section_type'] == 'exercise');
-            $isLocked = false;
             $isCompleted = false;
             $exerciseNumber = '';
             
-            // Determine if this is the first incomplete exercise
+            // Check if this is the first incomplete exercise
             $isFirstIncompleteExercise = ($isExercise && $sec['exercise_id'] == $firstIncompleteExerciseId);
             
-            // Lock logic:
-            // 1. If $lockEverythingAfter is true, lock this section.
-            // 2. The first incomplete exercise is NEVER locked.
-            // 3. After rendering the first incomplete exercise, $lockEverythingAfter becomes true.
-            
+            // LOCK LOGIC
             if ($isFirstIncompleteExercise) {
                 $isLocked = false;
-                $lockEverythingAfter = true; // Lock everything AFTER this exercise
-            } elseif ($lockEverythingAfter) {
+            } elseif ($isExercise && $sec['exercise_id'] != $firstIncompleteExerciseId) {
+                $isLocked = true;
+            } elseif (!$isExercise && $firstIncompleteExerciseId !== null) {
                 $isLocked = true;
             }
             
@@ -301,14 +382,17 @@ $exerciseCount = 0;
                 $exerciseNumber = $exerciseCount;
                 $status = $sec['attempt_status'] ?? 'not_attempted';
                 $isCompleted = ($status == 'marked' || $status == 'paper_pending');
+                
+                if ($sec['exercise_id'] == $firstIncompleteExerciseId) {
+                    $isLocked = false;
+                }
             }
             
-            // Clean and display content
-            $cleanContent = clean_content($sec['content']);
+            // Clean and fix LaTeX
+            $cleanContent = fix_latex_rendering(clean_content($sec['content']));
             
-            // Ensure content is not empty
-            if (empty($cleanContent)) {
-                // Fallback to original note content if section is empty
+            // If content is empty and we are in fallback mode, it should not be empty
+            if (empty(trim($cleanContent))) {
                 $cleanContent = "<p><em>Content is being processed...</em></p>";
             }
             ?>
@@ -316,14 +400,25 @@ $exerciseCount = 0;
                  data-section-type="<?php echo $sec['section_type']; ?>"
                  data-exercise-id="<?php echo $sec['exercise_id'] ?? ''; ?>"
                  data-exercise-number="<?php echo $exerciseNumber; ?>">
-                <?php echo $cleanContent; ?>
-                <?php if ($isExercise && $sec['exercise_id']): ?>
-                    <div class="exercise-form-wrapper" style="display:none;">
-                        <input type="hidden" name="exercise_id" value="<?php echo $sec['exercise_id']; ?>">
-                    </div>
-                <?php endif; ?>
+                
+                <div class="lock-notification">
+                    🔒 This section is locked.<br>Complete the previous exercise.
+                </div>
+                
+                <div class="section-content">
+                    <?php echo $cleanContent; ?>
+                    <?php if ($isExercise && $sec['exercise_id']): ?>
+                        <div class="exercise-form-wrapper" style="display:none;">
+                            <input type="hidden" name="exercise_id" value="<?php echo $sec['exercise_id']; ?>">
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
             <?php
+            // After rendering the first incomplete exercise, lock everything else
+            if ($sec['exercise_id'] == $firstIncompleteExerciseId) {
+                $isLocked = true;
+            }
         }
         ?>
     </div>
