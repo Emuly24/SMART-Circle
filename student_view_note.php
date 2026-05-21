@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     exerciseBlocks.sort((a, b) => a.number - b.number);
 
-    // --- FIXED OBSERVER: Handles both SHOW and HIDE ---
+    // --- EXACT WORKING OBSERVER (from the old file) ---
     const observer = new IntersectionObserver((entries) => {
         let targetExercise = null;
         
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isCompleted = block.classList.contains('completed');
             const isLocked = block.classList.contains('locked');
             
-            // If an unlocked, uncompleted exercise enters view, target it
+            // Only activate when an uncompleted, unlocked exercise enters view
             if (!isCompleted && !isLocked && entry.isIntersecting) {
                 targetExercise = {
                     id: parseInt(exerciseId),
@@ -460,24 +460,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         if (targetExercise) {
-            // Show modal for the exercise in view
             floatingActions.classList.add('visible');
             activeExerciseIdInput.value = targetExercise.id;
             activeExerciseIdPaperInput.value = targetExercise.id;
             exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
             floatingFeedback.innerHTML = '';
         } else {
-            // Hide modal when no unlocked exercise is in view
+            // HIDE the modal when no unlocked exercise is in view
             floatingActions.classList.remove('visible');
         }
-    }, { threshold: 0.3 }); // Removed the broken rootMargin
+    }, { threshold: 0.3 }); // No rootMargin — exactly like the working file
 
     // Observe all exercise blocks
     exerciseBlocks.forEach(ex => {
         observer.observe(ex.block);
     });
 
-    // --- DIGITAL SUBMIT ---
+    // --- DIGITAL SUBMIT (unchanged) ---
     digitalForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const exId = parseInt(activeExerciseIdInput.value);
@@ -530,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- PAPER SUBMIT ---
+    // --- PAPER SUBMIT (unchanged) ---
     paperForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const exId = parseInt(activeExerciseIdPaperInput.value);
