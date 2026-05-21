@@ -328,8 +328,6 @@ $intro_content = $sections[0];
         <?php
         
         // ===== RENDER EXERCISE SECTIONS WITH LOCKING =====
-        // We will lock everything *after* the first incomplete exercise.
-        // The first incomplete exercise itself is unlocked.
         $passed_first_incomplete = false;
         
         for ($i = 1; $i < count($sections); $i++) {
@@ -472,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 floatingFeedback.innerHTML = '';
             }
         });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }); // Lower threshold and add margin for better trigger
+    }, { threshold: 0.2, rootMargin: '0px 1px -50px 0px' }); // Lower threshold and add margin for better trigger
 
     // Observe all exercise blocks
     exerciseBlocks.forEach(ex => {
