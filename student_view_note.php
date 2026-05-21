@@ -405,174 +405,178 @@ $intro_content = $sections[0];
 
 <?php include_once 'includes/footer.php'; ?>
 <script>
-    const currentNoteId = <?php echo $note_id; ?>;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const floatingActions = document.getElementById('floatingActions');
-        const exerciseIndicator = document.getElementById('exerciseIndicator');
-        const activeExerciseIdInput = document.getElementById('activeExerciseId');
-        const activeExerciseIdPaperInput = document.getElementById('activeExerciseIdPaper');
-        const digitalForm = document.getElementById('digitalForm');
-        const paperForm = document.getElementById('paperForm');
-        const floatingFeedback = document.getElementById('floatingFeedback');
+const currentNoteId = <?php echo $note_id; ?>;
 
-        const exerciseBlocks = [];
-        const blocks = document.querySelectorAll('.section-block');
-        blocks.forEach(block => {
+document.addEventListener('DOMContentLoaded', function() {
+    const floatingActions = document.getElementById('floatingActions');
+    const exerciseIndicator = document.getElementById('exerciseIndicator');
+    const activeExerciseIdInput = document.getElementById('activeExerciseId');
+    const activeExerciseIdPaperInput = document.getElementById('activeExerciseIdPaper');
+    const digitalForm = document.getElementById('digitalForm');
+    const paperForm = document.getElementById('paperForm');
+    const floatingFeedback = document.getElementById('floatingFeedback');
+
+    // Track the currently active exercise
+    let activeExercise = null;
+
+    // Find all exercise blocks
+    const exerciseBlocks = [];
+    const blocks = document.querySelectorAll('.section-block');
+    blocks.forEach(block => {
+        const exerciseId = block.dataset.exerciseId;
+        const exerciseNumber = block.dataset.exerciseNumber;
+        
+        if (exerciseId) {
+            const isCompleted = block.classList.contains('completed');
+            const isLocked = block.classList.contains('locked');
+            exerciseBlocks.push({
+                id: parseInt(exerciseId),
+                number: parseInt(exerciseNumber),
+                block: block,
+                completed: isCompleted,
+                locked: isLocked
+            });
+        }
+    });
+
+    // Sort blocks by exercise number
+    exerciseBlocks.sort((a, b) => a.number - b.number);
+
+    // --- INTERSECTION OBSERVER ---
+    // This only activates the modal when an exercise comes into view.
+    // It does NOT hide the modal when the exercise leaves the viewport.
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const block = entry.target;
             const exerciseId = block.dataset.exerciseId;
             const exerciseNumber = block.dataset.exerciseNumber;
             
-            if (exerciseId) {
-                const isCompleted = block.classList.contains('completed');
-                exerciseBlocks.push({
-                    id: parseInt(exerciseId),
-                    number: parseInt(exerciseNumber),
-                    block: block,
-                    completed: isCompleted
-                });
-            }
-        });
-
-        exerciseBlocks.sort((a, b) => a.number - b.number);
-
-        const observer = new IntersectionObserver((entries) => {
-            let targetExercise = null;
+            if (!exerciseId || !exerciseNumber) return;
             
-            entries.forEach(entry => {
-                const block = entry.target;
-                const exerciseId = block.dataset.exerciseId;
-                const exerciseNumber = block.dataset.exerciseNumber;
+            const isCompleted = block.classList.contains('completed');
+            const isLocked = block.classList.contains('locked');
+            
+            // Only activate when an uncompleted, unlocked exercise enters view
+            if (!isCompleted && !isLocked && entry.isIntersecting) {
+                // Set this as the active exercise
+                activeExercise = {
+                    id: parseInt(exerciseId),
+                    number: parseInt(exerciseNumber)
+                };
                 
-                if (!exerciseId || !exerciseNumber) return;
-                
-                const isCompleted = block.classList.contains('completed');
-                const isLocked = block.classList.contains('locked');
-                
-                if (!isCompleted && !isLocked && entry.isIntersecting) {
-                    targetExercise = {
-                        id: parseInt(exerciseId),
-                        number: parseInt(exerciseNumber),
-                        block: block
-                    };
-                }
-            });
-
-            if (targetExercise) {
                 floatingActions.classList.add('visible');
-                activeExerciseIdInput.value = targetExercise.id;
-                activeExerciseIdPaperInput.value = targetExercise.id;
-                exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
+                activeExerciseIdInput.value = activeExercise.id;
+                activeExerciseIdPaperInput.value = activeExercise.id;
+                exerciseIndicator.textContent = `📝 Exercise ${activeExercise.number}`;
                 floatingFeedback.innerHTML = '';
+            }
+        });
+    }, { threshold: 0.3 });
+
+    // Observe all exercise blocks
+    exerciseBlocks.forEach(ex => {
+        observer.observe(ex.block);
+    });
+
+    // --- DIGITAL SUBMIT ---
+    digitalForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const exId = parseInt(activeExerciseIdInput.value);
+        const formData = new FormData(this);
+        const text = formData.get('answer_text')?.trim() || '';
+        const file = formData.get('answer_file');
+
+        if (!text && (!file || file.size === 0)) {
+            floatingFeedback.innerHTML = '❌ Please provide an answer (text or file).';
+            floatingFeedback.style.color = '#ef4444';
+            return;
+        }
+
+        floatingFeedback.innerHTML = '⏳ Submitting...';
+        floatingFeedback.style.color = '#f59e0b';
+
+        fetch('student_view_note.php?id=' + currentNoteId, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data.includes('Digital answer submitted!') || data.includes('success')) {
+                floatingFeedback.innerHTML = '✅ Submitted!';
+                floatingFeedback.style.color = '#22c55e';
+                
+                // Mark exercise as completed
+                blocks.forEach(block => {
+                    if (block.dataset.exerciseId == exId) {
+                        block.classList.add('completed');
+                        block.classList.remove('locked');
+                        block.classList.add('unlocked');
+                        observer.unobserve(block);
+                        observer.observe(block);
+                    }
+                });
+                
+                // Hide modal after delay
+                setTimeout(() => {
+                    floatingActions.classList.remove('visible');
+                    if (window.MathJax) MathJax.typesetPromise();
+                }, 2000);
             } else {
-                floatingActions.classList.remove('visible');
+                floatingFeedback.innerHTML = '❌ Submission failed. Please try again.';
+                floatingFeedback.style.color = '#ef4444';
             }
-        }, { threshold: 0.3 });
-
-        exerciseBlocks.forEach(ex => {
-            observer.observe(ex.block);
-        });
-
-        digitalForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const exId = parseInt(activeExerciseIdInput.value);
-            const formData = new FormData(this);
-            const text = formData.get('answer_text')?.trim() || '';
-            const file = formData.get('answer_file');
-
-            if (!text && (!file || file.size === 0)) {
-                floatingFeedback.innerHTML = '❌ Please provide an answer (text or file).';
-                floatingFeedback.style.color = '#ef4444';
-                return;
-            }
-
-            floatingFeedback.innerHTML = '⏳ Submitting...';
-            floatingFeedback.style.color = '#f59e0b';
-
-            fetch('student_view_note.php?id=' + currentNoteId, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                if (data.includes('Digital answer submitted!') || data.includes('success')) {
-                    floatingFeedback.innerHTML = '✅ Submitted!';
-                    floatingFeedback.style.color = '#22c55e';
-                    
-                    blocks.forEach(block => {
-                        if (block.dataset.exerciseId == exId) {
-                            block.classList.add('completed');
-                            block.classList.remove('locked');
-                            block.classList.add('unlocked');
-                            observer.unobserve(block);
-                            observer.observe(block);
-                        }
-                    });
-                    
-                    setTimeout(() => {
-                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
-                        if (visible && visible.classList.contains('completed')) {
-                            floatingActions.classList.remove('visible');
-                        }
-                        if (window.MathJax) MathJax.typesetPromise();
-                    }, 1500);
-                } else {
-                    floatingFeedback.innerHTML = '❌ Submission failed. Please try again.';
-                    floatingFeedback.style.color = '#ef4444';
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                floatingFeedback.innerHTML = '❌ Network error.';
-                floatingFeedback.style.color = '#ef4444';
-            });
-        });
-
-        paperForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const exId = parseInt(activeExerciseIdPaperInput.value);
-            const formData = new FormData(this);
-
-            floatingFeedback.innerHTML = '⏳ Recording promise...';
-            floatingFeedback.style.color = '#f59e0b';
-
-            fetch('student_view_note.php?id=' + currentNoteId, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                if (data.includes('promised to submit') || data.includes('success')) {
-                    floatingFeedback.innerHTML = '✅ Promise recorded!';
-                    floatingFeedback.style.color = '#22c55e';
-                    
-                    blocks.forEach(block => {
-                        if (block.dataset.exerciseId == exId) {
-                            block.classList.add('completed');
-                            block.classList.remove('locked');
-                            block.classList.add('unlocked');
-                            observer.unobserve(block);
-                            observer.observe(block);
-                        }
-                    });
-                    
-                    setTimeout(() => {
-                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
-                        if (visible && visible.classList.contains('completed')) {
-                            floatingActions.classList.remove('visible');
-                        }
-                        if (window.MathJax) MathJax.typesetPromise();
-                    }, 1500);
-                } else {
-                    floatingFeedback.innerHTML = '❌ Promise failed. Please try again.';
-                    floatingFeedback.style.color = '#ef4444';
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                floatingFeedback.innerHTML = '❌ Network error.';
-                floatingFeedback.style.color = '#ef4444';
-            });
+        })
+        .catch(error => {
+            console.error(error);
+            floatingFeedback.innerHTML = '❌ Network error.';
+            floatingFeedback.style.color = '#ef4444';
         });
     });
+
+    // --- PAPER SUBMIT ---
+    paperForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const exId = parseInt(activeExerciseIdPaperInput.value);
+        const formData = new FormData(this);
+
+        floatingFeedback.innerHTML = '⏳ Recording promise...';
+        floatingFeedback.style.color = '#f59e0b';
+
+        fetch('student_view_note.php?id=' + currentNoteId, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data.includes('promised to submit') || data.includes('success')) {
+                floatingFeedback.innerHTML = '✅ Promise recorded!';
+                floatingFeedback.style.color = '#22c55e';
+                
+                blocks.forEach(block => {
+                    if (block.dataset.exerciseId == exId) {
+                        block.classList.add('completed');
+                        block.classList.remove('locked');
+                        block.classList.add('unlocked');
+                        observer.unobserve(block);
+                        observer.observe(block);
+                    }
+                });
+                
+                setTimeout(() => {
+                    floatingActions.classList.remove('visible');
+                    if (window.MathJax) MathJax.typesetPromise();
+                }, 2000);
+            } else {
+                floatingFeedback.innerHTML = '❌ Promise failed. Please try again.';
+                floatingFeedback.style.color = '#ef4444';
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            floatingFeedback.innerHTML = '❌ Network error.';
+            floatingFeedback.style.color = '#ef4444';
+        });
+    });
+});
 </script>
 </body></html>
