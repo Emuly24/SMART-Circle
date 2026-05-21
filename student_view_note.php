@@ -404,6 +404,7 @@ $intro_content = $sections[0];
 
 <?php include_once 'includes/footer.php'; ?>
 <script>
+<script>
 const currentNoteId = <?php echo $note_id; ?>;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -417,8 +418,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Find all exercise blocks
     const exerciseBlocks = [];
-    const blocks = document.querySelectorAll('.section-block');
-    blocks.forEach(block => {
+    const allBlocks = document.querySelectorAll('.section-block');
+    allBlocks.forEach(block => {
         const exerciseId = block.dataset.exerciseId;
         const exerciseNumber = block.dataset.exerciseNumber;
         if (exerciseId) {
@@ -435,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     exerciseBlocks.sort((a, b) => a.number - b.number);
 
-    // --- EXACT WORKING OBSERVER (from the old file) ---
+    // --- OBSERVER ---
     const observer = new IntersectionObserver((entries) => {
         let targetExercise = null;
         
@@ -449,7 +450,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const isCompleted = block.classList.contains('completed');
             const isLocked = block.classList.contains('locked');
             
-            // Only activate when an uncompleted, unlocked exercise enters view
             if (!isCompleted && !isLocked && entry.isIntersecting) {
                 targetExercise = {
                     id: parseInt(exerciseId),
@@ -466,17 +466,16 @@ document.addEventListener('DOMContentLoaded', function() {
             exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
             floatingFeedback.innerHTML = '';
         } else {
-            // HIDE the modal when no unlocked exercise is in view
             floatingActions.classList.remove('visible');
         }
-    }, { threshold: 0.3 }); // No rootMargin — exactly like the working file
+    }, { threshold: 0.3 });
 
     // Observe all exercise blocks
     exerciseBlocks.forEach(ex => {
         observer.observe(ex.block);
     });
 
-    // --- DIGITAL SUBMIT (unchanged) ---
+    // --- DIGITAL SUBMIT ---
     digitalForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const exId = parseInt(activeExerciseIdInput.value);
@@ -503,15 +502,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 floatingFeedback.innerHTML = '✅ Submitted!';
                 floatingFeedback.style.color = '#22c55e';
                 
-                blocks.forEach(block => {
-                    if (block.dataset.exerciseId == exId) {
-                        block.classList.add('completed');
-                        block.classList.remove('locked');
-                        block.classList.add('unlocked');
-                        observer.unobserve(block);
-                        observer.observe(block);
-                    }
-                });
+                // Update the exerciseBlocks list and DOM
+                const targetIndex = exerciseBlocks.findIndex(ex => ex.id === exId);
+                if (targetIndex !== -1) {
+                    const targetEx = exerciseBlocks[targetIndex];
+                    targetEx.completed = true;
+                    targetEx.block.classList.add('completed');
+                    targetEx.block.classList.remove('locked');
+                    targetEx.block.classList.add('unlocked');
+                    
+                    // Remove observer and re-observe after a delay
+                    observer.unobserve(targetEx.block);
+                    setTimeout(() => {
+                        observer.observe(targetEx.block);
+                    }, 100);
+                }
                 
                 setTimeout(() => {
                     floatingActions.classList.remove('visible');
@@ -529,7 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- PAPER SUBMIT (unchanged) ---
+    // --- PAPER SUBMIT ---
     paperForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const exId = parseInt(activeExerciseIdPaperInput.value);
@@ -548,15 +553,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 floatingFeedback.innerHTML = '✅ Promise recorded!';
                 floatingFeedback.style.color = '#22c55e';
                 
-                blocks.forEach(block => {
-                    if (block.dataset.exerciseId == exId) {
-                        block.classList.add('completed');
-                        block.classList.remove('locked');
-                        block.classList.add('unlocked');
-                        observer.unobserve(block);
-                        observer.observe(block);
-                    }
-                });
+                const targetIndex = exerciseBlocks.findIndex(ex => ex.id === exId);
+                if (targetIndex !== -1) {
+                    const targetEx = exerciseBlocks[targetIndex];
+                    targetEx.completed = true;
+                    targetEx.block.classList.add('completed');
+                    targetEx.block.classList.remove('locked');
+                    targetEx.block.classList.add('unlocked');
+                    
+                    observer.unobserve(targetEx.block);
+                    setTimeout(() => {
+                        observer.observe(targetEx.block);
+                    }, 100);
+                }
                 
                 setTimeout(() => {
                     floatingActions.classList.remove('visible');
