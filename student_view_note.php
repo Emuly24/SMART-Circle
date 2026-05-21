@@ -86,12 +86,9 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
     WHERE s.note_id = $note_id
     ORDER BY s.sort_order");
 
-// Helper function to safely clean literal \r\n artifacts without breaking HTML
+// ===== FIXED: Only remove literal \r\n – NEVER use stripslashes() =====
 function clean_content($raw) {
-    $cleaned = str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
-    $cleaned = stripslashes($cleaned);
-    // Do NOT use nl2br here - it destroys HTML layouts
-    return $cleaned;
+    return str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
 }
 ?>
 <!DOCTYPE html>
@@ -115,7 +112,6 @@ function clean_content($raw) {
         text-align: inherit;
     }
     
-    /* ===== LOCKING OVERLAY ===== */
     .section-block {
         position: relative;
         margin: 2rem 0;
@@ -165,7 +161,6 @@ function clean_content($raw) {
         background: #f0fdf4;
     }
     
-    /* ===== FLOATING BUTTONS ===== */
     .floating-actions {
         display: none;
         position: fixed;
@@ -242,40 +237,25 @@ function clean_content($raw) {
     </div>
     <div class="student-note-container" id="main-container">
         <?php 
-        // Collect all exercise sections first to assign sequential numbers
-        $exerciseList = array();
-        $sectionData = array();
-        while($sec = $sections->fetch_assoc()) {
-            $sectionData[] = $sec;
-            if ($sec['section_type'] == 'exercise' && $sec['exercise_id']) {
-                $exerciseList[] = $sec['exercise_id'];
-            }
-        }
-        
-        // Number exercises sequentially (1, 2, 3, ...)
-        $exerciseNumberMap = array();
-        foreach ($exerciseList as $index => $exId) {
-            $exerciseNumberMap[$exId] = $index + 1;
-        }
-        
-        // Now render sections with proper locking
+        $exerciseCount = 0;
         $prevCompleted = false;
         $firstExerciseSeen = false;
-        foreach ($sectionData as $sec) {
+        
+        while($sec = $sections->fetch_assoc()):
             $isExercise = ($sec['section_type'] == 'exercise');
             $isLocked = false;
             $isCompleted = false;
-            $exerciseNumber = isset($exerciseNumberMap[$sec['exercise_id']]) ? $exerciseNumberMap[$sec['exercise_id']] : '';
+            $exerciseNumber = '';
             
             if ($isExercise && $sec['exercise_id']) {
-                $exId = $sec['exercise_id'];
+                $exerciseCount++;
+                $exerciseNumber = $exerciseCount;
                 $status = $sec['attempt_status'] ?? 'not_attempted';
                 $isCompleted = ($status == 'marked' || $status == 'paper_pending');
                 
-                // Locking logic: first exercise unlocked, later locked until previous completed
                 if (!$firstExerciseSeen) {
                     $firstExerciseSeen = true;
-                    $isLocked = false; // first exercise always unlocked
+                    $isLocked = false;
                 } else {
                     $isLocked = !$prevCompleted;
                 }
@@ -285,11 +265,9 @@ function clean_content($raw) {
             $cleanContent = clean_content($sec['content']);
             ?>
             <div class="section-block <?php echo $isLocked ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
-                 data-section-id="<?php echo $sec['id']; ?>"
                  data-section-type="<?php echo $sec['section_type']; ?>"
                  data-exercise-id="<?php echo $sec['exercise_id'] ?? ''; ?>"
-                 data-exercise-number="<?php echo $exerciseNumber; ?>"
-                 data-is-first-exercise="<?php echo ($exerciseNumber == 1) ? 'true' : 'false'; ?>">
+                 data-exercise-number="<?php echo $exerciseNumber; ?>">
                 <?php echo $cleanContent; ?>
                 <?php if ($isExercise && $sec['exercise_id']): ?>
                     <div class="exercise-form-wrapper" style="display:none;">
@@ -298,7 +276,7 @@ function clean_content($raw) {
                 <?php endif; ?>
             </div>
             <?php
-        }
+        endwhile;
         ?>
     </div>
 </div>
@@ -332,33 +310,27 @@ function clean_content($raw) {
         const paperForm = document.getElementById('paperForm');
         const floatingFeedback = document.getElementById('floatingFeedback');
 
-        // 1. Find all exercise blocks
         const exerciseBlocks = [];
         const blocks = document.querySelectorAll('.section-block');
         blocks.forEach(block => {
             const sectionType = block.dataset.sectionType;
             const exerciseId = block.dataset.exerciseId;
             const exerciseNumber = block.dataset.exerciseNumber;
-            const isFirstExercise = block.dataset.isFirstExercise === 'true';
             
             if (sectionType === 'exercise' && exerciseId) {
                 const isCompleted = block.classList.contains('completed');
                 exerciseBlocks.push({
                     id: parseInt(exerciseId),
                     number: exerciseNumber ? parseInt(exerciseNumber) : 0,
-                    isFirst: isFirstExercise,
                     block: block,
                     completed: isCompleted
                 });
             }
         });
 
-        // 2. Sort blocks by exercise number
         exerciseBlocks.sort((a, b) => a.number - b.number);
 
-        // 3. IntersectionObserver to handle visibility of floating actions
         const observer = new IntersectionObserver((entries) => {
-            // Determine if any uncompleted exercise is currently in view
             let targetExercise = null;
             
             entries.forEach(entry => {
@@ -368,11 +340,9 @@ function clean_content($raw) {
                 
                 if (!exerciseId || !exerciseNumber) return;
                 
-                // Check if this is an uncompleted exercise block
                 const isCompleted = block.classList.contains('completed');
                 const isLocked = block.classList.contains('locked');
                 
-                // Only target uncompleted and unlocked exercises
                 if (!isCompleted && !isLocked && entry.isIntersecting) {
                     targetExercise = {
                         id: parseInt(exerciseId),
@@ -382,7 +352,6 @@ function clean_content($raw) {
                 }
             });
 
-            // Show floating actions if we found a valid target exercise
             if (targetExercise) {
                 floatingActions.classList.add('visible');
                 activeExerciseIdInput.value = targetExercise.id;
@@ -394,12 +363,10 @@ function clean_content($raw) {
             }
         }, { threshold: 0.3 });
 
-        // 4. Observe all exercise blocks
         exerciseBlocks.forEach(ex => {
             observer.observe(ex.block);
         });
 
-        // 5. Handle digital submission
         digitalForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdInput.value);
@@ -426,24 +393,19 @@ function clean_content($raw) {
                     floatingFeedback.innerHTML = '✅ Submitted!';
                     floatingFeedback.style.color = '#22c55e';
                     
-                    // Mark the current exercise as completed
                     blocks.forEach(block => {
                         if (block.dataset.exerciseId == exId) {
                             block.classList.add('completed');
                             block.classList.remove('locked');
                             block.classList.add('unlocked');
-                            
-                            // Re-observe to possibly trigger the next exercise
                             observer.unobserve(block);
                             observer.observe(block);
                         }
                     });
                     
                     setTimeout(() => {
-                        // Force re-check of visibility
                         const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
                         if (visible && visible.classList.contains('completed')) {
-                            // The current block is completed, hide the floating actions
                             floatingActions.classList.remove('visible');
                         }
                         if (window.MathJax) MathJax.typesetPromise();
@@ -460,7 +422,6 @@ function clean_content($raw) {
             });
         });
 
-        // 6. Handle paper promise
         paperForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdPaperInput.value);
