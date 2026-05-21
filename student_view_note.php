@@ -325,8 +325,6 @@ $intro_content = $sections[0];
                 <?php echo $intro_content; ?>
             </div>
         </div>
-        <?php
-        
                 <?php
         // ===== RENDER EXERCISE SECTIONS WITH LOCKING =====
         $passed_first_incomplete = false;
@@ -410,6 +408,8 @@ $intro_content = $sections[0];
 </div>
 
 <?php include_once 'includes/footer.php'; ?>
+<?php include_once 'includes/toc_navigator.php'; ?>
+
 <script>
 <script>
 const currentNoteId = <?php echo $note_id; ?>;
