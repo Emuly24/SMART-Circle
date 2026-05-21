@@ -440,6 +440,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Sort blocks by exercise number
     exerciseBlocks.sort((a, b) => a.number - b.number);
+        // --- SCROLL EVENT TO SHOW MODAL ---
+    function checkActiveExercise() {
+        let targetExercise = null;
+        for (let ex of exerciseBlocks) {
+            if (!ex.completed && !ex.locked) {
+                const rect = ex.block.getBoundingClientRect();
+                // Check if the exercise is at least 20% visible
+                const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+                const height = rect.height;
+                if (visibleHeight / height > 0.2) {
+                    targetExercise = ex;
+                    break;
+                }
+            }
+        }
 
     // --- INTERSECTION OBSERVER ---
     // This activates the modal when an unlocked exercise comes into view.
