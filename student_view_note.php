@@ -86,19 +86,18 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
     WHERE s.note_id = $note_id
     ORDER BY s.sort_order");
 
-// ===== FIXED: Only remove literal \r\n – NEVER use stripslashes() =====
+// Helper function to clean literal \r\n without stripping HTML
 function clean_content($raw) {
-    $cleaned = str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
-    return $cleaned;
+    return str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
 }
 
-// Collect all sections first
+// Collect all sections
 $sectionData = array();
 while($sec = $sections->fetch_assoc()) {
     $sectionData[] = $sec;
 }
 
-// ===== NEW LOGIC: Find the FIRST incomplete exercise =====
+// Find the first incomplete exercise to use as a lock boundary
 $firstIncompleteExerciseId = null;
 foreach ($sectionData as $sec) {
     if ($sec['section_type'] == 'exercise' && $sec['exercise_id']) {
@@ -111,8 +110,8 @@ foreach ($sectionData as $sec) {
     }
 }
 
-// ===== RENDER SECTIONS =====
-$lockEverythingAfter = false; // This becomes true AFTER we render the first incomplete exercise
+// Locking flag
+$lockEverythingAfter = false;
 $exerciseCount = 0;
 ?>
 <!DOCTYPE html>
@@ -145,16 +144,15 @@ $exerciseCount = 0;
         border: 1px solid var(--border);
     }
     
-    /* ===== LOCKING OVERLAY - ENLARGED & SHARP ===== */
     .section-block.locked {
-        opacity: 0.5;
+        opacity: 0.4;
         pointer-events: none;
         user-select: none;
         filter: blur(2px);
         position: relative;
     }
     .section-block.locked::before {
-        /* UPDATED: Makes the message sharp and above the blur */
+        /* FIXED: makes the message sharp and prominent */
         filter: none !important;
         content: "🔒 This section is locked. Complete the previous exercise.";
         display: block;
@@ -272,6 +270,10 @@ $exerciseCount = 0;
     </div>
     <div class="student-note-container" id="main-container">
         <?php 
+        // Reset counters for clean rendering
+        $exerciseCount = 0;
+        $lockEverythingAfter = false;
+        
         foreach ($sectionData as $sec) {
             $isExercise = ($sec['section_type'] == 'exercise');
             $isLocked = false;
@@ -282,7 +284,7 @@ $exerciseCount = 0;
             $isFirstIncompleteExercise = ($isExercise && $sec['exercise_id'] == $firstIncompleteExerciseId);
             
             // Lock logic:
-            // 1. If $lockEverythingAfter is true, everything is locked.
+            // 1. If $lockEverythingAfter is true, lock this section.
             // 2. The first incomplete exercise is NEVER locked.
             // 3. After rendering the first incomplete exercise, $lockEverythingAfter becomes true.
             
@@ -293,6 +295,7 @@ $exerciseCount = 0;
                 $isLocked = true;
             }
             
+            // Track exercise status
             if ($isExercise && $sec['exercise_id']) {
                 $exerciseCount++;
                 $exerciseNumber = $exerciseCount;
@@ -300,7 +303,14 @@ $exerciseCount = 0;
                 $isCompleted = ($status == 'marked' || $status == 'paper_pending');
             }
             
+            // Clean and display content
             $cleanContent = clean_content($sec['content']);
+            
+            // Ensure content is not empty
+            if (empty($cleanContent)) {
+                // Fallback to original note content if section is empty
+                $cleanContent = "<p><em>Content is being processed...</em></p>";
+            }
             ?>
             <div class="section-block <?php echo $isLocked ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
                  data-section-type="<?php echo $sec['section_type']; ?>"
