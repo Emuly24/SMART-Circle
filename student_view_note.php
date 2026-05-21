@@ -82,40 +82,31 @@ if (isset($_GET['msg']) && $_GET['msg'] == 'paper_promised') $msg = "Thank you. 
 $full_content = $note['content'];
 
 // ===== PARSE EXERCISES FROM THE CONTENT =====
-// Find all Exercise headings (h3 or h4 with "Exercise X" in them)
 preg_match_all('/<h[34][^>]*>.*?Exercise\s+(\d+).*?<\/h[34]>/i', $full_content, $matches, PREG_OFFSET_CAPTURE);
 $exercise_positions = $matches[0];
 $exercise_numbers = $matches[1];
 
-// Create an array of exercise data
-$exercises = [];
-foreach ($exercise_positions as $index => $heading) {
-    $pos = $heading[1];
-    $number = (int)$exercise_numbers[$index][0];
-    $exercises[$number] = [
-        'position' => $pos,
-        'number' => $number
-    ];
-}
-
-// ===== TRACK COMPLETION STATUS =====
+// ===== GET EXERCISE STATUS FROM DATABASE =====
 $exercise_attempts = [];
-$attempt_result = $conn->query("SELECT exercise_id, status FROM exercise_attempts WHERE user_id = $uid AND exercise_id IN (SELECT id FROM note_exercises WHERE note_id = $note_id)");
-while ($row = $attempt_result->fetch_assoc()) {
-    $exercise_attempts[$row['exercise_id']] = $row['status'];
-}
-
-// Determine the first incomplete exercise
-$first_incomplete_exercise_id = null;
-// Since we don't have exercise_ids mapped easily here, we need to work with the parsed exercise numbers
-// We'll create a mapping from note_exercises table
-$ex_map = [];
+$ex_ids = [];
 $ex_result = $conn->query("SELECT id, sort_order FROM note_exercises WHERE note_id = $note_id ORDER BY sort_order");
+$exercise_list = [];
 while ($row = $ex_result->fetch_assoc()) {
-    $ex_map[$row['sort_order']] = $row['id'];
+    $exercise_list[$row['sort_order']] = $row['id'];
+    $ex_ids[] = $row['id'];
 }
 
-foreach ($ex_map as $sort_order => $ex_id) {
+if (!empty($ex_ids)) {
+    $ids_str = implode(',', $ex_ids);
+    $attempt_result = $conn->query("SELECT exercise_id, status FROM exercise_attempts WHERE user_id = $uid AND exercise_id IN ($ids_str)");
+    while ($row = $attempt_result->fetch_assoc()) {
+        $exercise_attempts[$row['exercise_id']] = $row['status'];
+    }
+}
+
+// ===== FIND THE FIRST INCOMPLETE EXERCISE =====
+$first_incomplete_exercise_id = null;
+foreach ($exercise_list as $sort_order => $ex_id) {
     $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
     if ($status != 'marked' && $status != 'paper_pending') {
         $first_incomplete_exercise_id = $ex_id;
@@ -124,13 +115,9 @@ foreach ($ex_map as $sort_order => $ex_id) {
 }
 
 // ===== RENDER THE CONTENT WITH LOCKING =====
-// We will split the content at each exercise heading
 $sections = preg_split('/<h[34][^>]*>.*?Exercise\s+(\d+).*?<\/h[34]>/i', $full_content);
-$section_index = 0;
-$current_exercise_number = 0;
-$is_locked = false;
-
-// Special CSS for headings
+$intro_content = $sections[0];
+$passed_first_incomplete = false;
 ?>
 <!DOCTYPE html>
 <html><head><title><?=htmlspecialchars($note['title'])?></title>
@@ -199,7 +186,7 @@ $is_locked = false;
     }
     
     .section-block.locked .section-content {
-        filter: blur(2px);
+        filter: blur(4px);
         pointer-events: none;
         user-select: none;
     }
@@ -322,8 +309,7 @@ $is_locked = false;
     </div>
     <div class="student-note-container" id="main-container">
         <?php
-        // SECTION 1: Introduction (Before the first exercise)
-        $intro_content = $sections[0];
+        // Introduction (unlocked)
         ?>
         <div class="section-block unlocked">
             <div class="section-content">
@@ -332,42 +318,37 @@ $is_locked = false;
         </div>
         <?php
         
-        // SECTION 2+: Exercises and content between them
-        $passed_first_incomplete_exercise = false;
-        $passed_first_incomplete = false;
-        
+        // Render each exercise block
         for ($i = 1; $i < count($sections); $i++) {
-            $exercise_number = $exercise_numbers[$i-1][0] ?? $i;
+            $exercise_number = isset($exercise_numbers[$i-1][0]) ? (int)$exercise_numbers[$i-1][0] : $i;
             $content_part = $sections[$i];
+            $heading_text = isset($exercise_positions[$i-1][0]) ? $exercise_positions[$i-1][0] : '';
             
-            // Get the exercise heading text
-            $heading_text = $exercise_positions[$i-1][0];
-            
-            // Determine if this exercise is completed or locked
-            $exercise_id = $ex_map[$exercise_number] ?? null;
-            $status = $exercise_attempts[$exercise_id] ?? 'not_attempted';
+            // Get the exercise ID from the list
+            $ex_id = $exercise_list[$exercise_number] ?? null;
+            $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
             $is_completed = ($status == 'marked' || $status == 'paper_pending');
             
             // LOCKING LOGIC:
+            // - All exercises before the first incomplete are unlocked.
             // - The first incomplete exercise is unlocked.
-            // - Everything after it is locked.
-            if ($exercise_id && $exercise_id == $first_incomplete_exercise_id) {
+            // - Everything after the first incomplete is locked.
+            $is_locked = false;
+            if ($ex_id && $ex_id == $first_incomplete_exercise_id) {
                 $is_locked = false;
-                $passed_first_incomplete_exercise = true;
-            } elseif ($passed_first_incomplete_exercise || ($first_incomplete_exercise_id === null && $i > 1)) {
+                $passed_first_incomplete = true;
+            } elseif ($passed_first_incomplete) {
                 $is_locked = true;
-            } else {
-                $is_locked = false;
-            }
-            
-            // If there is no first incomplete exercise found (all are completed), lock everything after the first exercise
-            if ($first_incomplete_exercise_id === null && $i > 1) {
+            } elseif ($first_incomplete_exercise_id === null && $i > 1) {
+                // If all exercises are completed, lock everything after the first exercise
                 $is_locked = true;
             }
             
+            // Special case: If this is the first exercise (number 1) and it's the first incomplete, keep it unlocked
+            // Everything before the first incomplete is unlocked by default
             ?>
             <div class="section-block <?php echo $is_locked ? 'locked' : 'unlocked'; ?> <?php echo $is_completed ? 'completed' : ''; ?>"
-                 data-exercise-id="<?php echo $exercise_id ?? ''; ?>"
+                 data-exercise-id="<?php echo $ex_id ?? ''; ?>"
                  data-exercise-number="<?php echo $exercise_number; ?>">
                 
                 <div class="lock-notification">
@@ -379,9 +360,9 @@ $is_locked = false;
                     <?php echo $content_part; ?>
                 </div>
                 
-                <?php if (!$is_locked && !$is_completed): ?>
+                <?php if (!$is_locked && !$is_completed && $ex_id): ?>
                     <div class="exercise-form-wrapper" style="display:none;">
-                        <input type="hidden" name="exercise_id" value="<?php echo $exercise_id ?? ''; ?>">
+                        <input type="hidden" name="exercise_id" value="<?php echo $ex_id; ?>">
                     </div>
                 <?php endif; ?>
             </div>
