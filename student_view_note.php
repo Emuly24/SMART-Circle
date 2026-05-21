@@ -415,16 +415,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const paperForm = document.getElementById('paperForm');
     const floatingFeedback = document.getElementById('floatingFeedback');
 
-    // Track the currently active exercise
-    let activeExercise = null;
-
     // Find all exercise blocks
     const exerciseBlocks = [];
     const blocks = document.querySelectorAll('.section-block');
     blocks.forEach(block => {
         const exerciseId = block.dataset.exerciseId;
         const exerciseNumber = block.dataset.exerciseNumber;
-        
         if (exerciseId) {
             const isCompleted = block.classList.contains('completed');
             const isLocked = block.classList.contains('locked');
@@ -437,29 +433,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-
-    // Sort blocks by exercise number
     exerciseBlocks.sort((a, b) => a.number - b.number);
-        // --- SCROLL EVENT TO SHOW MODAL ---
-    function checkActiveExercise() {
-        let targetExercise = null;
-        for (let ex of exerciseBlocks) {
-            if (!ex.completed && !ex.locked) {
-                const rect = ex.block.getBoundingClientRect();
-                // Check if the exercise is at least 20% visible
-                const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
-                const height = rect.height;
-                if (visibleHeight / height > 0.2) {
-                    targetExercise = ex;
-                    break;
-                }
-            }
-        }
 
-    // --- INTERSECTION OBSERVER ---
-    // This activates the modal when an unlocked exercise comes into view.
-    // It does NOT hide the modal when the exercise leaves the viewport.
+    // --- FIXED OBSERVER: Handles both SHOW and HIDE ---
     const observer = new IntersectionObserver((entries) => {
+        let targetExercise = null;
+        
         entries.forEach(entry => {
             const block = entry.target;
             const exerciseId = block.dataset.exerciseId;
@@ -470,54 +449,33 @@ document.addEventListener('DOMContentLoaded', function() {
             const isCompleted = block.classList.contains('completed');
             const isLocked = block.classList.contains('locked');
             
-            // Only activate when an uncompleted, unlocked exercise enters view
+            // If an unlocked, uncompleted exercise enters view, target it
             if (!isCompleted && !isLocked && entry.isIntersecting) {
-                // Set this as the active exercise
-                activeExercise = {
+                targetExercise = {
                     id: parseInt(exerciseId),
-                    number: parseInt(exerciseNumber)
+                    number: parseInt(exerciseNumber),
+                    block: block
                 };
-                
-                floatingActions.classList.add('visible');
-                activeExerciseIdInput.value = activeExercise.id;
-                activeExerciseIdPaperInput.value = activeExercise.id;
-                exerciseIndicator.textContent = `📝 Exercise ${activeExercise.number}`;
-                floatingFeedback.innerHTML = '';
             }
         });
-    }, { threshold: 0.2, rootMargin: '0px 1px -50px 0px' }); // Lower threshold and add margin for better trigger
+
+        if (targetExercise) {
+            // Show modal for the exercise in view
+            floatingActions.classList.add('visible');
+            activeExerciseIdInput.value = targetExercise.id;
+            activeExerciseIdPaperInput.value = targetExercise.id;
+            exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
+            floatingFeedback.innerHTML = '';
+        } else {
+            // Hide modal when no unlocked exercise is in view
+            floatingActions.classList.remove('visible');
+        }
+    }, { threshold: 0.3 }); // Removed the broken rootMargin
 
     // Observe all exercise blocks
     exerciseBlocks.forEach(ex => {
         observer.observe(ex.block);
     });
-
-    // --- CHECK INITIAL VISIBILITY ---
-    // Check if the first unlocked exercise is already in view on page load
-    setTimeout(() => {
-        let firstUnlockedBlock = null;
-        for (let ex of exerciseBlocks) {
-            if (!ex.completed && !ex.locked) {
-                firstUnlockedBlock = ex;
-                break;
-            }
-        }
-        if (firstUnlockedBlock) {
-            const rect = firstUnlockedBlock.block.getBoundingClientRect();
-            // Check if the block is at least partially in view
-            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                activeExercise = {
-                    id: firstUnlockedBlock.id,
-                    number: firstUnlockedBlock.number
-                };
-                floatingActions.classList.add('visible');
-                activeExerciseIdInput.value = activeExercise.id;
-                activeExerciseIdPaperInput.value = activeExercise.id;
-                exerciseIndicator.textContent = `📝 Exercise ${activeExercise.number}`;
-                floatingFeedback.innerHTML = '';
-            }
-        }
-    }, 500); // Delay to ensure DOM is fully rendered
 
     // --- DIGITAL SUBMIT ---
     digitalForm.addEventListener('submit', function(e) {
@@ -546,7 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 floatingFeedback.innerHTML = '✅ Submitted!';
                 floatingFeedback.style.color = '#22c55e';
                 
-                // Mark exercise as completed
                 blocks.forEach(block => {
                     if (block.dataset.exerciseId == exId) {
                         block.classList.add('completed');
@@ -557,11 +514,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                // Hide modal after delay
                 setTimeout(() => {
                     floatingActions.classList.remove('visible');
                     if (window.MathJax) MathJax.typesetPromise();
-                }, 2000);
+                }, 1500);
             } else {
                 floatingFeedback.innerHTML = '❌ Submission failed. Please try again.';
                 floatingFeedback.style.color = '#ef4444';
@@ -606,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     floatingActions.classList.remove('visible');
                     if (window.MathJax) MathJax.typesetPromise();
-                }, 2000);
+                }, 1500);
             } else {
                 floatingFeedback.innerHTML = '❌ Promise failed. Please try again.';
                 floatingFeedback.style.color = '#ef4444';
