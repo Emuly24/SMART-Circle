@@ -9,7 +9,32 @@ $note_id = (int)$_GET['id'];
 $note = $conn->query("SELECT * FROM notes WHERE id=$note_id")->fetch_assoc();
 if (!$note) die("Note not found");
 
-// --------------------- EXERCISE HANDLING (SAME AS BEFORE) ---------------------
+if (!is_content_unlocked('note', $note_id, $uid)) {
+    ?>
+    <!DOCTYPE html>
+    <html><head><title>Content Locked</title><link rel="stylesheet" href="style.css"></head>
+    <body>
+    <?php include_once 'includes/header.php'; ?>
+    <div class="container">
+        <div class="card error">
+            <h2>🔒 Content Locked</h2>
+            <p>This note is not yet available for your group. Please wait until the admin unlocks it.</p>
+            <div class="card-buttons">
+                <a href="library.php" class="btn-back">← Back to Library</a>
+            </div>
+        </div>
+    </div>
+    <?php include_once 'includes/testimonial_prompt.php'; ?>
+    </body></html>
+    <?php
+    exit;
+}
+
+if (function_exists('log_activity')) {
+    log_activity($uid, "view_note", "Note ID: $note_id");
+}
+
+// --------------------- STUDENT EXERCISE HANDLING ---------------------
 $error = $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_digital'])) {
     $ex_id = (int)$_POST['exercise_id'];
@@ -53,8 +78,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_paper'])) {
 $msg = '';
 if (isset($_GET['msg']) && $_GET['msg'] == 'paper_promised') $msg = "Thank you. Your promise to submit on paper has been recorded.";
 
-// ===== DEBUG: Force display of raw note content =====
-// We will bypass the section logic entirely to see the full note
+// ===== GET THE NOTE CONTENT =====
+$full_content = $note['content'];
+
+// ===== PARSE EXERCISES FROM THE CONTENT =====
+// Find all Exercise headings (h3 or h4 with "Exercise X" in them)
+preg_match_all('/<h[34][^>]*>.*?Exercise\s+(\d+).*?<\/h[34]>/i', $full_content, $matches, PREG_OFFSET_CAPTURE);
+$exercise_positions = $matches[0];
+$exercise_numbers = $matches[1];
+
+// Create an array of exercise data
+$exercises = [];
+foreach ($exercise_positions as $index => $heading) {
+    $pos = $heading[1];
+    $number = (int)$exercise_numbers[$index][0];
+    $exercises[$number] = [
+        'position' => $pos,
+        'number' => $number
+    ];
+}
+
+// ===== TRACK COMPLETION STATUS =====
+$exercise_attempts = [];
+$attempt_result = $conn->query("SELECT exercise_id, status FROM exercise_attempts WHERE user_id = $uid AND exercise_id IN (SELECT id FROM note_exercises WHERE note_id = $note_id)");
+while ($row = $attempt_result->fetch_assoc()) {
+    $exercise_attempts[$row['exercise_id']] = $row['status'];
+}
+
+// Determine the first incomplete exercise
+$first_incomplete_exercise_id = null;
+// Since we don't have exercise_ids mapped easily here, we need to work with the parsed exercise numbers
+// We'll create a mapping from note_exercises table
+$ex_map = [];
+$ex_result = $conn->query("SELECT id, sort_order FROM note_exercises WHERE note_id = $note_id ORDER BY sort_order");
+while ($row = $ex_result->fetch_assoc()) {
+    $ex_map[$row['sort_order']] = $row['id'];
+}
+
+foreach ($ex_map as $sort_order => $ex_id) {
+    $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
+    if ($status != 'marked' && $status != 'paper_pending') {
+        $first_incomplete_exercise_id = $ex_id;
+        break;
+    }
+}
+
+// ===== RENDER THE CONTENT WITH LOCKING =====
+// We will split the content at each exercise heading
+$sections = preg_split('/<h[34][^>]*>.*?Exercise\s+(\d+).*?<\/h[34]>/i', $full_content);
+$section_index = 0;
+$current_exercise_number = 0;
+$is_locked = false;
+
+// Special CSS for headings
 ?>
 <!DOCTYPE html>
 <html><head><title><?=htmlspecialchars($note['title'])?></title>
@@ -76,6 +152,165 @@ if (isset($_GET['msg']) && $_GET['msg'] == 'paper_promised') $msg = "Thank you. 
         font-size: 1.1rem;
         text-align: inherit;
     }
+    
+    /* ----- NOTE HEADINGS ----- */
+    .student-note-container h1 {
+        font-size: 2.2rem;
+        color: var(--text-color);
+        margin: 2rem 0 1rem;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 0.5rem;
+    }
+    .student-note-container h2 {
+        font-size: 1.8rem;
+        color: var(--text-color);
+        margin: 1.8rem 0 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+    }
+    .student-note-container h3 {
+        font-size: 1.5rem;
+        color: var(--text-color);
+        margin: 1.5rem 0 0.8rem;
+        font-weight: 600;
+    }
+    .student-note-container h4 {
+        font-size: 1.2rem;
+        color: var(--text-color);
+        margin: 1.2rem 0 0.6rem;
+        font-weight: 600;
+    }
+    
+    /* ----- SECTION BLOCKS WITH LOCKING ----- */
+    .section-block {
+        position: relative;
+        margin: 2rem 0;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        transition: all 0.5s ease;
+        border: 1px solid var(--border);
+    }
+    
+    .section-block.locked {
+        opacity: 0.5;
+        pointer-events: none;
+        user-select: none;
+        position: relative;
+    }
+    
+    .section-block.locked .section-content {
+        filter: blur(2px);
+        pointer-events: none;
+        user-select: none;
+    }
+    
+    .section-block.locked .lock-notification {
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.98);
+        padding: 2.5rem 3rem;
+        border-radius: 1.5rem;
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #e74c3c;
+        border: 3px solid #e74c3c;
+        z-index: 9999;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 650px;
+        text-align: center;
+        line-height: 1.6;
+        pointer-events: auto;
+        filter: none !important;
+    }
+    
+    .section-block.unlocked {
+        opacity: 1;
+        pointer-events: auto;
+        user-select: auto;
+    }
+    .section-block.unlocked .lock-notification {
+        display: none;
+    }
+    .section-block.completed {
+        border-left: 5px solid var(--success);
+        background: #f0fdf4;
+    }
+    
+    /* ----- FLOATING BUTTONS ----- */
+    .floating-actions {
+        display: none;
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.8rem;
+        min-width: 220px;
+        transition: all 0.3s ease;
+        border: 2px solid var(--accent);
+    }
+    .floating-actions.visible {
+        display: flex;
+    }
+    .floating-actions .btn {
+        width: 100%;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    .floating-actions .btn-paper {
+        background: #f39c12;
+        color: white;
+    }
+    .floating-actions .btn-paper:hover {
+        background: #e67e22;
+    }
+    .floating-actions .btn-submit {
+        background: var(--success);
+        color: white;
+    }
+    .floating-actions .btn-submit:hover {
+        background: #1b8a3a;
+    }
+    .floating-actions .text-input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+    }
+    .floating-actions .file-input {
+        font-size: 0.8rem;
+    }
+    .floating-actions .feedback {
+        font-size: 0.9rem;
+        text-align: center;
+    }
+    .exercise-indicator {
+        font-weight: bold;
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+    }
+    @media (max-width: 600px) {
+        .floating-actions {
+            right: 1rem;
+            bottom: 1rem;
+            min-width: 160px;
+            padding: 0.8rem;
+        }
+        .section-block.locked .lock-notification {
+            padding: 1.5rem;
+            font-size: 1.1rem;
+            max-width: 90%;
+        }
+    }
 </style>
 </head>
 <body>
@@ -87,10 +322,261 @@ if (isset($_GET['msg']) && $_GET['msg'] == 'paper_promised') $msg = "Thank you. 
     </div>
     <div class="student-note-container" id="main-container">
         <?php
-        echo "<!-- DEBUG: RAW NOTE CONTENT FROM DATABASE -->\n";
-        echo $note['content'];
+        // SECTION 1: Introduction (Before the first exercise)
+        $intro_content = $sections[0];
+        ?>
+        <div class="section-block unlocked">
+            <div class="section-content">
+                <?php echo $intro_content; ?>
+            </div>
+        </div>
+        <?php
+        
+        // SECTION 2+: Exercises and content between them
+        $passed_first_incomplete_exercise = false;
+        $passed_first_incomplete = false;
+        
+        for ($i = 1; $i < count($sections); $i++) {
+            $exercise_number = $exercise_numbers[$i-1][0] ?? $i;
+            $content_part = $sections[$i];
+            
+            // Get the exercise heading text
+            $heading_text = $exercise_positions[$i-1][0];
+            
+            // Determine if this exercise is completed or locked
+            $exercise_id = $ex_map[$exercise_number] ?? null;
+            $status = $exercise_attempts[$exercise_id] ?? 'not_attempted';
+            $is_completed = ($status == 'marked' || $status == 'paper_pending');
+            
+            // LOCKING LOGIC:
+            // - The first incomplete exercise is unlocked.
+            // - Everything after it is locked.
+            if ($exercise_id && $exercise_id == $first_incomplete_exercise_id) {
+                $is_locked = false;
+                $passed_first_incomplete_exercise = true;
+            } elseif ($passed_first_incomplete_exercise || ($first_incomplete_exercise_id === null && $i > 1)) {
+                $is_locked = true;
+            } else {
+                $is_locked = false;
+            }
+            
+            // If there is no first incomplete exercise found (all are completed), lock everything after the first exercise
+            if ($first_incomplete_exercise_id === null && $i > 1) {
+                $is_locked = true;
+            }
+            
+            ?>
+            <div class="section-block <?php echo $is_locked ? 'locked' : 'unlocked'; ?> <?php echo $is_completed ? 'completed' : ''; ?>"
+                 data-exercise-id="<?php echo $exercise_id ?? ''; ?>"
+                 data-exercise-number="<?php echo $exercise_number; ?>">
+                
+                <div class="lock-notification">
+                    🔒 This section is locked.<br>Complete the previous exercise.
+                </div>
+                
+                <div class="section-content">
+                    <?php echo $heading_text; ?>
+                    <?php echo $content_part; ?>
+                </div>
+                
+                <?php if (!$is_locked && !$is_completed): ?>
+                    <div class="exercise-form-wrapper" style="display:none;">
+                        <input type="hidden" name="exercise_id" value="<?php echo $exercise_id ?? ''; ?>">
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php
+        }
         ?>
     </div>
 </div>
+
+<!-- FLOATING ACTION BUTTONS -->
+<div id="floatingActions" class="floating-actions">
+    <div class="exercise-indicator" id="exerciseIndicator">📝 Exercise</div>
+    <form id="digitalForm" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <input type="hidden" name="exercise_id" id="activeExerciseId" value="">
+        <textarea name="answer_text" class="text-input" rows="2" placeholder="Type your answer here..."></textarea>
+        <input type="file" name="answer_file" class="file-input" accept=".jpg,.png,.pdf,.txt">
+        <button type="submit" name="submit_digital" class="btn btn-submit">💻 Submit Digital</button>
+    </form>
+    <form id="paperForm" method="post" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <input type="hidden" name="exercise_id" id="activeExerciseIdPaper" value="">
+        <button type="submit" name="submit_paper" class="btn btn-paper">📄 I will submit on paper</button>
+    </form>
+    <div id="floatingFeedback" class="feedback"></div>
+</div>
+
 <?php include_once 'includes/footer.php'; ?>
+<script>
+    const currentNoteId = <?php echo $note_id; ?>;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const floatingActions = document.getElementById('floatingActions');
+        const exerciseIndicator = document.getElementById('exerciseIndicator');
+        const activeExerciseIdInput = document.getElementById('activeExerciseId');
+        const activeExerciseIdPaperInput = document.getElementById('activeExerciseIdPaper');
+        const digitalForm = document.getElementById('digitalForm');
+        const paperForm = document.getElementById('paperForm');
+        const floatingFeedback = document.getElementById('floatingFeedback');
+
+        const exerciseBlocks = [];
+        const blocks = document.querySelectorAll('.section-block');
+        blocks.forEach(block => {
+            const exerciseId = block.dataset.exerciseId;
+            const exerciseNumber = block.dataset.exerciseNumber;
+            
+            if (exerciseId) {
+                const isCompleted = block.classList.contains('completed');
+                exerciseBlocks.push({
+                    id: parseInt(exerciseId),
+                    number: parseInt(exerciseNumber),
+                    block: block,
+                    completed: isCompleted
+                });
+            }
+        });
+
+        exerciseBlocks.sort((a, b) => a.number - b.number);
+
+        const observer = new IntersectionObserver((entries) => {
+            let targetExercise = null;
+            
+            entries.forEach(entry => {
+                const block = entry.target;
+                const exerciseId = block.dataset.exerciseId;
+                const exerciseNumber = block.dataset.exerciseNumber;
+                
+                if (!exerciseId || !exerciseNumber) return;
+                
+                const isCompleted = block.classList.contains('completed');
+                const isLocked = block.classList.contains('locked');
+                
+                if (!isCompleted && !isLocked && entry.isIntersecting) {
+                    targetExercise = {
+                        id: parseInt(exerciseId),
+                        number: parseInt(exerciseNumber),
+                        block: block
+                    };
+                }
+            });
+
+            if (targetExercise) {
+                floatingActions.classList.add('visible');
+                activeExerciseIdInput.value = targetExercise.id;
+                activeExerciseIdPaperInput.value = targetExercise.id;
+                exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
+                floatingFeedback.innerHTML = '';
+            } else {
+                floatingActions.classList.remove('visible');
+            }
+        }, { threshold: 0.3 });
+
+        exerciseBlocks.forEach(ex => {
+            observer.observe(ex.block);
+        });
+
+        digitalForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const exId = parseInt(activeExerciseIdInput.value);
+            const formData = new FormData(this);
+            const text = formData.get('answer_text')?.trim() || '';
+            const file = formData.get('answer_file');
+
+            if (!text && (!file || file.size === 0)) {
+                floatingFeedback.innerHTML = '❌ Please provide an answer (text or file).';
+                floatingFeedback.style.color = '#ef4444';
+                return;
+            }
+
+            floatingFeedback.innerHTML = '⏳ Submitting...';
+            floatingFeedback.style.color = '#f59e0b';
+
+            fetch('student_view_note.php?id=' + currentNoteId, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data.includes('Digital answer submitted!') || data.includes('success')) {
+                    floatingFeedback.innerHTML = '✅ Submitted!';
+                    floatingFeedback.style.color = '#22c55e';
+                    
+                    blocks.forEach(block => {
+                        if (block.dataset.exerciseId == exId) {
+                            block.classList.add('completed');
+                            block.classList.remove('locked');
+                            block.classList.add('unlocked');
+                            observer.unobserve(block);
+                            observer.observe(block);
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
+                        if (visible && visible.classList.contains('completed')) {
+                            floatingActions.classList.remove('visible');
+                        }
+                        if (window.MathJax) MathJax.typesetPromise();
+                    }, 1500);
+                } else {
+                    floatingFeedback.innerHTML = '❌ Submission failed. Please try again.';
+                    floatingFeedback.style.color = '#ef4444';
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                floatingFeedback.innerHTML = '❌ Network error.';
+                floatingFeedback.style.color = '#ef4444';
+            });
+        });
+
+        paperForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const exId = parseInt(activeExerciseIdPaperInput.value);
+            const formData = new FormData(this);
+
+            floatingFeedback.innerHTML = '⏳ Recording promise...';
+            floatingFeedback.style.color = '#f59e0b';
+
+            fetch('student_view_note.php?id=' + currentNoteId, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data.includes('promised to submit') || data.includes('success')) {
+                    floatingFeedback.innerHTML = '✅ Promise recorded!';
+                    floatingFeedback.style.color = '#22c55e';
+                    
+                    blocks.forEach(block => {
+                        if (block.dataset.exerciseId == exId) {
+                            block.classList.add('completed');
+                            block.classList.remove('locked');
+                            block.classList.add('unlocked');
+                            observer.unobserve(block);
+                            observer.observe(block);
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
+                        if (visible && visible.classList.contains('completed')) {
+                            floatingActions.classList.remove('visible');
+                        }
+                        if (window.MathJax) MathJax.typesetPromise();
+                    }, 1500);
+                } else {
+                    floatingFeedback.innerHTML = '❌ Promise failed. Please try again.';
+                    floatingFeedback.style.color = '#ef4444';
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                floatingFeedback.innerHTML = '❌ Network error.';
+                floatingFeedback.style.color = '#ef4444';
+            });
+        });
+    });
+</script>
 </body></html>
