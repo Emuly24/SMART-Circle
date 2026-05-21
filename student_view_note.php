@@ -86,19 +86,17 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
     WHERE s.note_id = $note_id
     ORDER BY s.sort_order");
 
-// Helper: Clean literal \r\n – NO stripslashes() – it kills LaTeX
+// Helper: Clean literal \r\n – NO stripslashes()
 function clean_content($raw) {
     return str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
 }
 
-// Helper: Fix common LaTeX rendering issues on the fly (without touching DB)
+// Helper: Fix common LaTeX rendering issues on the fly
 function fix_latex_rendering($content) {
     // 1. Replace raw (aeqO) with proper LaTeX
     $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content);
-    // 2. Remove newlines inside \left( ... \right) pairs (MathJax hates them)
+    // 2. Remove newlines inside \left( ... \right) pairs
     $content = preg_replace('/\\\\left\\s*\\(([^\\"]*?)\\s*\\\\)\\s*\\)/', '\\left($1\\right)', $content);
-    // 3. Ensure \left( has a matching \right)
-    $content = preg_replace('/\\\\left\\(([^\\\\]*?)(?=[^\\\\]*?\\\\left\\(|$)/', '\\left($1\\right)', $content);
     return $content;
 }
 
@@ -108,10 +106,36 @@ while($sec = $sections->fetch_assoc()) {
     $sectionData[] = $sec;
 }
 
-// If note_sections is empty, fallback to the notes table
+// FALLBACK: If note_sections is empty or has empty content, use the raw note content
+$useRawContent = false;
 if (empty($sectionData)) {
-    $rawContent = $note['content'];
-    $sectionData[] = ['id' => 0, 'note_id' => $note_id, 'sort_order' => 1, 'section_type' => 'introduction', 'content' => $rawContent, 'exercise_id' => null, 'attempt_status' => null, 'answer_text' => null];
+    $useRawContent = true;
+} else {
+    $hasRealContent = false;
+    foreach ($sectionData as $sec) {
+        if (!empty(trim($sec['content']))) {
+            $hasRealContent = true;
+            break;
+        }
+    }
+    if (!$hasRealContent) {
+        $useRawContent = true;
+    }
+}
+
+// If no valid sections, fallback to raw note
+if ($useRawContent) {
+    $sectionData = [];
+    $sectionData[] = [
+        'id' => 0,
+        'note_id' => $note_id,
+        'sort_order' => 1,
+        'section_type' => 'introduction',
+        'content' => $note['content'],
+        'exercise_id' => null,
+        'attempt_status' => null,
+        'answer_text' => null
+    ];
 }
 
 // ----- LOGIC: Lock everything AFTER the first incomplete exercise -----
@@ -127,7 +151,7 @@ foreach ($sectionData as $sec) {
     }
 }
 
-$isLocked = false; // True when we have passed the first incomplete exercise
+$isLocked = false;
 $exerciseCount = 0;
 ?>
 <!DOCTYPE html>
@@ -158,7 +182,6 @@ $exerciseCount = 0;
         border-radius: 1rem;
         transition: all 0.5s ease;
         border: 1px solid var(--border);
-        /* No blur here – we blur a child div instead */
     }
     
     /* ----- LOCKED STATE ----- */
@@ -176,7 +199,6 @@ $exerciseCount = 0;
     }
     
     .section-block.locked .lock-notification {
-        /* The message is completely separate from the blur */
         display: block;
         position: absolute;
         top: 50%;
@@ -294,7 +316,7 @@ $exerciseCount = 0;
     </div>
     <div class="student-note-container" id="main-container">
         <?php 
-        $isLocked = false; // Initially unlocked
+        $isLocked = false;
         $exerciseCount = 0;
         
         foreach ($sectionData as $sec) {
@@ -307,16 +329,11 @@ $exerciseCount = 0;
             
             // LOCK LOGIC
             if ($isFirstIncompleteExercise) {
-                // The first incomplete exercise is UNLOCKED
                 $isLocked = false;
-                // After rendering this exercise, lock EVERYTHING after it
-            } elseif ($isLocked || $sec['section_type'] != 'exercise') {
-                // Wait, we need to set $isLocked to true AFTER the first incomplete exercise
-                // Let's use a simpler flag
-                if ($sec['section_type'] != 'exercise' && $firstIncompleteExerciseId !== null) {
-                    // If we have a first incomplete exercise, lock everything after it
-                    $isLocked = true;
-                }
+            } elseif ($isExercise && $sec['exercise_id'] != $firstIncompleteExerciseId) {
+                $isLocked = true;
+            } elseif (!$isExercise && $firstIncompleteExerciseId !== null) {
+                $isLocked = true;
             }
             
             // Track exercise status
@@ -326,7 +343,6 @@ $exerciseCount = 0;
                 $status = $sec['attempt_status'] ?? 'not_attempted';
                 $isCompleted = ($status == 'marked' || $status == 'paper_pending');
                 
-                // If this is the first incomplete exercise, it is unlocked
                 if ($sec['exercise_id'] == $firstIncompleteExerciseId) {
                     $isLocked = false;
                 }
@@ -335,22 +351,20 @@ $exerciseCount = 0;
             // Clean and fix LaTeX
             $cleanContent = fix_latex_rendering(clean_content($sec['content']));
             
-            // Fallback if content is empty
-            if (empty($cleanContent)) {
+            // If content is empty and we are in fallback mode, it should not be empty
+            if (empty(trim($cleanContent))) {
                 $cleanContent = "<p><em>Content is being processed...</em></p>";
             }
             ?>
-            <div class="section-block <?php echo ($isLocked && $sec['section_type'] != 'exercise') ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
+            <div class="section-block <?php echo $isLocked ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
                  data-section-type="<?php echo $sec['section_type']; ?>"
                  data-exercise-id="<?php echo $sec['exercise_id'] ?? ''; ?>"
                  data-exercise-number="<?php echo $exerciseNumber; ?>">
                 
-                <!-- LOCK NOTIFICATION (visible and sharp) -->
                 <div class="lock-notification">
                     🔒 This section is locked.<br>Complete the previous exercise.
                 </div>
                 
-                <!-- ACTUAL CONTENT (blurred when locked) -->
                 <div class="section-content">
                     <?php echo $cleanContent; ?>
                     <?php if ($isExercise && $sec['exercise_id']): ?>
