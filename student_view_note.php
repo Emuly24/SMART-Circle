@@ -117,7 +117,7 @@ if (!empty($ex_map)) {
 $first_incomplete_index = null;
 for ($i = 0; $i < count($exercise_order); $i++) {
     $ex_num = $exercise_order[$i];
-    $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : null;
+    $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : ($i * -1); // Use a temporary negative ID for exercises not in the database
     $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
     if ($status != 'marked' && $status != 'paper_pending') {
         $first_incomplete_index = $i;
@@ -337,7 +337,7 @@ $intro_content = $sections[0];
             
             // Get the exercise number and ID
             $ex_num = isset($exercise_order[$i-1]) ? $exercise_order[$i-1] : $i;
-            $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : null;
+            $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : ($i * -1);
             
             // ★★★ FIX: If $ex_id is null, generate a temporary one ★★★
             if ($ex_id === null) {
