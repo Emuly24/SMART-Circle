@@ -124,7 +124,7 @@ function clean_content($raw) {
         opacity: 0.4;
         pointer-events: none;
         user-select: none;
-        filter: blur(2px);
+        filter: blur(3px);
         position: relative;
     }
     .section-block.locked::before {
