@@ -86,11 +86,12 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
     WHERE s.note_id = $note_id
     ORDER BY s.sort_order");
 
-// Helper function to clean up literal \r\n and double escapes
+// Helper function to safely clean literal \r\n artifacts without breaking HTML
 function clean_content($raw) {
     $cleaned = str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
     $cleaned = stripslashes($cleaned);
-    return nl2br($cleaned);
+    // Do NOT use nl2br here - it destroys HTML layouts
+    return $cleaned;
 }
 ?>
 <!DOCTYPE html>
@@ -114,6 +115,7 @@ function clean_content($raw) {
         text-align: inherit;
     }
     
+    /* ===== LOCKING OVERLAY ===== */
     .section-block {
         position: relative;
         margin: 2rem 0;
@@ -163,6 +165,7 @@ function clean_content($raw) {
         background: #f0fdf4;
     }
     
+    /* ===== FLOATING BUTTONS ===== */
     .floating-actions {
         display: none;
         position: fixed;
@@ -249,7 +252,7 @@ function clean_content($raw) {
             }
         }
         
-        // Number exercises sequentially
+        // Number exercises sequentially (1, 2, 3, ...)
         $exerciseNumberMap = array();
         foreach ($exerciseList as $index => $exId) {
             $exerciseNumberMap[$exId] = $index + 1;
@@ -262,6 +265,7 @@ function clean_content($raw) {
             $isExercise = ($sec['section_type'] == 'exercise');
             $isLocked = false;
             $isCompleted = false;
+            $exerciseNumber = isset($exerciseNumberMap[$sec['exercise_id']]) ? $exerciseNumberMap[$sec['exercise_id']] : '';
             
             if ($isExercise && $sec['exercise_id']) {
                 $exId = $sec['exercise_id'];
@@ -282,8 +286,10 @@ function clean_content($raw) {
             ?>
             <div class="section-block <?php echo $isLocked ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
                  data-section-id="<?php echo $sec['id']; ?>"
+                 data-section-type="<?php echo $sec['section_type']; ?>"
                  data-exercise-id="<?php echo $sec['exercise_id'] ?? ''; ?>"
-                 data-exercise-number="<?php echo isset($exerciseNumberMap[$sec['exercise_id']]) ? $exerciseNumberMap[$sec['exercise_id']] : ''; ?>">
+                 data-exercise-number="<?php echo $exerciseNumber; ?>"
+                 data-is-first-exercise="<?php echo ($exerciseNumber == 1) ? 'true' : 'false'; ?>">
                 <?php echo $cleanContent; ?>
                 <?php if ($isExercise && $sec['exercise_id']): ?>
                     <div class="exercise-form-wrapper" style="display:none;">
@@ -326,59 +332,74 @@ function clean_content($raw) {
         const paperForm = document.getElementById('paperForm');
         const floatingFeedback = document.getElementById('floatingFeedback');
 
-        const exerciseSections = [];
+        // 1. Find all exercise blocks
+        const exerciseBlocks = [];
         const blocks = document.querySelectorAll('.section-block');
         blocks.forEach(block => {
+            const sectionType = block.dataset.sectionType;
             const exerciseId = block.dataset.exerciseId;
             const exerciseNumber = block.dataset.exerciseNumber;
-            if (exerciseId && exerciseNumber) {
-                exerciseSections.push({
+            const isFirstExercise = block.dataset.isFirstExercise === 'true';
+            
+            if (sectionType === 'exercise' && exerciseId) {
+                const isCompleted = block.classList.contains('completed');
+                exerciseBlocks.push({
                     id: parseInt(exerciseId),
-                    number: parseInt(exerciseNumber),
+                    number: exerciseNumber ? parseInt(exerciseNumber) : 0,
+                    isFirst: isFirstExercise,
                     block: block,
-                    status: block.classList.contains('completed') ? 'completed' : 'locked'
+                    completed: isCompleted
                 });
             }
         });
 
+        // 2. Sort blocks by exercise number
+        exerciseBlocks.sort((a, b) => a.number - b.number);
+
+        // 3. IntersectionObserver to handle visibility of floating actions
         const observer = new IntersectionObserver((entries) => {
+            // Determine if any uncompleted exercise is currently in view
+            let targetExercise = null;
+            
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const block = entry.target;
-                    const exerciseId = block.dataset.exerciseId;
-                    const exerciseNumber = block.dataset.exerciseNumber;
-                    if (!exerciseId || !exerciseNumber) return;
-
-                    if (block.classList.contains('completed')) {
-                        return;
-                    }
-
-                    floatingActions.classList.add('visible');
-                    activeExerciseIdInput.value = exerciseId;
-                    activeExerciseIdPaperInput.value = exerciseId;
-                    exerciseIndicator.textContent = `📝 Exercise ${exerciseNumber}`;
-                    floatingFeedback.innerHTML = '';
-
-                    block.classList.remove('locked');
-                    block.classList.add('unlocked');
-                    
-                    let lockNext = false;
-                    blocks.forEach(b => {
-                        if (b.dataset.exerciseId === exerciseId) {
-                            lockNext = true;
-                        } else if (lockNext && b.dataset.exerciseId) {
-                            b.classList.add('locked');
-                            b.classList.remove('unlocked');
-                        }
-                    });
+                const block = entry.target;
+                const exerciseId = block.dataset.exerciseId;
+                const exerciseNumber = block.dataset.exerciseNumber;
+                
+                if (!exerciseId || !exerciseNumber) return;
+                
+                // Check if this is an uncompleted exercise block
+                const isCompleted = block.classList.contains('completed');
+                const isLocked = block.classList.contains('locked');
+                
+                // Only target uncompleted and unlocked exercises
+                if (!isCompleted && !isLocked && entry.isIntersecting) {
+                    targetExercise = {
+                        id: parseInt(exerciseId),
+                        number: parseInt(exerciseNumber),
+                        block: block
+                    };
                 }
             });
-        }, { threshold: 0.4 });
 
-        exerciseSections.forEach(ex => {
+            // Show floating actions if we found a valid target exercise
+            if (targetExercise) {
+                floatingActions.classList.add('visible');
+                activeExerciseIdInput.value = targetExercise.id;
+                activeExerciseIdPaperInput.value = targetExercise.id;
+                exerciseIndicator.textContent = `📝 Exercise ${targetExercise.number}`;
+                floatingFeedback.innerHTML = '';
+            } else {
+                floatingActions.classList.remove('visible');
+            }
+        }, { threshold: 0.3 });
+
+        // 4. Observe all exercise blocks
+        exerciseBlocks.forEach(ex => {
             observer.observe(ex.block);
         });
 
+        // 5. Handle digital submission
         digitalForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdInput.value);
@@ -404,25 +425,27 @@ function clean_content($raw) {
                 if (data.includes('Digital answer submitted!') || data.includes('success')) {
                     floatingFeedback.innerHTML = '✅ Submitted!';
                     floatingFeedback.style.color = '#22c55e';
+                    
+                    // Mark the current exercise as completed
                     blocks.forEach(block => {
                         if (block.dataset.exerciseId == exId) {
                             block.classList.add('completed');
                             block.classList.remove('locked');
                             block.classList.add('unlocked');
+                            
+                            // Re-observe to possibly trigger the next exercise
+                            observer.unobserve(block);
+                            observer.observe(block);
                         }
                     });
-                    let found = false;
-                    blocks.forEach(block => {
-                        if (block.dataset.exerciseId == exId) {
-                            found = true;
-                        } else if (found && block.dataset.exerciseId) {
-                            block.classList.remove('locked');
-                            block.classList.add('unlocked');
-                            found = false;
-                        }
-                    });
+                    
                     setTimeout(() => {
-                        floatingActions.classList.remove('visible');
+                        // Force re-check of visibility
+                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
+                        if (visible && visible.classList.contains('completed')) {
+                            // The current block is completed, hide the floating actions
+                            floatingActions.classList.remove('visible');
+                        }
                         if (window.MathJax) MathJax.typesetPromise();
                     }, 1500);
                 } else {
@@ -437,6 +460,7 @@ function clean_content($raw) {
             });
         });
 
+        // 6. Handle paper promise
         paperForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdPaperInput.value);
@@ -454,25 +478,22 @@ function clean_content($raw) {
                 if (data.includes('promised to submit') || data.includes('success')) {
                     floatingFeedback.innerHTML = '✅ Promise recorded!';
                     floatingFeedback.style.color = '#22c55e';
+                    
                     blocks.forEach(block => {
                         if (block.dataset.exerciseId == exId) {
                             block.classList.add('completed');
                             block.classList.remove('locked');
                             block.classList.add('unlocked');
+                            observer.unobserve(block);
+                            observer.observe(block);
                         }
                     });
-                    let found = false;
-                    blocks.forEach(block => {
-                        if (block.dataset.exerciseId == exId) {
-                            found = true;
-                        } else if (found && block.dataset.exerciseId) {
-                            block.classList.remove('locked');
-                            block.classList.add('unlocked');
-                            found = false;
-                        }
-                    });
+                    
                     setTimeout(() => {
-                        floatingActions.classList.remove('visible');
+                        const visible = document.querySelector('.section-block[data-exercise-id="' + exId + '"]');
+                        if (visible && visible.classList.contains('completed')) {
+                            floatingActions.classList.remove('visible');
+                        }
                         if (window.MathJax) MathJax.typesetPromise();
                     }, 1500);
                 } else {
