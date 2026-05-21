@@ -117,7 +117,7 @@ if (!empty($ex_map)) {
 $first_incomplete_index = null;
 for ($i = 0; $i < count($exercise_order); $i++) {
     $ex_num = $exercise_order[$i];
-    $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : ($i * -1); // Use a temporary negative ID for exercises not in the database
+    $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : ($i * -1);
     $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
     if ($status != 'marked' && $status != 'paper_pending') {
         $first_incomplete_index = $i;
@@ -327,7 +327,7 @@ $intro_content = $sections[0];
                 <?php echo $intro_content; ?>
             </div>
         </div>
-                <?php
+        <?php
         // ===== RENDER EXERCISE SECTIONS WITH LOCKING =====
         $passed_first_incomplete = false;
         
@@ -338,11 +338,6 @@ $intro_content = $sections[0];
             // Get the exercise number and ID
             $ex_num = isset($exercise_order[$i-1]) ? $exercise_order[$i-1] : $i;
             $ex_id = isset($ex_map[$ex_num]) ? $ex_map[$ex_num] : ($i * -1);
-            
-            // ★★★ FIX: If $ex_id is null, generate a temporary one ★★★
-            if ($ex_id === null) {
-                $ex_id = -($i); // Negative number ensures it's unique
-            }
             
             $status = $exercise_attempts[$ex_id] ?? 'not_attempted';
             $is_completed = ($status == 'marked' || $status == 'paper_pending');
@@ -364,9 +359,6 @@ $intro_content = $sections[0];
                 // If all exercises are completed, unlock everything
                 $is_locked = false;
             }
-            
-            // SPECIAL CASE: If this is the first exercise and it's completed, the next one should be locked
-            // But if all are completed, everything is unlocked (handled above)
             ?>
             <div class="section-block <?php echo $is_locked ? 'locked' : 'unlocked'; ?> <?php echo $is_completed ? 'completed' : ''; ?>"
                  data-exercise-id="<?php echo $ex_id; ?>" 
@@ -412,7 +404,6 @@ $intro_content = $sections[0];
 <?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>
 
-<script>
 <script>
 const currentNoteId = <?php echo $note_id; ?>;
 
@@ -593,4 +584,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-</body></html>
+</body>
+</html>
