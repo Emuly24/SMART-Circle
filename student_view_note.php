@@ -88,11 +88,8 @@ $sections = $conn->query("SELECT s.*, e.status as attempt_status, e.answer_text
 
 // Helper function to clean up literal \r\n and double escapes
 function clean_content($raw) {
-    // Remove literal backslash-r-backslash-n (caused by double escaping)
     $cleaned = str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
-    // Remove any remaining backslashes that escaped quotes etc.
     $cleaned = stripslashes($cleaned);
-    // Convert actual newlines to <br> for proper display
     return nl2br($cleaned);
 }
 ?>
@@ -117,7 +114,6 @@ function clean_content($raw) {
         text-align: inherit;
     }
     
-    /* ===== LOCKING OVERLAY ===== */
     .section-block {
         position: relative;
         margin: 2rem 0;
@@ -167,7 +163,6 @@ function clean_content($raw) {
         background: #f0fdf4;
     }
     
-    /* ===== FLOATING BUTTONS ===== */
     .floating-actions {
         display: none;
         position: fixed;
@@ -245,8 +240,8 @@ function clean_content($raw) {
     <div class="student-note-container" id="main-container">
         <?php 
         // Collect all exercise sections first to assign sequential numbers
-        $exerciseList = [];
-        $sectionData = [];
+        $exerciseList = array();
+        $sectionData = array();
         while($sec = $sections->fetch_assoc()) {
             $sectionData[] = $sec;
             if ($sec['section_type'] == 'exercise' && $sec['exercise_id']) {
@@ -255,7 +250,7 @@ function clean_content($raw) {
         }
         
         // Number exercises sequentially
-        $exerciseNumberMap = [];
+        $exerciseNumberMap = array();
         foreach ($exerciseList as $index => $exId) {
             $exerciseNumberMap[$exId] = $index + 1;
         }
@@ -263,7 +258,7 @@ function clean_content($raw) {
         // Now render sections with proper locking
         $prevCompleted = false;
         $firstExerciseSeen = false;
-        foreach ($sectionData as $sec): 
+        foreach ($sectionData as $sec) {
             $isExercise = ($sec['section_type'] == 'exercise');
             $isLocked = false;
             $isCompleted = false;
@@ -284,19 +279,21 @@ function clean_content($raw) {
             }
             
             $cleanContent = clean_content($sec['content']);
+            ?>
+            <div class="section-block <?php echo $isLocked ? 'locked' : 'unlocked'; ?> <?php echo $isCompleted ? 'completed' : ''; ?>" 
+                 data-section-id="<?php echo $sec['id']; ?>"
+                 data-exercise-id="<?php echo $sec['exercise_id'] ?? ''; ?>"
+                 data-exercise-number="<?php echo isset($exerciseNumberMap[$sec['exercise_id']]) ? $exerciseNumberMap[$sec['exercise_id']] : ''; ?>">
+                <?php echo $cleanContent; ?>
+                <?php if ($isExercise && $sec['exercise_id']): ?>
+                    <div class="exercise-form-wrapper" style="display:none;">
+                        <input type="hidden" name="exercise_id" value="<?php echo $sec['exercise_id']; ?>">
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php
+        }
         ?>
-        <div class="section-block <?= $isLocked ? 'locked' : 'unlocked' ?> <?= $isCompleted ? 'completed' : '' ?>" 
-             data-section-id="<?= $sec['id'] ?>"
-             data-exercise-id="<?= $sec['exercise_id'] ?? '' ?>"
-             data-exercise-number="<?= isset($exerciseNumberMap[$sec['exercise_id']]) ? $exerciseNumberMap[$sec['exercise_id']] : '' ?>">
-            <?= $cleanContent ?>
-            <?php if ($isExercise && $sec['exercise_id']): ?>
-                <div class="exercise-form-wrapper" style="display:none;">
-                    <input type="hidden" name="exercise_id" value="<?= $sec['exercise_id'] ?>">
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php endwhile; ?>
     </div>
 </div>
 
@@ -329,7 +326,6 @@ function clean_content($raw) {
         const paperForm = document.getElementById('paperForm');
         const floatingFeedback = document.getElementById('floatingFeedback');
 
-        // 1. Find all exercise sections and their numbers
         const exerciseSections = [];
         const blocks = document.querySelectorAll('.section-block');
         blocks.forEach(block => {
@@ -345,7 +341,6 @@ function clean_content($raw) {
             }
         });
 
-        // 2. IntersectionObserver to detect when an exercise is in view
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -354,23 +349,19 @@ function clean_content($raw) {
                     const exerciseNumber = block.dataset.exerciseNumber;
                     if (!exerciseId || !exerciseNumber) return;
 
-                    // Check if already completed
                     if (block.classList.contains('completed')) {
-                        return; // No action needed for completed exercises
+                        return;
                     }
 
-                    // Show floating buttons
                     floatingActions.classList.add('visible');
                     activeExerciseIdInput.value = exerciseId;
                     activeExerciseIdPaperInput.value = exerciseId;
                     exerciseIndicator.textContent = `📝 Exercise ${exerciseNumber}`;
                     floatingFeedback.innerHTML = '';
 
-                    // Ensure this block is unlocked (but keep later ones locked)
                     block.classList.remove('locked');
                     block.classList.add('unlocked');
                     
-                    // Lock all subsequent blocks
                     let lockNext = false;
                     blocks.forEach(b => {
                         if (b.dataset.exerciseId === exerciseId) {
@@ -384,12 +375,10 @@ function clean_content($raw) {
             });
         }, { threshold: 0.4 });
 
-        // Start observing all exercise blocks
         exerciseSections.forEach(ex => {
             observer.observe(ex.block);
         });
 
-        // 3. Handle digital submission
         digitalForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdInput.value);
@@ -415,7 +404,6 @@ function clean_content($raw) {
                 if (data.includes('Digital answer submitted!') || data.includes('success')) {
                     floatingFeedback.innerHTML = '✅ Submitted!';
                     floatingFeedback.style.color = '#22c55e';
-                    // Find the block and mark as completed
                     blocks.forEach(block => {
                         if (block.dataset.exerciseId == exId) {
                             block.classList.add('completed');
@@ -423,7 +411,6 @@ function clean_content($raw) {
                             block.classList.add('unlocked');
                         }
                     });
-                    // Unlock the next exercise block
                     let found = false;
                     blocks.forEach(block => {
                         if (block.dataset.exerciseId == exId) {
@@ -450,7 +437,6 @@ function clean_content($raw) {
             });
         });
 
-        // 4. Handle paper promise
         paperForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const exId = parseInt(activeExerciseIdPaperInput.value);
