@@ -91,11 +91,11 @@ function clean_content($raw) {
     return str_replace(['\\r\\n', '\\r', '\\n'], ["\r\n", "\r", "\n"], $raw);
 }
 
-// Helper: Fix common LaTeX rendering issues on the fly (NO database change)
+// NEW: Fix LaTeX rendering issues on the fly (NO database change)
 function fix_latex_rendering($content) {
     // 1. Replace raw (aeqO) with proper LaTeX
     $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content);
-    $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content); // double replace just in case
+    $content = str_replace('(aeqO)', '\\quad (a \\neq 0)', $content); // Double replace just in case
     
     // 2. Remove newlines inside \left( ... \right) pairs
     $content = preg_replace('/\\\\left\\s*\\(([^\\"]*?)\\s*\\\\)\\s*\\)/', '\\left($1\\right)', $content);
@@ -211,7 +211,7 @@ $exerciseCount = 0;
     .student-note-container .section-content h3,
     .student-note-container .section-content h4 {
         /* same as above, to cover content inside .section-content */
-        font-size: inherit; /* let parent class handle */
+        font-size: inherit;
     }
     
     /* ----- SECTION BLOCKS ----- */
@@ -224,9 +224,9 @@ $exerciseCount = 0;
         border: 1px solid var(--border);
     }
     
-    /* ----- LOCKED STATE ----- */
+    /* ----- LOCKED STATE (blur content, but notification is separate) ----- */
     .section-block.locked {
-        opacity: 0.6;
+        opacity: 0.5;
         pointer-events: none;
         user-select: none;
         position: relative;
