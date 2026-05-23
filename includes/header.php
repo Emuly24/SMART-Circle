@@ -177,7 +177,6 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
             <input type="checkbox" id="menu-toggle">
             <label for="menu-toggle" class="menu-icon">☰</label>
             <ul class="menu">
-                <!-- Public item: About Us – visible to everyone -->
                 <li><a href="about.php">👥 About Us</a></li>
 
                 <!-- Logged‑in only items -->
@@ -243,8 +242,10 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
         <?php endif; ?>
 
         <!-- Logout – only for logged‑in users -->
-        <?php if ($role != 'public'): ?>
-            <a href="logout.php" class="btn-logout">🚪 Logout</a>
+        <?php if ($role != 'admin'): ?>
+            <a href="admin_dashboard.php">Dashboard</a>
+            ?>php else: ?>
+            <a href="dashboard.php">Dashboard</a>
         <?php endif; ?>
     </div>
 </nav>
