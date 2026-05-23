@@ -243,9 +243,9 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
 
         <!-- Logout – only for logged‑in users -->
         <?php if ($role == 'admin'): ?>
-            <li><a href="admin_dashboard.php">Dashboard</a></li>
+            <li><a href="admin_dashboard.php"></a></li>
         <?php else: ?>
-            <li><a href="dashboard.php">Dashboard</a></li>
+            <li><a href="dashboard.php"></a></li>
         <?php endif; ?>
     </div>
 </nav>
