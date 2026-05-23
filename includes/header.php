@@ -242,7 +242,7 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
         <?php endif; ?>
 
         <!-- Logout – only for logged‑in users -->
-        <?php if ($role != 'admin'): ?>
+        <?php if ($role == 'admin'): ?>
             <li><a href="admin_dashboard.php">Dashboard</a></li>
         <?php else: ?>
             <li><a href="dashboard.php">Dashboard</a></li>
