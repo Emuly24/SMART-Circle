@@ -2,6 +2,9 @@
 // check_access.php – Handles user status checks (approval, consent, suspension)
 
 // Ensure $user is available
+if (basename($_SERVER['SCRIPT_NAME']) === 'login.php') {
+    return; // Stop redirect on login page
+}
 if (!isset($user)) {
     $user = $GLOBALS['auth_user'] ?? null;
 }

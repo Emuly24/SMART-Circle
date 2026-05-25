@@ -64,19 +64,15 @@ function enforceLogin() {
     $current = basename($_SERVER['SCRIPT_NAME']);
     $public_pages = ['index.php', 'login.php', 'signup.php', 'logout.php'];
     
+    // ❗ Add this line if it's missing:
+    if ($current === 'login.php') {
+        return; // Do nothing on the login page
+    }
+    
     if (!$login && !in_array($current, $public_pages)) {
         header("Location: login.php");
         exit;
     }
-    
-    if ($login) {
-        $role = $login['role'];
-        $user = getLoggedInUser();
-        if (!$user) {
-            logoutUser();
-            header("Location: login.php");
-            exit;
-        }
         
         // Store user data in superglobals for easy access
         $GLOBALS['auth_user'] = $user;
@@ -94,7 +90,6 @@ function enforceLogin() {
             exit;
         }
     }
-}
 
 // Run enforceLogin automatically
 enforceLogin();
