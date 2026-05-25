@@ -1,9 +1,14 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 // Basic Auth setup – place this at the VERY TOP of admin_dashboard.php
 require_once 'config.php';
 
-$admin_hash = getAdminHash(); // Fetches the admin password hash from config.php
-
+$admin_hash = getAdminHash();
+if (empty($admin_hash)) {
+    die("❌ getAdminHash() returned an empty value. Check your admin_settings table.");
+}
 // Check if the user is already authenticated via Basic Auth
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
     // Ask for credentials
