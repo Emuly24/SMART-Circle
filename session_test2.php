@@ -1,9 +1,10 @@
 <?php
 session_save_path('/tmp');
 session_start();
-if (isset($_SESSION['test_admin'])) {
-    echo "Session persisted!";
+
+if (isset($_SESSION['admin_logged']) && $_SESSION['admin_logged'] === true) {
+    echo "✅ Session found! The server works!";
 } else {
-    echo "Session failed. Contact InfinityFree support: session.save_path issue.";
+    echo "❌ Session NOT found. The problem is your InfinityFree server configuration.";
 }
 ?>
