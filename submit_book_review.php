@@ -1,9 +1,12 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
-$uid = $_SESSION['user_id'];
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
+$conn = getDB();
+$uid = $user['id'];
 $book_id = (int)$_POST['book_id'];
 $rating = (int)$_POST['rating'];
 $review = trim($_POST['review']);

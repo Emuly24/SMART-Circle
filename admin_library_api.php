@@ -1,14 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_logged'])) {
-    http_response_code(403);
-    exit;
-}
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 $type = $_GET['type'] ?? '';
 if ($type === 'equations') {

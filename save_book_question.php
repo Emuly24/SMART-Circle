@@ -1,14 +1,13 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
-header('Content-Type: application/json');
+require_once 'cookie_login.php';
+require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'error' => 'Not logged in']);
-    exit;
-}
+$conn = getDB();
+$uid = $user['id'];
 
-$uid = $_SESSION['user_id'];
 $book_id = (int)$_POST['book_id'];
 $book_title = trim($_POST['book_title']);
 $page_number = (int)$_POST['page_number'];

@@ -1,42 +1,17 @@
 <?php
-require_once 'check_remember_me.php';
+// auth_check.php – Handles user status checks (approval, consent, suspension)
+// Include this file AFTER cookie_login.php on student pages
 
-// Start session only if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// If not logged in, only allow public pages
-if (!isset($_SESSION['user_id'])) {
-    $public_pages = ['index.php', 'signup.php', 'login.php', 'logout.php'];
-    $current = basename($_SERVER['SCRIPT_NAME']);
-    if (!in_array($current, $public_pages)) {
-        header("Location: login.php");
-        exit;
-    }
-    return; // Allow access to public pages
-}
-
-// User is logged in – fetch their status
-$conn = getDB();
-$user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT approved, consent_signed, status, suspension_end, class_level FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
-
+// Already have $user from cookie_login.php
+$user = $GLOBALS['auth_user'] ?? null;
 if (!$user) {
-    session_destroy();
+    // If no user data is found, redirect to login
     header("Location: login.php");
     exit;
 }
 
-// Store session variables
-$_SESSION['class_level'] = $user['class_level'];
-$_SESSION['approved'] = $user['approved'];
-$_SESSION['consent_signed'] = $user['consent_signed'];
-$_SESSION['status'] = $user['status'];
-
+$conn = getDB();
+$user_id = $user['id'];
 $current = basename($_SERVER['SCRIPT_NAME']);
 $always_allowed = ['index.php', 'logout.php', 'profile.php', 'notifications.php', 'change_password.php'];
 
@@ -80,7 +55,9 @@ if ($user['status'] == 'suspended') {
     } else {
         $conn2 = getDB();
         $conn2->query("UPDATE users SET status='active', suspension_end=NULL WHERE id=$user_id");
-        $_SESSION['status'] = 'active';
+        // Update the global user data
+        $GLOBALS['auth_user']['status'] = 'active';
+        $GLOBALS['auth_user']['suspension_end'] = null;
     }
 }
 if ($user['status'] == 'dismissed') {
@@ -90,3 +67,4 @@ if ($user['status'] == 'dismissed') {
 // --- 4. FULLY APPROVED AND CONSENT SIGNED → full access ---
 // No restrictions – allow all pages
 return;
+?>

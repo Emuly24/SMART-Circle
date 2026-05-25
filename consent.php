@@ -1,18 +1,13 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require_once 'cookie_login.php';
+require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
-$user = $conn->query("SELECT fullname, class_level, school FROM users WHERE id=$uid")->fetch_assoc();
-if (!$user) die("User not found.");
+$uid = $user['id'];
+$class = $user['class_level'];
 
 $u = $conn->query("SELECT consent_signed FROM users WHERE id=$uid")->fetch_assoc();
 // === CHANGE START: Show agreement card instead of die() ===

@@ -1,9 +1,12 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
+$uid = $user['id'];
 
 $user = $conn->query("SELECT fullname, class_level, school, consent_signed, consent_signed_at FROM users WHERE id=$uid")->fetch_assoc();
 if (!$user) die("User not found.");

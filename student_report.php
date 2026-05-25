@@ -1,13 +1,18 @@
 <?php
-require_once 'check_remember_me.php';
+require_once 'config.php';
+require_once 'cookie_login.php';
+require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
-require_once 'config.php'; require_once 'check_access.php'; $conn=getDB(); $user_id=$_SESSION['user_id']; $message='';
+$conn = getDB();
+$uid = $user['id'];
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $type=$_POST['report_type']; $description=trim($_POST['description']); $incident_date=$_POST['incident_date']??date('Y-m-d');
     if(empty($description)) $message="Please explain the situation.";
     else{
         $stmt=$conn->prepare("INSERT INTO student_reports (user_id, report_type, description, incident_date) VALUES (?,?,?,?)");
-        $stmt->bind_param("isss",$user_id,$type,$description,$incident_date);
+        $stmt->bind_param("isss",$uid,$type,$description,$incident_date);
         if($stmt->execute()) $message="Thank you for your honesty. Your report has been submitted.";
         else $message="Database error.";
     }

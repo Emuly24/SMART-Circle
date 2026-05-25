@@ -1,6 +1,5 @@
 <?php
 require_once 'check_remember_me.php';
-
 require_once 'config.php';
 require_once 'check_access.php';
 $conn = getDB();

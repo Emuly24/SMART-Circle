@@ -1,12 +1,13 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
-require_once 'topics_data.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
 $conn = getDB();
-$uid = $_SESSION['user_id'];
-$class = $_SESSION['class_level']; // "Form 3" or "Form 4"
+$uid = $user['id'];
+$class = $user['class_level']; // "Form 3" or "Form 4"
 
 $subjects = ['Mathematics', 'English', 'Biology', 'Physics', 'Chemistry'];
 

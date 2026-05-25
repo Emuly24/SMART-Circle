@@ -1,89 +1,66 @@
 <?php
 ob_start();
 require_once 'config.php';
+require_once 'cookie_login.php'; // Use cookie login system
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// If already logged in as student, show welcome
-if (isset($_SESSION['user_id'])) {
-    // ... existing welcome code ...
+// If already logged in, redirect accordingly
+$login = checkLogin();
+if ($login) {
+    if ($login['role'] === 'admin') {
+        header("Location: admin_dashboard.php");
+    } else {
+        header("Location: dashboard.php");
+    }
     exit;
 }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $login = $_POST['login'];
+    $login_input = $_POST['login'];
     $pass = $_POST['password'];
+    $remember = isset($_POST['remember']) ? true : false;
 
-    if (empty($login) || empty($pass)) {
+    if (empty($login_input) || empty($pass)) {
         $error = "Enter username/phone and password.";
     } else {
         $conn = getDB();
         $stmt = $conn->prepare("SELECT id, fullname, password, approved, consent_signed, status, suspension_end, role FROM users WHERE phone = ? OR username = ?");
-        $stmt->bind_param("ss", $login, $login);
+        $stmt->bind_param("ss", $login_input, $login_input);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
         if ($user && password_verify($pass, $user['password'])) {
-            // ✅ Admin login
-            if (isset($user['role']) && $user['role'] === 'admin') {
-                $_SESSION['admin_logged'] = true;
-                $_SESSION['role'] = 'admin';
-                $_SESSION['fullname'] = $user['fullname'];
-                // Only unset user_id if you want to keep admin session completely separate
-                unset($_SESSION['user_id']);
-                
-                // ❌ REMOVED: session_regenerate_id(true); <-- This was likely the cause on InfinityFree
-                
-                if (function_exists('log_activity')) {
-                    log_activity($user['id'], "admin_login", "Admin logged in");
-                }
-                
-                // ✅ Force the session to be written to disk
-                session_write_close();
-                
-                header("Location: admin_dashboard.php");
-                exit;
-            }
-
-            // ✅ Student login
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['fullname'] = $user['fullname'];
-            $_SESSION['role'] = 'student';
-            unset($_SESSION['admin_logged']);
+            
+            // Determine role
+            $role = (isset($user['role']) && $user['role'] === 'admin') ? 'admin' : 'student';
+            
+            // Log the user in using cookie system
+            loginUser($user['id'], $role, $remember);
             
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
-
-            if ($remember) {
-                $token = bin2hex(random_bytes(32));
-                $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
-                $conn->query("DELETE FROM remember_tokens WHERE user_id = {$user['id']}");
-                $stmt2 = $conn->prepare("INSERT INTO remember_tokens (user_id, token, expires_at) VALUES (?, ?, ?)");
-                $stmt2->bind_param("iss", $user['id'], $token, $expires);
-                $stmt2->execute();
-                setcookie('remember_me', $token, time() + 86400 * 30, '/', '', false, true);
-            }
-
-            // Check approval and consent
-            if ($user['approved'] == 0) {
-                $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
-                if (!$has_app) {
-                    header("Location: apply.php");
-                    exit;
-                } else {
-                    header("Location: pending.php");
+            
+            // Redirect based on role
+            if ($role === 'admin') {
+                header("Location: admin_dashboard.php");
+            } else {
+                // Student checks
+                if ($user['approved'] == 0) {
+                    $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
+                    if (!$has_app) {
+                        header("Location: apply.php");
+                        exit;
+                    } else {
+                        header("Location: pending.php");
+                        exit;
+                    }
+                } elseif ($user['approved'] == 1 && $user['consent_signed'] == 0) {
+                    header("Location: consent.php");
                     exit;
                 }
-            } elseif ($user['approved'] == 1 && $user['consent_signed'] == 0) {
-                header("Location: consent.php");
-                exit;
+                header("Location: dashboard.php");
             }
-
-            header("Location: dashboard.php");
             exit;
         } else {
             $error = "Invalid credentials.";
@@ -95,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html><head><title>Login - SMART Circle</title><link rel="stylesheet" href="style.css"></head>
 <body class="login-page">
     <?php include_once 'includes/header.php'; ?>
-    <?php include_once 'includes/progress_tracker.php'; ?>
     <div class="login-container">
         <h2 class="login-title">Welcome Back</h2>
         <?php if ($error): ?>
@@ -124,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <?php include_once 'includes/footer.php'; ?>
-    <?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>
 <?php ob_end_flush(); ?>

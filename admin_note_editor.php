@@ -1,6 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
 // ===== SECTION EXTRACTION FUNCTION =====
 function extractSectionsFromHTML($html, $conn, $note_id) {

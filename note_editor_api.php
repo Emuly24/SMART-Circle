@@ -1,16 +1,7 @@
 <?php
 require_once 'check_remember_me.php';
-
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_logged'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
+require_once 'check_access.php';
 $conn = getDB();
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 

@@ -1,7 +1,14 @@
 <?php
-require_once 'check_remember_me.php';
+require_once 'config.php';
+require_once 'cookie_login.php';
+require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
-require_once 'config.php'; require_once 'check_access.php'; $conn=getDB(); $uid=$_SESSION['user_id']; $submissions=$conn->query("SELECT e.id, e.title, e.subject, s.total_score, s.status FROM exam_submissions s JOIN exams e ON s.exam_id=e.id WHERE s.user_id=$uid AND s.status IN('submitted','marked') ORDER BY s.end_time DESC"); ?>
+$conn = getDB();
+$uid = $user['id'];
+$submissions = $conn->query("SELECT e.id, e.title, e.subject, s.total_score, s.status FROM exam_submissions s JOIN exams e ON s.exam_id=e.id WHERE s.user_id=$uid AND s.status IN('submitted','marked') ORDER BY s.end_time DESC");
+?>
 <!DOCTYPE html><html><head><title>My Results</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
 

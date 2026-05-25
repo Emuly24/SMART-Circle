@@ -1,15 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
- if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 $log = $conn->query("SELECT d.*, u.fullname, u.class_level FROM discipline_log d JOIN users u ON d.user_id=u.id ORDER BY d.created_at DESC");
 ?>

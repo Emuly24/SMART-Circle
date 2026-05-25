@@ -1,10 +1,12 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
+$uid = $user['id'];
 
 $student = $conn->query("SELECT fullname, class_level FROM users WHERE id=$uid")->fetch_assoc();
 $existing = $conn->query("SELECT id, testimonial, rating, status FROM testimonials WHERE user_id=$uid ORDER BY id DESC LIMIT 1")->fetch_assoc();

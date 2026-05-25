@@ -1,13 +1,8 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-require_once 'check_remember_me.php';
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 $msg = '';
 $error = '';

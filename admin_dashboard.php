@@ -1,19 +1,8 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-require_once 'check_remember_me.php';
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    header("Location: login.php");
-    error_log("admin_dashboard.php: Not logged in. Redirecting to login.php");
-    header("Location: login.php");
-    exit;
-}
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 $total_students = $conn->query("SELECT COUNT(*) FROM users WHERE approved=1 AND status!='dismissed'")->fetch_row()[0];
 $pending_apps = $conn->query("SELECT COUNT(*) FROM applications WHERE status='pending'")->fetch_row()[0];

@@ -1,7 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 require_once 'check_access.php';
 $conn = getDB();
 $uid = $_SESSION['user_id'];

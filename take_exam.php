@@ -1,9 +1,12 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
+$uid = $user['id'];
 $exam_id = (int)$_GET['exam_id'];
 $exam = $conn->query("SELECT * FROM exams WHERE id=$exam_id")->fetch_assoc();
 if (!$exam) die("Exam not found.");

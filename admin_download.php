@@ -1,14 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
-
-// admin_download.php - Secure file delivery for admin only
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once 'config.php';
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 
 $type = isset($_GET['type']) ? $_GET['type'] : '';
 $file = isset($_GET['file']) ? basename($_GET['file']) : '';

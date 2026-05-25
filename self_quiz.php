@@ -1,8 +1,12 @@
 <?php
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
+$uid = $user['id'];
 $subject = isset($_GET['subject']) ? trim($_GET['subject']) : '';
 if (!$subject) die("No subject selected.");
 
@@ -75,6 +79,6 @@ if ($questions->num_rows == 0) die("No questions available for this subject.");
             <button type="submit" class="btn">Submit Answers</button>
         </form>
     <?php endif; ?>
-    <<?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

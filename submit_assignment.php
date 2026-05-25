@@ -1,9 +1,12 @@
 <?php
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
+$uid = $user['id'];
 $aid = (int)$_GET['assignment_id'];
 $check = $conn->query("SELECT id FROM assignment_submissions WHERE assignment_id=$aid AND user_id=$uid");
 if ($check->num_rows) die("Already submitted.");

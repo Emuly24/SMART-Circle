@@ -1,15 +1,10 @@
 <?php
 ob_start();
-require_once 'check_remember_me.php';
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-$uid = $_SESSION['user_id'];
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 
 // Fetch user data

@@ -1,14 +1,8 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once 'cookie_login.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
 $conn = getDB();
 $quiz_id = (int)$_GET['quiz_id'];
 $quiz = $conn->query("SELECT * FROM quizzes WHERE id=$quiz_id")->fetch_assoc();

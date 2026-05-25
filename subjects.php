@@ -1,11 +1,13 @@
 <?php
-require_once 'check_remember_me.php';
-
 require_once 'config.php';
+require_once 'cookie_login.php';
 require_once 'check_access.php';
+$user = $GLOBALS['auth_user'];
+$role = $GLOBALS['auth_role'];
+
 $conn = getDB();
-$uid = $_SESSION['user_id'];
-$class = $_SESSION['class_level'];
+$uid = $user['id'];
+$class = $user['class_level'];
 
 // Get distinct subjects from notes that are unlocked for the student's group
 $subjects = $conn->query("SELECT DISTINCT n.subject 
