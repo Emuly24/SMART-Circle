@@ -1,8 +1,30 @@
 <?php
+// Basic Auth setup – place this at the VERY TOP of admin_dashboard.php
 require_once 'config.php';
-require_once 'cookie_login.php';
-$user = $GLOBALS['auth_user'];
-$role = $GLOBALS['auth_role'];
+
+$admin_hash = getAdminHash(); // Fetches the admin password hash from config.php
+
+// Check if the user is already authenticated via Basic Auth
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    // Ask for credentials
+    header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Access denied.';
+    exit;
+}
+
+// Verify the password
+$input_pass = $_SERVER['PHP_AUTH_PW'] ?? '';
+if (!password_verify($input_pass, $admin_hash)) {
+    // Wrong password – ask again
+    header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Invalid password.';
+    exit;
+}
+
+// If we reached here, the admin is authenticated.
+// Do NOT include cookie_login.php or check for auth_user here.
 $conn = getDB();
 $total_students = $conn->query("SELECT COUNT(*) FROM users WHERE approved=1 AND status!='dismissed'")->fetch_row()[0];
 $pending_apps = $conn->query("SELECT COUNT(*) FROM applications WHERE status='pending'")->fetch_row()[0];
