@@ -36,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Log the user in using cookie system
             loginUser($user['id'], $role, $remember);
+            $token = loginUser($user['id'], $role, $remember);
+            // Force the cookie to be set immediately
+setcookie('auth_token', $token, $cookie_expiry, '/', '', false, true);
+file_put_contents('debug_login.txt', "Token set: $token\n", FILE_APPEND);
             
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");

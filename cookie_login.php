@@ -19,7 +19,7 @@ function loginUser($user_id, $role, $remember = false) {
     // Set the cookie
     setcookie('auth_token', $token, $cookie_expiry, '/', '', false, true);
     
-    return true;
+    return $token; // ✅ Return the token so we can debug it
 }
 
 function logoutUser() {
