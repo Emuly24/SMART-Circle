@@ -1,5 +1,6 @@
 <?php
 ob_start();
+session_save_path('/tmp'); // Fix for InfinityFree session storage
 require_once 'check_remember_me.php';
 require_once 'config.php';
 
@@ -23,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Enter username/phone and password.";
     } else {
         $conn = getDB();
-        // ✅ UPDATED: Now checks phone OR username (no email)
         $stmt = $conn->prepare("SELECT id, fullname, password, approved, consent_signed, status, suspension_end, role FROM users WHERE phone = ? OR username = ?");
         $stmt->bind_param("ss", $login, $login);
         $stmt->execute();
@@ -32,28 +32,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($pass, $user['password'])) {
             // ✅ Admin login
             if (isset($user['role']) && $user['role'] === 'admin') {
-    $_SESSION['admin_logged'] = true;
-    $_SESSION['role'] = 'admin';
-    $_SESSION['fullname'] = $user['fullname'];
-    unset($_SESSION['user_id']);
-    session_regenerate_id(true);  // ✅ ADD THIS LINE
-    if (function_exists('log_activity')) {
-        log_activity($user['id'], "admin_login", "Admin logged in");
-    }
-    header("Location: admin_dashboard.php");
-    exit;
-}
+                $_SESSION['admin_logged'] = true;
+                $_SESSION['role'] = 'admin';
+                $_SESSION['fullname'] = $user['fullname'];
+                // Only unset user_id if you want to keep admin session completely separate
+                unset($_SESSION['user_id']);
+                
+                // ❌ REMOVED: session_regenerate_id(true); <-- This was likely the cause on InfinityFree
+                
+                if (function_exists('log_activity')) {
+                    log_activity($user['id'], "admin_login", "Admin logged in");
+                }
+                
+                // ✅ Force the session to be written to disk
+                session_write_close();
+                
+                header("Location: admin_dashboard.php");
+                exit;
+            }
+
             // ✅ Student login
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
             $_SESSION['role'] = 'student';
             unset($_SESSION['admin_logged']);
-          
-
+            
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
-            
 
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
