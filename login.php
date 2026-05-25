@@ -1,6 +1,7 @@
 <?php
 ob_start();
 require_once 'config.php';
+require_once 'cookie_login.php'; // Make sure cookie_login.php is included!
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -22,12 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Determine role
             $role = (isset($user['role']) && $user['role'] === 'admin') ? 'admin' : 'student';
             
-            // Log the user in using cookie system
-            loginUser($user['id'], $role, $remember);
+            // ✅ CALL loginUser() ONLY ONCE
             $token = loginUser($user['id'], $role, $remember);
-            // Force the cookie to be set immediately
-setcookie('auth_token', $token, $cookie_expiry, '/', '', false, true);
-file_put_contents('debug_login.txt', "Token set: $token\n", FILE_APPEND);
+            
+            // The $cookie_expiry variable is handled inside loginUser() - do not use it here
             
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
@@ -36,6 +35,7 @@ file_put_contents('debug_login.txt', "Token set: $token\n", FILE_APPEND);
             // Redirect based on role
             if ($role === 'admin') {
                 header("Location: admin_dashboard.php");
+                exit;
             } else {
                 // Student checks
                 if ($user['approved'] == 0) {
@@ -52,8 +52,8 @@ file_put_contents('debug_login.txt', "Token set: $token\n", FILE_APPEND);
                     exit;
                 }
                 header("Location: dashboard.php");
+                exit;
             }
-            exit;
         } else {
             $error = "Invalid credentials.";
         }
