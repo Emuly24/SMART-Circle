@@ -1,5 +1,4 @@
 # Sensitive configuration
-config.php
 admin_config.php
 .env
 
