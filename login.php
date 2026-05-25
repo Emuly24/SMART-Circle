@@ -1,6 +1,5 @@
 <?php
 ob_start();
-session_save_path('/tmp'); // Fix for InfinityFree session storage
 require_once 'config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,7 +16,6 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = $_POST['login'];
     $pass = $_POST['password'];
-    $remember = isset($_POST['remember']) ? true : false;
 
     if (empty($login) || empty($pass)) {
         $error = "Enter username/phone and password.";
