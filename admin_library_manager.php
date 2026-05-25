@@ -5,16 +5,9 @@ require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
-        header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
-        header('HTTP/1.0 401 Unauthorized');
-        echo 'Access denied';
-        exit;
-    }
-    $_SESSION['admin_logged'] = true;
-    $_SESSION['role'] = 'admin';
-    unset($_SESSION['user_id']);
+if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
+    header("Location: login.php");
+    exit;
 }
 $conn = getDB();
 

@@ -5,25 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Determine admin hash
-if (function_exists('getAdminHash')) {
-    $admin_hash = getAdminHash();
-} elseif (defined('ADMIN_HASH')) {
-    $admin_hash = ADMIN_HASH;
-} else {
-    $admin_hash = '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu';
-}
-
-if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
-        header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
-        header('HTTP/1.0 401 Unauthorized');
-        echo 'Access denied';
-        exit;
-    }
-    $_SESSION['admin_logged'] = true;
-    $_SESSION['role'] = 'admin';
-    unset($_SESSION['user_id']);
+if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
+    header("Location: login.php");
+    exit;
 }
 
 $conn = getDB();

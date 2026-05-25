@@ -6,15 +6,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
-    require_once 'config.php';
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], ADMIN_HASH)) {
-        header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
-        header('HTTP/1.0 401 Unauthorized');
-        die('Access denied');
-    }
-    $_SESSION['admin_logged'] = true;
-    $_SESSION['role'] = 'admin';
-    unset($_SESSION['user_id']);
+    header("Location: login.php");
+    exit;
 }
 
 $type = isset($_GET['type']) ? $_GET['type'] : '';
