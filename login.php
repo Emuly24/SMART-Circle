@@ -1,18 +1,6 @@
 <?php
 ob_start();
 require_once 'config.php';
-require_once 'cookie_login.php'; // Use cookie login system
-
-// If already logged in, redirect accordingly
-$login = checkLogin();
-if ($login) {
-    if ($login['role'] === 'admin') {
-        header("Location: admin_dashboard.php");
-    } else {
-        header("Location: dashboard.php");
-    }
-    exit;
-}
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
