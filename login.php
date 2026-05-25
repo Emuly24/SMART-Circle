@@ -1,11 +1,13 @@
 <?php
-ob_start(); // Prevents HTTP 500/Headers already sent error
+ob_start(); // Prevents "headers already sent" errors
 require_once 'check_remember_me.php';
 require_once 'config.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// If already logged in as student, show welcome
 if (isset($_SESSION['user_id'])) {
     $first_name = '';
     $fullname = $_SESSION['fullname'] ?? '';
@@ -63,26 +65,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
 
         if ($user && password_verify($pass, $user['password'])) {
+            // ✅ Admin login
+            if (isset($user['role']) && $user['role'] === 'admin') {
+                $_SESSION['admin_logged'] = true;
+                $_SESSION['role'] = 'admin';
+                $_SESSION['fullname'] = $user['fullname'];
+                unset($_SESSION['user_id']); // keep admin separate
+                if (function_exists('log_activity')) {
+                    log_activity($user['id'], "admin_login", "Admin logged in");
+                }
+                header("Location: admin_dashboard.php");
+                exit;
+            }
+
+            // ✅ Student login
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
+            $_SESSION['role'] = 'student';
+            unset($_SESSION['admin_logged']);
 
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
-            }
-
-            if (isset($user['role']) && $user['role'] === 'admin') {
-                $_SESSION['role'] = 'admin';
-                $_SESSION['admin_logged'] = true;
-                unset($_SESSION['user_id']);
-                header("Location: admin_dashboard.php");
-                exit;
-            } else {
-                $_SESSION['role'] = 'student';
-                unset($_SESSION['admin_logged']);
-                $_SESSION['approved'] = $user['approved'];
-                $_SESSION['consent_signed'] = $user['consent_signed'];
-                $_SESSION['status'] = $user['status'];
-                $_SESSION['suspension_end'] = $user['suspension_end'];
             }
 
             if ($remember) {
@@ -95,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_me', $token, time() + 86400 * 30, '/', '', false, true);
             }
 
+            // Check approval and consent
             if ($user['approved'] == 0) {
                 $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
                 if (!$has_app) {
@@ -150,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>
 <?php ob_end_flush(); ?>
