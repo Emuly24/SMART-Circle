@@ -10,6 +10,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
     header("Location: login.php");
+    error_log("admin_dashboard.php: Not logged in. Redirecting to login.php");
+    header("Location: login.php");
     exit;
 }
 $conn = getDB();

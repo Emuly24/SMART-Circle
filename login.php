@@ -1,5 +1,5 @@
 <?php
-ob_start(); // Prevents "headers already sent" errors
+ob_start();
 require_once 'check_remember_me.php';
 require_once 'config.php';
 
@@ -9,43 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // If already logged in as student, show welcome
 if (isset($_SESSION['user_id'])) {
-    $first_name = '';
-    $fullname = $_SESSION['fullname'] ?? '';
-    if (!empty($fullname)) {
-        $name_parts = explode(' ', trim($fullname));
-        $first_name = $name_parts[0] ?? '';
-    }
-    if (empty($first_name)) {
-        $conn = getDB();
-        $uid = (int)$_SESSION['user_id'];
-        $result = $conn->query("SELECT fullname FROM users WHERE id = $uid");
-        if ($result && $user = $result->fetch_assoc()) {
-            $fullname = $user['fullname'] ?? '';
-            $name_parts = explode(' ', trim($fullname));
-            $first_name = $name_parts[0] ?? '';
-        }
-    }
-    if (empty($first_name)) {
-        $first_name = 'User';
-    }
-    ?>
-    <!DOCTYPE html>
-    <html><head><title>Already Logged In</title><link rel="stylesheet" href="style.css"></head>
-    <body>
-    <?php include_once 'includes/header.php'; ?>
-    <?php include_once 'includes/progress_tracker.php'; ?>
-    <div class="container">
-        <div class="card">
-            <h2>Welcome back, <?= htmlspecialchars($first_name) ?>!</h2>
-            <p>We wish you a joyful and meaningful use of SMART Circle.</p>
-            <div class="card-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
-                <a href="dashboard.php" class="btn">Go to Dashboard</a>
-                <a href="logout.php" class="btn-danger">Logout</a>
-            </div>
-        </div>
-    </div>
-    </body></html>
-    <?php
+    // ... existing welcome code ...
     exit;
 }
 
@@ -56,10 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remember = isset($_POST['remember']) ? true : false;
 
     if (empty($login) || empty($pass)) {
-        $error = "Enter phone/email and password.";
+        $error = "Enter username/phone and password.";
     } else {
         $conn = getDB();
-        $stmt = $conn->prepare("SELECT id, fullname, password, approved, consent_signed, status, suspension_end, role FROM users WHERE phone = ? OR email = ?");
+        // ✅ UPDATED: Now checks phone OR username (no email)
+        $stmt = $conn->prepare("SELECT id, fullname, password, approved, consent_signed, status, suspension_end, role FROM users WHERE phone = ? OR username = ?");
         $stmt->bind_param("ss", $login, $login);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
@@ -70,12 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_logged'] = true;
                 $_SESSION['role'] = 'admin';
                 $_SESSION['fullname'] = $user['fullname'];
-                unset($_SESSION['user_id']); // keep admin separate
+                unset($_SESSION['user_id']);
                 if (function_exists('log_activity')) {
                     log_activity($user['id'], "admin_login", "Admin logged in");
                 }
-                header("Location: admin_dashboard.php");
-                exit;
+                file_put_contents('login_debug.txt', "Admin logged in successfully. Redirecting to admin_dashboard.php\n", FILE_APPEND);
+        header("Location: admin_dashboard.php");
+        exit;
             }
 
             // ✅ Student login
@@ -83,10 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['fullname'] = $user['fullname'];
             $_SESSION['role'] = 'student';
             unset($_SESSION['admin_logged']);
+            session_regenerate_id(true); // Prevents session hijacking and ensures fresh session data
 
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
+            
 
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
@@ -133,8 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         <form method="post">
             <div class="form-group">
-                <label for="login">Phone Number or Email</label>
-                <input type="text" id="login" name="login" required placeholder="Enter your phone or email">
+                <label for="login">Username or Phone Number</label>
+                <input type="text" id="login" name="login" required placeholder="Enter your username or phone">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
@@ -149,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn btn-login">Login</button>
         </form>
         <div class="login-links">
-            <a href="signup.php">Don’t have an account? Sign up here</a>
+            <a href="signup.php">Don't have an account? Sign up here</a>
             <a href="forgot_password.php">Forgot password?</a>
         </div>
     </div>

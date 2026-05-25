@@ -52,6 +52,7 @@ if (isset($_SESSION['user_id'])) {
 $error = $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
     $fullname = trim($_POST['fullname']);
     $phone = trim($_POST['phone']);
     $email = trim($_POST['email']);
@@ -59,27 +60,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     $confirm = $_POST['confirm_password'];
 
-    if (empty($fullname) || empty($phone) || empty($school) || empty($password)) {
-        $error = "Full name, phone, school, and password are required.";
+    if (empty($username) || empty($fullname) || empty($phone) || empty($school) || empty($password)) {
+        $error = "Username, full name, phone, school, and password are required.";
     } elseif ($password !== $confirm) {
         $error = "Passwords do not match.";
     } elseif (strlen($password) < 5) {
         $error = "Password must be at least 5 characters.";
+    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
+        $error = "Username must be 3-20 characters and contain only letters, numbers, or underscores.";
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email address.";
     } else {
         $conn = getDB();
-        $check = $conn->query("SELECT id FROM users WHERE phone = '$phone'");
-        if ($check->num_rows) {
-            $error = "Phone number already registered. Please login or use a different number.";
+        
+        // Check if username already exists
+        $checkUser = $conn->query("SELECT id FROM users WHERE username = '$username'");
+        if ($checkUser->num_rows) {
+            $error = "Username already taken. Please choose a different one.";
         } else {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (fullname, phone, email, school, password, approved) VALUES (?, ?, ?, ?, ?, 0)");
-            $stmt->bind_param("sssss", $fullname, $phone, $email, $school, $hashed);
-            if ($stmt->execute()) {
-                $success = "Account created successfully! You can now login and complete your application.";
+            // Check if phone already exists
+            $checkPhone = $conn->query("SELECT id FROM users WHERE phone = '$phone'");
+            if ($checkPhone->num_rows) {
+                $error = "Phone number already registered. Please login or use a different number.";
             } else {
-                $error = "Database error. Please try again.";
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("INSERT INTO users (username, fullname, phone, email, school, password, approved) VALUES (?, ?, ?, ?, ?, ?, 0)");
+                $stmt->bind_param("ssssss", $username, $fullname, $phone, $email, $school, $hashed);
+                if ($stmt->execute()) {
+                    $success = "Account created successfully! You can now login and complete your application.";
+                } else {
+                    $error = "Database error. Please try again.";
+                }
             }
         }
     }
@@ -105,6 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         <?php if(!$success): ?>
             <form method="post">
+                <div class="form-group">
+                    <label>Username * (3-20 characters, letters/numbers/underscore)</label>
+                    <input type="text" name="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required placeholder="e.g., blessings_emulyn">
+                </div>
                 <div class="form-group">
                     <label>Full Name *</label>
                     <input type="text" name="fullname" value="<?= htmlspecialchars($_POST['fullname'] ?? '') ?>" required placeholder="e.g., Blessings Emulyn">
@@ -136,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <script>
         // Save form data to sessionStorage on input change
-        document.querySelectorAll('input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
+        document.querySelectorAll('input[name="username"], input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
             input.addEventListener('input', function() {
                 sessionStorage.setItem('signup_' + this.name, this.value);
             });
@@ -144,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Restore from sessionStorage on page load
         window.addEventListener('load', function() {
-            document.querySelectorAll('input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
+            document.querySelectorAll('input[name="username"], input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
                 const stored = sessionStorage.getItem('signup_' + input.name);
                 if (stored && !input.value) {
                     input.value = stored;
