@@ -1,7 +1,6 @@
 <?php
 require_once 'config.php';
 require_once 'cookie_login.php';
-require_once 'check_access.php';
 $user = $GLOBALS['auth_user'];
 $role = $GLOBALS['auth_role'];
 
@@ -9,6 +8,7 @@ $conn = getDB();
 $uid = $user['id'];
 $class = $user['class_level'];
 $input = json_decode(file_get_contents('php://input'), true);
+
 $book_id = (int)$input['book_id'];
 $book_title = $input['book_title'];
 $page = (int)$input['page'];
