@@ -32,24 +32,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($pass, $user['password'])) {
             // ✅ Admin login
             if (isset($user['role']) && $user['role'] === 'admin') {
-                $_SESSION['admin_logged'] = true;
-                $_SESSION['role'] = 'admin';
-                $_SESSION['fullname'] = $user['fullname'];
-                unset($_SESSION['user_id']);
-                if (function_exists('log_activity')) {
-                    log_activity($user['id'], "admin_login", "Admin logged in");
-                }
-                file_put_contents('login_debug.txt', "Admin logged in successfully. Redirecting to admin_dashboard.php\n", FILE_APPEND);
-        header("Location: admin_dashboard.php");
-        exit;
-            }
-
+    $_SESSION['admin_logged'] = true;
+    $_SESSION['role'] = 'admin';
+    $_SESSION['fullname'] = $user['fullname'];
+    unset($_SESSION['user_id']);
+    session_regenerate_id(true);  // ✅ ADD THIS LINE
+    if (function_exists('log_activity')) {
+        log_activity($user['id'], "admin_login", "Admin logged in");
+    }
+    header("Location: admin_dashboard.php");
+    exit;
+}
             // ✅ Student login
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
             $_SESSION['role'] = 'student';
             unset($_SESSION['admin_logged']);
-            session_regenerate_id(true); // Prevents session hijacking and ensures fresh session data
+          
 
             if (function_exists('log_activity')) {
                 log_activity($user['id'], "login", "Logged in via login form");
