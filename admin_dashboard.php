@@ -97,20 +97,20 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
         </div>
 
         <!-- Content Card -->
-        <div class="card">
-            <i class="fas fa-book"></i>
-            <h3>Content</h3>
-            <div class="card-buttons">
-                <a href="admin_note_editor.php">Write Note</a>
-                <a href="admin_notes_list.php">Manage Notes</a>
-                <a href="admin_upload_book.php">Upload Book</a>
-                <a href="admin_mark_exercises.php">Mark Exercises</a>
-                <a href="admin_book_questions.php">📚 Book Questions</a>
-                <a href="admin_bulk_import.php">📤 Bulk Import Notes/Books (CSV)</a>
-                <a href="admin_resources.php">📂 Student Resource Submissions</a>
-            </div>
-        </div>
-
+<div class="card">
+    <i class="fas fa-book"></i>
+    <h3>Content</h3>
+    <div class="card-buttons">
+        <a href="admin_note_editor.php">Write Note</a>
+        <a href="admin_notes_list.php">Manage Notes</a>
+        <a href="admin_upload_book.php">Upload Book</a>
+        <a href="admin_mark_exercises.php">Mark Exercises</a>
+        <a href="admin_book_questions.php">📚 Book Questions</a>
+        <a href="admin_bulk_import.php">📤 Bulk Import Notes/Books (CSV)</a>
+        <a href="admin_resources.php">📂 Student Resource Submissions</a>
+        <a href="admin_select_note_for_extraction.php">📤 Extract Exercises to Assignments</a>
+    </div>
+</div>
         <!-- Exams Card -->
         <div class="card">
             <i class="fas fa-pen-alt"></i>
@@ -167,18 +167,18 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
         <a href="admin_run_pending_exercises.php">⏰ Run Manual Checks (Exercises + Assignments)</a>
     </div>
 </div>
-        <!-- System Card -->
-        <div class="card">
-            <i class="fas fa-cogs"></i>
-            <h3>System</h3>
-            <div class="card-buttons">
-                <a href="admin_backup.php">Backup Database</a>
-                <a href="admin_settings.php">Change Password</a>
-                <a href="admin_notifications_center.php">Notifications Center</a>
-                <a href="admin_feedback.php">Student Feedback</a>
-            </div>
-        </div>
+       <!-- System Card -->
+<div class="card">
+    <i class="fas fa-cogs"></i>
+    <h3>System</h3>
+    <div class="card-buttons">
+        <a href="admin_backup.php">Backup Database</a>
+        <a href="admin_settings.php">Change Password</a>
+        <a href="admin_notifications_center.php">Notifications Center</a>
+        <a href="admin_feedback.php">Student Feedback</a>
+        <a href="admin_backup_extract_all.php">📦 Full Extraction (Files + Database)</a>
     </div>
+</div>
 
     <?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>

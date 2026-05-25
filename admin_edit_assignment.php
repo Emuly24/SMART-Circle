@@ -59,6 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="card" style="padding: 2rem;">
             <h2>✏️ Edit Assignment</h2>
+            
+            <?php if($assign['note_id']): 
+                $note = $conn->query("SELECT title FROM notes WHERE id={$assign['note_id']}")->fetch_assoc();
+            ?>
+                <p><strong>📖 From Note:</strong> <a href="admin_note_editor.php?id=<?=$assign['note_id']?>" target="_blank"><?=htmlspecialchars($note['title'])?></a></p>
+                <p><small>This assignment was extracted from a note. The due date can be set below.</small></p>
+            <?php endif; ?>
+            
             <form method="post" enctype="multipart/form-data">
                 <div class="form-group"><label>Title</label><input type="text" name="title" value="<?= htmlspecialchars($assign['title']) ?>" required></div>
                 <div class="form-group"><label>Description</label><textarea name="description" id="editor"><?= htmlspecialchars($assign['description']) ?></textarea></div>
@@ -85,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group"><label>Due Date</label><input type="date" name="due_date" value="<?= $assign['due_date'] ?>" required></div>
+                <div class="form-group"><label>Due Date</label><input type="datetime-local" name="due_date" value="<?= str_replace(' ', 'T', $assign['due_date']) ?>" required></div>
 
                 <button type="submit" class="btn">Save Changes</button>
             </form>
