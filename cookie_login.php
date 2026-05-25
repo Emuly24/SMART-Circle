@@ -19,7 +19,7 @@ function loginUser($user_id, $role, $remember = false) {
     // Set the cookie
     setcookie('auth_token', $token, $cookie_expiry, '/', '', false, true);
     
-    return $token; // ✅ Return the token so we can debug it
+    return $token;
 }
 
 function logoutUser() {
@@ -41,7 +41,7 @@ function checkLogin() {
     $conn = getDB();
     $result = $conn->query("SELECT user_id, role FROM login_tokens WHERE token = '$token' AND expires > NOW()");
     if ($result && $row = $result->fetch_assoc()) {
-        return $row; // Returns ['user_id' => X, 'role' => 'admin' or 'student']
+        return $row;
     }
     return null;
 }
@@ -64,32 +64,43 @@ function enforceLogin() {
     $current = basename($_SERVER['SCRIPT_NAME']);
     $public_pages = ['index.php', 'login.php', 'signup.php', 'logout.php'];
     
-    // ❗ Add this line if it's missing:
+    // If on login page, do nothing
     if ($current === 'login.php') {
-        return; // Do nothing on the login page
+        return;
     }
     
+    // If not logged in, redirect to login
     if (!$login && !in_array($current, $public_pages)) {
         header("Location: login.php");
         exit;
     }
-        
-        // Store user data in superglobals for easy access
-        $GLOBALS['auth_user'] = $user;
-        $GLOBALS['auth_role'] = $role;
-        
-        // Role-based redirects
-        if ($role === 'admin' && strpos($current, 'admin_') !== 0) {
-            // Admin trying to access student page → send to admin dashboard
-            header("Location: admin_dashboard.php");
-            exit;
-        }
-        if ($role === 'student' && strpos($current, 'admin_') === 0) {
-            // Student trying to access admin page → send to dashboard
-            header("Location: dashboard.php");
-            exit;
-        }
+    
+    // Logged in – get user data
+    $user = getLoggedInUser();
+    $role = $login['role'];
+    
+    if (!$user) {
+        logoutUser();
+        header("Location: login.php");
+        exit;
     }
+    
+    // Store user data in superglobals
+    $GLOBALS['auth_user'] = $user;
+    $GLOBALS['auth_role'] = $role;
+    
+    // Role-based redirects
+    if ($role === 'admin' && strpos($current, 'admin_') !== 0) {
+        // Admin trying to access student page → send to admin dashboard
+        header("Location: admin_dashboard.php");
+        exit;
+    }
+    if ($role === 'student' && strpos($current, 'admin_') === 0) {
+        // Student trying to access admin page → send to dashboard
+        header("Location: dashboard.php");
+        exit;
+    }
+}
 
 // Run enforceLogin automatically
 enforceLogin();
