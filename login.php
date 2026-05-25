@@ -1,7 +1,6 @@
 <?php
 ob_start();
 session_save_path('/tmp'); // Fix for InfinityFree session storage
-require_once 'check_remember_me.php';
 require_once 'config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
