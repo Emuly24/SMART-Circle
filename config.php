@@ -1,6 +1,6 @@
 <?php
 // config.php - All settings + admin hash from database
-
+echo "config.php loaded.<br>";
 // ---------- DATABASE (InfinityFree) ----------
 define('DB_HOST', 'sql302.infinityfree.com');
 define('DB_NAME', 'if0_41797522_smarttutor');
