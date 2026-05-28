@@ -1,6 +1,5 @@
 <?php
 ob_start(); // Prevents HTTP 500/Headers already sent error
-require_once 'check_remember_me.php';
 require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -135,12 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required placeholder="Enter your password">
-            </div>
-            <div class="form-group">
-                <label class="distinct-checkbox">
-                    <input type="checkbox" name="remember" value="1">
-                    <span>Remember Me</span>
-                </label>
             </div>
             <button type="submit" class="btn btn-login">Login</button>
         </form>
