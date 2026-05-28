@@ -1,19 +1,21 @@
 <?php
-// Temporary fix: Define getAdminHash() directly here
-function getAdminHash() {
-    static $hash = null;
-    if ($hash !== null) return $hash;
-    $conn = new mysqli('sql302.infinityfree.com', 'if0_41797522', 'Emuly241295', 'if0_41797522_smarttutor');
-    $result = $conn->query("SELECT setting_value FROM admin_settings WHERE setting_key = 'admin_hash'");
-    if ($result && $row = $result->fetch_assoc()) {
-        $hash = $row['setting_value'];
-    } else {
-        $hash = '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu';
-    }
-    return $hash;
+require_once 'config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-require_once 'config.php';
+$admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
+if (!isset($_SESSION['admin_logged'])) {
+    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
+        header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
+        header('HTTP/1.0 401 Unauthorized');
+        echo 'Access denied';
+        exit;
+    }
+    $_SESSION['admin_logged'] = true;
+    $_SESSION['role'] = 'admin';
+    unset($_SESSION['user_id']);
+}
 $conn = getDB();
 $total_students = $conn->query("SELECT COUNT(*) FROM users WHERE approved=1 AND status!='dismissed'")->fetch_row()[0];
 $pending_apps = $conn->query("SELECT COUNT(*) FROM applications WHERE status='pending'")->fetch_row()[0];

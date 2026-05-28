@@ -1,9 +1,4 @@
 <?php
-// Ensure session is started so we can check login status
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Get the current file name dynamically
 $current_file = basename($_SERVER['PHP_SELF']);
 ?>
