@@ -84,16 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['suspension_end'] = $user['suspension_end'];
             }
 
-            if ($remember) {
-                $token = bin2hex(random_bytes(32));
-                $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
-                $conn->query("DELETE FROM remember_tokens WHERE user_id = {$user['id']}");
-                $stmt2 = $conn->prepare("INSERT INTO remember_tokens (user_id, token, expires_at) VALUES (?, ?, ?)");
-                $stmt2->bind_param("iss", $user['id'], $token, $expires);
-                $stmt2->execute();
-                setcookie('remember_me', $token, time() + 86400 * 30, '/', '', false, true);
-            }
-
             if ($user['approved'] == 0) {
                 $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
                 if (!$has_app) {
