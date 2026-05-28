@@ -1,6 +1,7 @@
 <?php
+
 // config.php - All settings + admin hash from database
-echo "config.php loaded.<br>";
+
 // ---------- DATABASE (InfinityFree) ----------
 define('DB_HOST', 'sql302.infinityfree.com');
 define('DB_NAME', 'if0_41797522_smarttutor');
@@ -20,7 +21,6 @@ function getDB() {
     }
     return $conn;
 }
-
 function log_activity($user_id, $action, $details = null) {
     $conn = getDB();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -59,43 +59,4 @@ function is_content_unlocked($content_type, $content_id, $user_id = null) {
     }
     return $lock['is_locked'] == 0;
 }
-
-// ===== DATABASE SESSION HANDLER (Bypasses InfinityFree session issues) =====
-function db_session_open($save_path, $session_name) { return true; }
-function db_session_close() { return true; }
-
-function db_session_read($id) {
-    $conn = getDB();
-    $result = $conn->query("SELECT data FROM sessions WHERE id = '$id'");
-    if ($result && $row = $result->fetch_assoc()) {
-        return $row['data'];
-    }
-    return '';
-}
-
-function db_session_write($id, $data) {
-    $conn = getDB();
-    $conn->query("REPLACE INTO sessions (id, data, last_accessed) VALUES ('$id', '$data', NOW())");
-    return true;
-}
-
-function db_session_destroy($id) {
-    $conn = getDB();
-    $conn->query("DELETE FROM sessions WHERE id = '$id'");
-    return true;
-}
-
-function db_session_gc($max_lifetime) {
-    $conn = getDB();
-    $conn->query("DELETE FROM sessions WHERE last_accessed < DATE_SUB(NOW(), INTERVAL $max_lifetime SECOND)");
-    return true;
-}
-
-// Register the database session handler
-session_set_save_handler('db_session_open', 'db_session_close', 'db_session_read', 'db_session_write', 'db_session_destroy', 'db_session_gc');
-register_shutdown_function('session_write_close');
-
-// Optional: Set session save path to a dummy value so the default file handler doesn't interfere
-ini_set('session.save_path', '/dev/null');
-// ===== END DATABASE SESSION HANDLER =====
 ?>
