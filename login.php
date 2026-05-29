@@ -1,13 +1,10 @@
 <?php
 require_once 'config.php';
-session_save_path('/tmp');
 
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// CRITICAL FIX: If user is already logged in, redirect immediately
 if (isset($_SESSION['user_id'])) {
     // Redirect based on role (admin goes to admin_dashboard, student to dashboard)
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
@@ -17,7 +14,6 @@ if (isset($_SESSION['user_id'])) {
     }
     exit;
 }
-
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = $_POST['login'];

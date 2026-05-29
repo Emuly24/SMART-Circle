@@ -1,4 +1,24 @@
 <?php
+// Fix for InfinityFree HTTPS → Cookie mismatch
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => true,
+        'httponly' => true
+    ]);
+} else {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true
+    ]);
+}
+session_save_path('/tmp');
+
 // ---------- DATABASE (InfinityFree) ----------
 define('DB_HOST', 'sql302.infinityfree.com');
 define('DB_NAME', 'if0_41797522_smarttutor');
