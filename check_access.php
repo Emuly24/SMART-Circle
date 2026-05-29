@@ -1,9 +1,8 @@
 <?php
-// Start session only if not already started
+require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 // If not logged in, only allow public pages
 if (!isset($_SESSION['user_id'])) {
     $public_pages = ['index.php', 'signup.php', 'login.php', 'logout.php'];

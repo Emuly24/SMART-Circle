@@ -1,5 +1,11 @@
 <?php
- session_start(); ?>
+require_once 'config.php';
+session_start();
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
