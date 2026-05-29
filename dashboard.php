@@ -1,5 +1,4 @@
 <?php
-<?php
 require_once 'config.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,7 +10,9 @@ if (!isset($_SESSION['user_id'])) {
 $uid = $_SESSION['user_id'];
 $conn = getDB();
 $user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
+
+// Fetch user data (approved, fullname, class_level, status)
+$userStatus = $conn->query("SELECT approved, fullname, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
 
 // If user is not approved, show the "Complete Your Application" page
 if (!$userStatus || !$userStatus['approved']) {
