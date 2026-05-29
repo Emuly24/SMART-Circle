@@ -1,6 +1,5 @@
 <?php
 require_once 'config.php';
-require_once 'check_access.php';  // <-- This runs first and sets session vars
 
 $conn = getDB();
 $uid = $_SESSION['user_id'];      // <-- Use the session variable
