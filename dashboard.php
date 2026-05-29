@@ -1,15 +1,10 @@
 <?php
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-$uid = $_SESSION['user_id'];
+require_once 'check_access.php';  // <-- This runs first and sets session vars
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
+$uid = $_SESSION['user_id'];      // <-- Use the session variable
+$class = $_SESSION['class_level']; // <-- Use the session variable
 
 // Fetch user data (approved, fullname, class_level, status)
 $userStatus = $conn->query("SELECT approved, fullname, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
