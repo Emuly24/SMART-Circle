@@ -1,6 +1,7 @@
 <?php
 ob_start(); // Prevents HTTP 500/Headers already sent error
 require_once 'config.php';
+require_once 'check_access.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

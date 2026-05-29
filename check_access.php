@@ -23,7 +23,7 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-if (!$user) {
+if (!$user) {  
     session_destroy();
     header("Location: login.php");
     exit;
