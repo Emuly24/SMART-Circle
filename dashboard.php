@@ -1,13 +1,17 @@
 <?php
+<?php
 require_once 'config.php';
-require_once 'check_access.php';
-
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+$uid = $_SESSION['user_id'];
 $conn = getDB();
-$uid = $user['id'];
-$class = $user['class_level'];
-
-// Fetch user data (approved, fullname, class_level, status)
-$userStatus = $conn->query("SELECT approved, fullname, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
+$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
+?>
 
 // If user is not approved, show the "Complete Your Application" page
 if (!$userStatus || !$userStatus['approved']) {
