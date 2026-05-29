@@ -1,8 +1,18 @@
 <?php
 require_once 'check_remember_me.php';
+<?php
 require_once 'config.php';
-require_once 'check_access.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+$uid = $_SESSION['user_id'];
 $conn = getDB();
+$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
+?>
 $uid = $_SESSION['user_id'];
 $resources = $conn->query("SELECT * FROM student_resources WHERE user_id = $uid ORDER BY created_at DESC");
 ?>

@@ -1,7 +1,17 @@
 <?php
+<?php
 require_once 'config.php';
-require_once 'check_access.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+$uid = $_SESSION['user_id'];
 $conn = getDB();
+$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
+?>
 $uid = $user['id'];
 $exam_id = (int)$_GET['exam_id'];
 $exam = $conn->query("SELECT title FROM exams WHERE id=$exam_id")->fetch_assoc();

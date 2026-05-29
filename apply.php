@@ -1,8 +1,18 @@
 <?php
 ob_start();
+<?php
 require_once 'config.php';
-require_once 'check_access.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+$uid = $_SESSION['user_id'];
 $conn = getDB();
+$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
+?>
 
 // Fetch user data
 $user_result = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid");
