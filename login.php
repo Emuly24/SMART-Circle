@@ -1,49 +1,20 @@
 <?php
-ob_start(); // Prevents HTTP 500/Headers already sent error
 require_once 'config.php';
-require_once 'check_access.php';
+session_save_path('/tmp');
+
+// Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// CRITICAL FIX: If user is already logged in, redirect immediately
 if (isset($_SESSION['user_id'])) {
-    $first_name = '';
-    $fullname = $_SESSION['fullname'] ?? '';
-    if (!empty($fullname)) {
-        $name_parts = explode(' ', trim($fullname));
-        $first_name = $name_parts[0] ?? '';
+    // Redirect based on role (admin goes to admin_dashboard, student to dashboard)
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header('Location: admin_dashboard.php');
+    } else {
+        header('Location: dashboard.php');
     }
-    if (empty($first_name)) {
-        $conn = getDB();
-        $uid = (int)$_SESSION['user_id'];
-        $result = $conn->query("SELECT fullname FROM users WHERE id = $uid");
-        if ($result && $user = $result->fetch_assoc()) {
-            $fullname = $user['fullname'] ?? '';
-            $name_parts = explode(' ', trim($fullname));
-            $first_name = $name_parts[0] ?? '';
-        }
-    }
-    if (empty($first_name)) {
-        $first_name = 'User';
-    }
-    ?>
-    <!DOCTYPE html>
-    <html><head><title>Already Logged In</title><link rel="stylesheet" href="style.css"></head>
-    <body>
-    <?php include_once 'includes/header.php'; ?>
-    <?php include_once 'includes/progress_tracker.php'; ?>
-    <div class="container">
-        <div class="card">
-            <h2>Welcome back, <?= htmlspecialchars($first_name) ?>!</h2>
-            <p>We wish you a joyful and meaningful use of SMART Circle.</p>
-            <div class="card-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
-                <a href="dashboard.php" class="btn">Go to Dashboard</a>
-                <a href="logout.php" class="btn-danger">Logout</a>
-            </div>
-        </div>
-    </div>
-    </body></html>
-    <?php
     exit;
 }
 
@@ -51,7 +22,6 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = $_POST['login'];
     $pass = $_POST['password'];
-    $remember = isset($_POST['remember']) ? true : false;
 
     if (empty($login) || empty($pass)) {
         $error = "Enter phone/email and password.";
@@ -63,6 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
 
         if ($user && password_verify($pass, $user['password'])) {
+            session_regenerate_id(true);
+            
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
 
@@ -78,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             } else {
                 $_SESSION['role'] = 'student';
-                unset($_SESSION['admin_logged']);
                 $_SESSION['approved'] = $user['approved'];
                 $_SESSION['consent_signed'] = $user['consent_signed'];
                 $_SESSION['status'] = $user['status'];
@@ -111,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html><head><title>Login - SMART Circle</title><link rel="stylesheet" href="style.css"></head>
 <body class="login-page">
     <?php include_once 'includes/header.php'; ?>
-    <?php include_once 'includes/progress_tracker.php'; ?>
     <div class="login-container">
         <h2 class="login-title">Welcome Back</h2>
         <?php if ($error): ?>
@@ -136,4 +106,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
 </body>
 </html>
-<?php ob_end_flush(); ?>

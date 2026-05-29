@@ -1,4 +1,15 @@
 <?php
+session_start();
+if (isset($_SESSION['user_id'])) {
+    echo "Session exists. User ID: " . $_SESSION['user_id'] . "<br>";
+    // Render dashboard normally
+} else {
+    echo "No session found. Would have redirected to login.php.<br>";
+    echo "Request URI: " . $_SERVER['REQUEST_URI'] . "<br>";
+    echo "Session ID: " . session_id() . "<br>";
+    echo "Cookie: " . $_COOKIE['PHPSESSID'] ?? 'Not set' . "<br>";
+    // Do NOT redirect. Let the script continue to a 'Please log in' screen.
+}
 require_once 'config.php';
 
 $conn = getDB();
