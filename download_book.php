@@ -10,7 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 $uid = $_SESSION['user_id'];
 $conn = getDB();
 $user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
 $uid = $_SESSION['user_id'];
 $book_id = (int)$_GET['id'];
 $book = $conn->query("SELECT file_path FROM books WHERE id = $book_id")->fetch_assoc();
