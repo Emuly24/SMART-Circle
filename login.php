@@ -1,22 +1,25 @@
 <?php
 require_once 'config.php';
 
-// Start session
+// Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (isset($_SESSION['user_id'])) {
-    // Redirect based on role (admin goes to admin_dashboard, student to dashboard)
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+
+// Loop-breaker guard: if already logged in, redirect appropriately
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    if ($_SESSION['role'] === 'admin') {
         header('Location: admin_dashboard.php');
     } else {
         header('Location: dashboard.php');
     }
     exit;
 }
+
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $login = $_POST['login'];
+    $login = trim($_POST['login']);
     $pass = $_POST['password'];
 
     if (empty($login) || empty($pass)) {
@@ -29,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
 
         if ($user && password_verify($pass, $user['password'])) {
-            session_regenerate_id(true);
-            
+            // Set all session variables FIRST
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
 
@@ -38,12 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
 
+            // Role-specific setup
             if (isset($user['role']) && $user['role'] === 'admin') {
                 $_SESSION['role'] = 'admin';
                 $_SESSION['admin_logged'] = true;
-                unset($_SESSION['user_id']);
-                header("Location: admin_dashboard.php");
-                exit;
+                // KEEP user_id – unified login needs it for all pages
             } else {
                 $_SESSION['role'] = 'student';
                 $_SESSION['approved'] = $user['approved'];
@@ -52,20 +53,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['suspension_end'] = $user['suspension_end'];
             }
 
+            // CRITICAL: Regenerate session ID AFTER setting data, and force write
+            session_regenerate_id(true);
+            session_write_close(); // Ensure session data is saved to disk
+
+            // Redirect based on role and conditions
+            if (isset($user['role']) && $user['role'] === 'admin') {
+                header("Location: admin_dashboard.php");
+                exit;
+            }
+
+            // Student flow
             if ($user['approved'] == 0) {
                 $has_app = $conn->query("SELECT id FROM applications WHERE user_id = {$user['id']}")->num_rows > 0;
                 if (!$has_app) {
                     header("Location: apply.php");
-                    exit;
                 } else {
                     header("Location: pending.php");
-                    exit;
                 }
+                exit;
             } elseif ($user['approved'] == 1 && $user['consent_signed'] == 0) {
                 header("Location: consent.php");
                 exit;
             }
 
+            // Normal approved student with consent signed
             header("Location: dashboard.php");
             exit;
         } else {
@@ -75,7 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html><head><title>Login - SMART Circle</title><link rel="stylesheet" href="style.css"></head>
+<html>
+<head>
+    <title>Login - SMART Circle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body class="login-page">
     <?php include_once 'includes/header.php'; ?>
     <div class="login-container">
@@ -99,6 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="forgot_password.php">Forgot password?</a>
         </div>
     </div>
-    <div class="footer"><a href="index.php" class="btn-back">← Back</a></div>
+    <div class="footer">
+        <a href="index.php" class="btn-back">← Back</a>
+    </div>
 </body>
 </html>
