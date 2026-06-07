@@ -1,29 +1,20 @@
 <?php
-// ===== CRITICAL FIX: Use the same session folder as login.php =====
-$session_path = __DIR__ . '/sessions';
-if (!is_dir($session_path)) {
-    mkdir($session_path, 0755, true);
+session_start();
+if (isset($_SESSION['user_id'])) {
+    echo "Session exists. User ID: " . $_SESSION['user_id'] . "<br>";
+    // Render dashboard normally
+} else {
+    echo "No session found. Would have redirected to login.php.<br>";
+    echo "Request URI: " . $_SERVER['REQUEST_URI'] . "<br>";
+    echo "Session ID: " . session_id() . "<br>";
+    echo "Cookie: " . $_COOKIE['PHPSESSID'] ?? 'Not set' . "<br>";
+    // Do NOT redirect. Let the script continue to a 'Please log in' screen.
 }
-session_save_path($session_path);
-
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// ===== CHECK IF USER IS LOGGED IN =====
-if (!isset($_SESSION['user_id'])) {
-    // No session found – redirect to login page
-    header('Location: login.php');
-    exit;
-}
-
-// User is logged in – proceed with dashboard
 require_once 'config.php';
 
 $conn = getDB();
-$uid = $_SESSION['user_id'];
-$class = $_SESSION['class_level'] ?? '';
+$uid = $_SESSION['user_id'];      // <-- Use the session variable
+$class = $_SESSION['class_level']; // <-- Use the session variable
 
 // Fetch user data (approved, fullname, class_level, status)
 $userStatus = $conn->query("SELECT approved, fullname, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
@@ -226,7 +217,7 @@ $unread_msgs = $msg_row['unread'] ?? 0;
         <h3><i class="fas fa-book-open"></i> Your Subjects</h3>
         <div class="subjects-scroll">
             <?php
-            $class = $_SESSION['class_level'] ?? '';
+            $class = $_SESSION['class_level'];
             $subjects = $conn->query("SELECT DISTINCT n.subject 
                 FROM notes n 
                 WHERE n.class_level='$class' 
