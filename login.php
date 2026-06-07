@@ -1,16 +1,12 @@
 <?php
-$session_path = __DIR__ . '/sessions';
-if (!is_dir($session_path)) {
-    mkdir($session_path, 0755, true);
-}
-session_save_path($session_path);
+require_once 'config.php';
 
 // Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Loop‑breaker guard: if already logged in, redirect appropriately
+// Loop-breaker guard: if already logged in, redirect appropriately
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     if ($_SESSION['role'] === 'admin') {
         header('Location: admin_dashboard.php');
@@ -19,8 +15,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     }
     exit;
 }
-
-require_once 'config.php'; // Make sure config.php does NOT call session_start() again
 
 $error = '';
 
@@ -46,9 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_activity($user['id'], "login", "Logged in via login form");
             }
 
+            // Role-specific setup
             if (isset($user['role']) && $user['role'] === 'admin') {
                 $_SESSION['role'] = 'admin';
                 $_SESSION['admin_logged'] = true;
+                // KEEP user_id – unified login needs it for all pages
             } else {
                 $_SESSION['role'] = 'student';
                 $_SESSION['approved'] = $user['approved'];
@@ -56,11 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['status'] = $user['status'];
                 $_SESSION['suspension_end'] = $user['suspension_end'];
             }
-            session_regenerate_id(true);
-            session_write_close(); // Force session data to be written to disk NOW
 
-            // Small delay to ensure the session file is fully written (1/10 second)
-            usleep(100000);
+            // CRITICAL: Regenerate session ID AFTER setting data, and force write
+            session_regenerate_id(true);
+            session_write_close(); // Ensure session data is saved to disk
 
             // Redirect based on role and conditions
             if (isset($user['role']) && $user['role'] === 'admin') {
@@ -82,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
+            // Normal approved student with consent signed
             header("Location: dashboard.php");
             exit;
         } else {
