@@ -1,11 +1,10 @@
 <?php
 // ===== DATABASE SESSION HANDLER – FIX FOR INFINITYFREE =====
-// This will use your 'sessions' table (InnoDB) instead of file-based /tmp or folder.
+// Must be the FIRST PHP CODE in this file.
 
-// ===== ERROR REPORTING (enable for debugging) =====
+// ===== ERROR REPORTING =====
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 
 // ===== DATABASE CONSTANTS =====
 define('DB_HOST', 'sql302.infinityfree.com');
@@ -32,7 +31,7 @@ function getDB() {
     return $conn;
 }
 
-// ===== SESSION HANDLER FUNCTIONS (uses your 'sessions' table) =====
+// ===== SESSION HANDLER FUNCTIONS =====
 function sess_open($savePath, $sessionName) {
     return true;
 }
@@ -74,7 +73,7 @@ function sess_gc($maxlifetime) {
     return $stmt->execute();
 }
 
-// ===== REGISTER THE SESSION HANDLER =====
+// ===== REGISTER THE HANDLER =====
 session_set_save_handler('sess_open', 'sess_close', 'sess_read', 'sess_write', 'sess_destroy', 'sess_gc');
 
 // ===== START SESSION =====
@@ -82,7 +81,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ===== YOUR EXISTING FUNCTIONS =====
+// ===== REST OF YOUR FUNCTIONS =====
 function log_activity($user_id, $action, $details = null) {
     $conn = getDB();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -102,8 +101,7 @@ function getAdminHash() {
     if ($row = $result->fetch_assoc()) {
         $hash = $row['setting_value'];
     } else {
-        // Fallback – should be changed immediately after deployment
-        $hash = password_hash('smartcircle', PASSWORD_DEFAULT);
+        $hash = password_hash('smarttutor@2026', PASSWORD_DEFAULT);
         $stmt2 = $conn->prepare("INSERT INTO admin_settings (setting_key, setting_value) VALUES ('admin_hash', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
         $stmt2->bind_param("ss", $hash, $hash);
         $stmt2->execute();

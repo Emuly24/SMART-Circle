@@ -6,10 +6,6 @@ if (!is_dir($session_path)) {
 }
 session_save_path($session_path);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // ===== LOOP BREAKER – if already logged in, redirect =====
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     session_write_close();
