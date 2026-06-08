@@ -1,30 +1,13 @@
 <?php
-// ===== SECURE SESSION CONFIGURATION =====
-$session_path = __DIR__ . '/sessions';
-if (!is_dir($session_path)) {
-    mkdir($session_path, 0755, true);
-}
-session_save_path($session_path);
+// ===== DATABASE SESSION HANDLER – FIX FOR INFINITYFREE =====
+// This will use your 'sessions' table (InnoDB) instead of file-based /tmp or folder.
 
-// Set secure cookie parameters
-$is_https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'domain' => '',
-    'secure' => $is_https,
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-
-// Error reporting (hide in production)
+// ===== ERROR REPORTING (enable for debugging) =====
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // 1 for dev, 0 for production
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 
-// Timezone
-date_default_timezone_set('Africa/Blantyre');
-
-// ---------- DATABASE (InfinityFree) ----------
+// ===== DATABASE CONSTANTS =====
 define('DB_HOST', 'sql302.infinityfree.com');
 define('DB_NAME', 'if0_41797522_smarttutor');
 define('DB_USER', 'if0_41797522');
@@ -34,6 +17,7 @@ define('ADMIN_EMAIL', 'blessingsemulyn@gmail.com');
 define('CSRF_SECRET', '224d11095174e2966eb60fdda5127cbe09d6d357e52fa80e0a297953a6e04f95');
 define('SESSION_SECRET', 'a96d548496c8f7f85220fa458e49d297a3bcdf78fcf546b71999161a9cd87851');
 
+// ===== DATABASE CONNECTION FUNCTION =====
 function getDB() {
     static $conn = null;
     if ($conn !== null && !@$conn->ping()) $conn = null;
@@ -48,6 +32,57 @@ function getDB() {
     return $conn;
 }
 
+// ===== SESSION HANDLER FUNCTIONS (uses your 'sessions' table) =====
+function sess_open($savePath, $sessionName) {
+    return true;
+}
+
+function sess_close() {
+    return true;
+}
+
+function sess_read($id) {
+    $conn = getDB();
+    $stmt = $conn->prepare("SELECT data FROM sessions WHERE id = ?");
+    $stmt->bind_param("s", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        return $row['data'];
+    }
+    return '';
+}
+
+function sess_write($id, $data) {
+    $conn = getDB();
+    $stmt = $conn->prepare("REPLACE INTO sessions (id, data, last_accessed) VALUES (?, ?, NOW())");
+    $stmt->bind_param("ss", $id, $data);
+    return $stmt->execute();
+}
+
+function sess_destroy($id) {
+    $conn = getDB();
+    $stmt = $conn->prepare("DELETE FROM sessions WHERE id = ?");
+    $stmt->bind_param("s", $id);
+    return $stmt->execute();
+}
+
+function sess_gc($maxlifetime) {
+    $conn = getDB();
+    $stmt = $conn->prepare("DELETE FROM sessions WHERE last_accessed < NOW() - INTERVAL ? SECOND");
+    $stmt->bind_param("i", $maxlifetime);
+    return $stmt->execute();
+}
+
+// ===== REGISTER THE SESSION HANDLER =====
+session_set_save_handler('sess_open', 'sess_close', 'sess_read', 'sess_write', 'sess_destroy', 'sess_gc');
+
+// ===== START SESSION =====
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// ===== YOUR EXISTING FUNCTIONS =====
 function log_activity($user_id, $action, $details = null) {
     $conn = getDB();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -68,7 +103,7 @@ function getAdminHash() {
         $hash = $row['setting_value'];
     } else {
         // Fallback – should be changed immediately after deployment
-        $hash = password_hash('smarttutor@2026', PASSWORD_DEFAULT);
+        $hash = password_hash('smartcircle', PASSWORD_DEFAULT);
         $stmt2 = $conn->prepare("INSERT INTO admin_settings (setting_key, setting_value) VALUES ('admin_hash', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
         $stmt2->bind_param("ss", $hash, $hash);
         $stmt2->execute();
