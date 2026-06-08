@@ -1,9 +1,26 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 $subjects = ['Mathematics', 'Biology', 'English', 'Physics', 'Chemistry'];
 $error = '';
 $success = '';
@@ -12,14 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = $_POST['subject'];
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
-    $type = $_POST['type']; // FIXED: select name is "type"
+    $type = $_POST['type'];
     $external_url = trim($_POST['external_url']);
     $file_paths = [];
     
     if (empty($subject) || empty($title)) {
         $error = "Subject and title are required.";
     } else {
-        // Handle file uploads (multiple)
         if (isset($_FILES['files']) && !empty($_FILES['files']['name'][0])) {
             $uploadDir = 'uploads/student_resources/';
             if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -41,14 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        // Handle external URL (if provided and no file upload)
         if (empty($file_paths) && !empty($external_url)) {
             $external_url = filter_var($external_url, FILTER_SANITIZE_URL);
             if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
                 $error = "Invalid external URL.";
             }
         }
-        // If neither files nor URL
         if (empty($file_paths) && empty($external_url)) {
             $error = "Please upload at least one file or provide an external link.";
         }

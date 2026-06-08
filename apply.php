@@ -1,21 +1,30 @@
 <?php
-ob_start();
-<?php
-require_once 'config.php';
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+// Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// ===== CHECK IF USER IS LOGGED IN =====
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php'; // Ensures user is approved, consent signed, etc.
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
+$uid = $_SESSION['user_id'];
 
 // Fetch user data
-$user_result = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route FROM users WHERE id=$uid");
+$user_result = $conn->query("SELECT approved, class_level, gender, school, dob, subjects, route, fullname, phone, email FROM users WHERE id=$uid");
 if (!$user_result) {
     die("Database error: " . $conn->error);
 }
@@ -24,6 +33,7 @@ if (!$user) {
     die("User not found.");
 }
 
+// If user is already approved, redirect to dashboard
 if ($user['approved']) {
     header("Location: dashboard.php");
     exit;
@@ -141,6 +151,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE user_id=$uid");
         } else {
             $conn->query("INSERT INTO applications (user_id, ambition, career_reason, university, why_join, subject_assist, target_points, seriousness_answers) VALUES ($uid, '$ambition', '$career_reason', '$university', '$why_join', '$subjects_assist', $target_points, '$seriousness')");
+        }
+        // Log activity
+        if (function_exists('log_activity')) {
+            log_activity($uid, "submit_application", "Application submitted for $class_level");
         }
         header("Location: pending.php");
         exit;

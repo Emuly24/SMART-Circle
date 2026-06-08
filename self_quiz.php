@@ -1,9 +1,26 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 $subject = isset($_GET['subject']) ? trim($_GET['subject']) : '';
 if (!$subject) die("No subject selected.");
 
@@ -16,7 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
     $total = 0;
     $correct = 0;
     foreach ($_POST['answers'] as $qid => $ans) {
-        $q = $conn->query("SELECT correct_answer, explanation FROM self_quizzes WHERE id = " . (int)$qid)->fetch_assoc();
+        $q_stmt = $conn->prepare("SELECT correct_answer, explanation FROM self_quizzes WHERE id = ?");
+        $q_stmt->bind_param("i", $qid);
+        $q_stmt->execute();
+        $q = $q_stmt->get_result()->fetch_assoc();
         if ($q) {
             $total++;
             $is_correct = ($ans == $q['correct_answer']);
@@ -28,12 +48,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
         }
     }
     $score = "$correct / $total";
-    // Store attempt
-    $conn->query("INSERT INTO self_quiz_attempts (user_id, subject, score, total_questions) VALUES ($uid, '$subject', $correct, $total)");
+    $stmt = $conn->prepare("INSERT INTO self_quiz_attempts (user_id, subject, score, total_questions) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isii", $uid, $subject, $correct, $total);
+    $stmt->execute();
 }
 
-// Fetch random questions
-$questions = $conn->query("SELECT * FROM self_quizzes WHERE subject = '$subject' ORDER BY RAND() LIMIT 5");
+$questions_stmt = $conn->prepare("SELECT * FROM self_quizzes WHERE subject = ? ORDER BY RAND() LIMIT 5");
+$questions_stmt->bind_param("s", $subject);
+$questions_stmt->execute();
+$questions = $questions_stmt->get_result();
+
 if ($questions->num_rows == 0) die("No questions available for this subject.");
 ?>
 <!DOCTYPE html>
@@ -77,5 +101,5 @@ if ($questions->num_rows == 0) die("No questions available for this subject.");
         </form>
     <?php endif; ?>
     <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

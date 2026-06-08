@@ -1,17 +1,25 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php';
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
-$uid = $_SESSION['user_id'];
 $uid = $_SESSION['user_id'];
 
 $sql = "SELECT status, admin_notes FROM applications WHERE user_id = ? LIMIT 1";
@@ -25,6 +33,7 @@ $status = $app ? $app['status'] : 'none';
 $rejection_reason = $app ? $app['admin_notes'] : '';
 
 if ($status === 'approved') {
+    session_write_close();
     header("Location: dashboard.php");
     exit;
 }
@@ -48,89 +57,22 @@ if ($status === 'rejected') {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* === New classes to support pending.php (no inline styles) === */
-        .pending-container {
-            max-width: 800px;
-            margin: 2rem auto;
-        }
-        .pending-card {
-            padding: 2.5rem;
-        }
-        .pending-icon {
-            font-size: 3rem;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        .border-top-accent {
-            border-top: 5px solid var(--accent);
-        }
-        .border-top-error {
-            border-top: 5px solid var(--error);
-        }
-        .pending-list {
-            list-style: none;
-            padding: 0;
-            display: grid;
-            gap: 0.8rem;
-        }
-        .pending-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.8rem;
-        }
-        .pending-check {
-            background: var(--accent);
-            color: #1e293b;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            flex-shrink: 0;
-        }
-        .rejection-box {
-            background: #fef2f2;
-            border-left: 5px solid var(--error);
-            padding: 1.2rem;
-            border-radius: 0.8rem;
-            margin: 1.5rem 0;
-        }
-        .rejection-box h4 {
-            color: var(--error);
-            margin-bottom: 0.5rem;
-        }
-        .pending-footnote {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            text-align: center;
-            border-top: 1px solid var(--card-alt-bg);
-            padding-top: 1rem;
-        }
-        .no-app-box {
-            background: var(--info);
-            color: white;
-            padding: 1.2rem;
-            border-radius: 1rem;
-            margin: 1.5rem 0;
-        }
-        .text-center {
-            text-align: center;
-        }
-        .text-center .pending-icon {
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .info-box {
-            background: var(--card-alt-bg);
-            padding: 1.5rem;
-            border-radius: 1rem;
-            margin: 1.5rem 0;
-        }
-        .info-box h4 {
-            margin-bottom: 1rem;
-        }
+        .pending-container { max-width: 800px; margin: 2rem auto; }
+        .pending-card { padding: 2.5rem; }
+        .pending-icon { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
+        .border-top-accent { border-top: 5px solid var(--accent); }
+        .border-top-error { border-top: 5px solid var(--error); }
+        .pending-list { list-style: none; padding: 0; display: grid; gap: 0.8rem; }
+        .pending-list li { display: flex; align-items: flex-start; gap: 0.8rem; }
+        .pending-check { background: var(--accent); color: #1e293b; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+        .rejection-box { background: #fef2f2; border-left: 5px solid var(--error); padding: 1.2rem; border-radius: 0.8rem; margin: 1.5rem 0; }
+        .rejection-box h4 { color: var(--error); margin-bottom: 0.5rem; }
+        .pending-footnote { font-size: 0.9rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--card-alt-bg); padding-top: 1rem; }
+        .no-app-box { background: var(--info); color: white; padding: 1.2rem; border-radius: 1rem; margin: 1.5rem 0; }
+        .text-center { text-align: center; }
+        .text-center .pending-icon { margin-left: auto; margin-right: auto; }
+        .info-box { background: var(--card-alt-bg); padding: 1.5rem; border-radius: 1rem; margin: 1.5rem 0; }
+        .info-box h4 { margin-bottom: 1rem; }
         .mt-1 { margin-top: 1rem; }
         .mt-2 { margin-top: 1.5rem; }
     </style>
@@ -141,32 +83,20 @@ if ($status === 'rejected') {
 
     <div class="container pending-container">
         <div class="card pending-card <?= $main_color_class ?>">
-            
-            <!-- Main Icon & Heading -->
             <div class="text-center">
                 <i class="fas <?= $main_icon ?> pending-icon" style="color: var(--accent);"></i>
                 <h2 style="color: var(--accent);"><?= $page_title ?></h2>
             </div>
 
             <?php if ($status === 'pending'): ?>
-                <!-- PENDING STATE -->
                 <p class="lead">Thank you for submitting your application. Your details have been received and are currently under review by the SMART Circle admin team.</p>
                 
                 <div class="info-box">
                     <h4><i class="fas fa-arrow-right"></i> What happens next:</h4>
                     <ul class="pending-list">
-                        <li>
-                            <span class="pending-check">✓</span>
-                            <span>Your application will be carefully checked for completeness and eligibility.</span>
-                        </li>
-                        <li>
-                            <span class="pending-check">✓</span>
-                            <span>Approval may take some time depending on the number of applications being processed.</span>
-                        </li>
-                        <li>
-                            <span class="pending-check">✓</span>
-                            <span>Once approved, you will receive a notification in your profile and be taken to the consent agreement.</span>
-                        </li>
+                        <li><span class="pending-check">✓</span><span>Your application will be carefully checked for completeness and eligibility.</span></li>
+                        <li><span class="pending-check">✓</span><span>Approval may take some time depending on the number of applications being processed.</span></li>
+                        <li><span class="pending-check">✓</span><span>Once approved, you will receive a notification in your profile and be taken to the consent agreement.</span></li>
                     </ul>
                 </div>
                 <p class="pending-footnote">
@@ -174,12 +104,9 @@ if ($status === 'rejected') {
                 </p>
 
             <?php elseif ($status === 'rejected'): ?>
-                <!-- REJECTED STATE -->
                 <div class="rejection-box">
                     <h4><i class="fas fa-exclamation-triangle"></i> Your application was not approved</h4>
-                    <p>
-                        <?= htmlspecialchars($rejection_reason ?: 'No specific reason was provided.') ?>
-                    </p>
+                    <p><?= htmlspecialchars($rejection_reason ?: 'No specific reason was provided.') ?></p>
                 </div>
                 <div class="text-center mt-2">
                     <p>You are welcome to <strong>re-apply</strong> if you believe there was an error or if your circumstances have changed.</p>
@@ -187,7 +114,6 @@ if ($status === 'rejected') {
                 </div>
             
             <?php else: ?>
-                <!-- NO APPLICATION STATE -->
                 <div class="no-app-box">
                     <p><i class="fas fa-info-circle"></i> You have not submitted an application yet.</p>
                 </div>
@@ -195,12 +121,10 @@ if ($status === 'rejected') {
                     <a href="apply.php" class="btn btn-primary">Complete Your Application</a>
                 </div>
             <?php endif; ?>
-
         </div>
     </div>
 
-    <div class="footer">
-       <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

@@ -1,32 +1,69 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 $exam_id = (int)$_GET['exam_id'];
-$exam = $conn->query("SELECT * FROM exams WHERE id=$exam_id")->fetch_assoc();
+
+$exam_stmt = $conn->prepare("SELECT * FROM exams WHERE id = ?");
+$exam_stmt->bind_param("i", $exam_id);
+$exam_stmt->execute();
+$exam = $exam_stmt->get_result()->fetch_assoc();
 if (!$exam) die("Exam not found.");
-if (!is_content_unlocked('exam', $exam_id, $uid)) {
-    die("<!DOCTYPE html><html><head><title>Exam Locked</title><link rel='stylesheet' href='style.css'></head><body>
-    <?php include_once 'includes/header.php'; ?>
-    <div class='container'><div class='card error'><h2>🔒 Exam Locked</h2><p>This exam is not yet available for your group.</p></div></div>
-    </body></html>");
+
+// ===== NO LOCKING – all exams are accessible =====
+
+$sub_stmt = $conn->prepare("SELECT * FROM exam_submissions WHERE exam_id = ? AND user_id = ?");
+$sub_stmt->bind_param("ii", $exam_id, $uid);
+$sub_stmt->execute();
+$sub = $sub_stmt->get_result()->fetch_assoc();
+
+if ($sub && $sub['status'] == 'submitted') {
+    die("Already submitted. <a href='exam_results.php?exam_id=$exam_id'>View results</a>");
 }
 
-$sub = $conn->query("SELECT * FROM exam_submissions WHERE exam_id=$exam_id AND user_id=$uid")->fetch_assoc();
-if ($sub && $sub['status'] == 'submitted') die("Already submitted. <a href='exam_results.php?exam_id=$exam_id'>View results</a>");
-if (!$sub) $conn->query("INSERT INTO exam_submissions (exam_id, user_id) VALUES ($exam_id, $uid)");
-$sub = $conn->query("SELECT start_time FROM exam_submissions WHERE exam_id=$exam_id AND user_id=$uid")->fetch_assoc();
+if (!$sub) {
+    $stmt = $conn->prepare("INSERT INTO exam_submissions (exam_id, user_id) VALUES (?, ?)");
+    $stmt->bind_param("ii", $exam_id, $uid);
+    $stmt->execute();
+    $sub = $conn->query("SELECT start_time FROM exam_submissions WHERE exam_id=$exam_id AND user_id=$uid")->fetch_assoc();
+}
+
 $start = new DateTime($sub['start_time']);
 $end = (clone $start)->modify("+{$exam['duration_minutes']} minutes");
+
 if (new DateTime() > $end) {
-    $conn->query("UPDATE exam_submissions SET status='submitted', end_time=NOW() WHERE exam_id=$exam_id AND user_id=$uid");
+    $stmt = $conn->prepare("UPDATE exam_submissions SET status='submitted', end_time=NOW() WHERE exam_id=? AND user_id=?");
+    $stmt->bind_param("ii", $exam_id, $uid);
+    $stmt->execute();
     log_activity($uid, "submit_exam", "Exam ID: $exam_id");
     die("Time's up. Submitted. <a href='exam_results.php?exam_id=$exam_id'>View results</a>");
 }
+
 $remaining = $end->getTimestamp() - time();
-$questions = $conn->query("SELECT * FROM exam_questions WHERE exam_id=$exam_id ORDER BY sort_order");
+$questions_stmt = $conn->prepare("SELECT * FROM exam_questions WHERE exam_id = ? ORDER BY sort_order");
+$questions_stmt->bind_param("i", $exam_id);
+$questions_stmt->execute();
+$questions = $questions_stmt->get_result();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_exam'])) {
     foreach ($_POST['answers'] as $qid => $text) {
         $text = trim($text);
@@ -40,23 +77,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_exam'])) {
                 if (move_uploaded_file($_FILES['answer_files']['tmp_name'][$qid], $dest)) $file_path = $dest;
             }
         }
-        $check = $conn->query("SELECT id FROM exam_answers WHERE exam_id=$exam_id AND question_id=$qid AND user_id=$uid");
-        if ($check->num_rows) {
-            $conn->query("UPDATE exam_answers SET answer_text='$text', answer_file_path='$file_path' WHERE exam_id=$exam_id AND question_id=$qid AND user_id=$uid");
+        $check_stmt = $conn->prepare("SELECT id FROM exam_answers WHERE exam_id=? AND question_id=? AND user_id=?");
+        $check_stmt->bind_param("iii", $exam_id, $qid, $uid);
+        $check_stmt->execute();
+        if ($check_stmt->get_result()->num_rows) {
+            $stmt = $conn->prepare("UPDATE exam_answers SET answer_text=?, answer_file_path=? WHERE exam_id=? AND question_id=? AND user_id=?");
+            $stmt->bind_param("ssiii", $text, $file_path, $exam_id, $qid, $uid);
+            $stmt->execute();
         } else {
-            $conn->query("INSERT INTO exam_answers (exam_id, question_id, user_id, answer_text, answer_file_path) VALUES ($exam_id, $qid, $uid, '$text', '$file_path')");
+            $stmt = $conn->prepare("INSERT INTO exam_answers (exam_id, question_id, user_id, answer_text, answer_file_path) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iiiss", $exam_id, $qid, $uid, $text, $file_path);
+            $stmt->execute();
         }
     }
-    $conn->query("UPDATE exam_submissions SET status='submitted', end_time=NOW() WHERE exam_id=$exam_id AND user_id=$uid");
+    $stmt = $conn->prepare("UPDATE exam_submissions SET status='submitted', end_time=NOW() WHERE exam_id=? AND user_id=?");
+    $stmt->bind_param("ii", $exam_id, $uid);
+    $stmt->execute();
     log_activity($uid, "submit_exam", "Exam ID: $exam_id");
     echo "<script>alert('Exam submitted'); window.location='exams.php';</script>";
     exit;
 }
+
 $saved = [];
-$res = $conn->query("SELECT question_id, answer_text FROM exam_answers WHERE exam_id=$exam_id AND user_id=$uid");
+$res_stmt = $conn->prepare("SELECT question_id, answer_text FROM exam_answers WHERE exam_id=? AND user_id=?");
+$res_stmt->bind_param("ii", $exam_id, $uid);
+$res_stmt->execute();
+$res = $res_stmt->get_result();
 while ($r = $res->fetch_assoc()) $saved[$r['question_id']] = $r['answer_text'];
 ?>
-<!DOCTYPE html><html><head><title><?=htmlspecialchars($exam['title'])?></title><link rel="stylesheet" href="style.css">
+<!DOCTYPE html><html><head><title><?= htmlspecialchars($exam['title']) ?></title><link rel="stylesheet" href="style.css">
 <script>let remaining=<?=$remaining?>; function timer(){if(remaining<=0){document.getElementById('timer').innerHTML="Submitting..."; document.getElementById('examForm').submit();} let mins=Math.floor(remaining/60); let secs=remaining%60; document.getElementById('timer').innerHTML=`Time left: ${mins}m ${secs}s`; remaining--; setTimeout(timer,1000);} window.onload=timer;</script>
 </head><body>
 <?php include_once 'includes/header.php'; ?>

@@ -1,12 +1,9 @@
 <?php
-// get_topics.php – Returns topics filtered by class level
-
 require_once 'topics_data.php';
 
 $subject = $_GET['subject'] ?? '';
 $class = $_GET['class'] ?? '';
 
-// Determine which books to include
 $include_book3 = true;
 $include_book4 = ($class === 'Form 4');
 

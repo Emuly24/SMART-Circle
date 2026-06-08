@@ -1,4 +1,21 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
@@ -19,5 +36,5 @@ $subjects = $conn->query("SELECT DISTINCT subject FROM self_quizzes ORDER BY sub
         </div>
     </div>
    <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+   <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

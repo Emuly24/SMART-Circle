@@ -1,35 +1,52 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php';
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
 $uid = $_SESSION['user_id'];
-$class = $_SESSION['class_level'];
+$class = $_SESSION['class_level'] ?? '';
+
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-$sql = "SELECT id, subject, title, file_path FROM books WHERE class_level='$class'";
+$sql = "SELECT id, subject, title, file_path FROM books WHERE class_level = ?";
+$params = [$class];
+$types = "s";
+
 if ($search) {
-    $search = $conn->real_escape_string($search);
-    $sql .= " AND (title LIKE '%$search%' OR subject LIKE '%$search%')";
+    $sql .= " AND (title LIKE ? OR subject LIKE ?)";
+    $search_param = "%$search%";
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $types .= "ss";
 }
 $sql .= " ORDER BY subject, title";
-$books = $conn->query($sql);
 
-// Remove all borrowing logic
+$stmt = $conn->prepare($sql);
+$stmt->bind_param($types, ...$params);
+$stmt->execute();
+$books = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html><head><title>Library - Books</title><link rel="stylesheet" href="style.css"></head><body>
     <?php include_once 'includes/header.php'; ?>
     <div class="container">
-        <!-- Search Bar (unchanged) -->
         <div class="search-bar" style="margin: 1rem 0; display: flex; gap: 0.5rem;">
             <form method="get" style="flex:1; display: flex; gap: 0.5rem;">
                 <input type="text" name="search" placeholder="Search by title or subject..." value="<?= htmlspecialchars($search) ?>" style="flex:1;">
@@ -62,5 +79,6 @@ $books = $conn->query($sql);
         <?php if ($books->num_rows == 0) echo "<div class='card'><p>No books found for your class or search term.</p></div>"; ?>
         </div>
         <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+        <?php include_once 'includes/toc_navigator.php'; ?>
+    </div>
 </body></html>

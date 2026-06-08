@@ -1,38 +1,63 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php';
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
-$uid = $_SESSION['user_id'];
 $uid = $_SESSION['user_id'];
 
 // Fetch user data, application data, group info
-$user = $conn->query("SELECT u.fullname, u.gender, u.dob, u.class_level, u.school, u.subjects, u.address, u.phone, u.parent_phone, u.email, u.profile_pic, u.created_at, 
+$user_stmt = $conn->prepare("
+    SELECT u.fullname, u.gender, u.dob, u.class_level, u.school, u.subjects, u.address, u.phone, u.parent_phone, u.email, u.profile_pic, u.created_at, 
     a.ambition, a.university, a.target_points, a.career_reason, a.subject_assist 
     FROM users u 
     LEFT JOIN applications a ON u.id = a.user_id 
-    WHERE u.id = $uid")->fetch_assoc();
+    WHERE u.id = ?
+");
+$user_stmt->bind_param("i", $uid);
+$user_stmt->execute();
+$user = $user_stmt->get_result()->fetch_assoc();
 
-$group = $conn->query("SELECT g.group_number, g.class_level, g.id as group_id
+$group_stmt = $conn->prepare("
+    SELECT g.group_number, g.class_level, g.id as group_id
     FROM group_members gm 
     JOIN groups g ON gm.group_id = g.id 
-    WHERE gm.user_id = $uid")->fetch_assoc();
+    WHERE gm.user_id = ?
+");
+$group_stmt->bind_param("i", $uid);
+$group_stmt->execute();
+$group = $group_stmt->get_result()->fetch_assoc();
 
 $group_members = [];
 if ($group) {
-    $members = $conn->query("SELECT u.fullname, u.phone 
+    $members_stmt = $conn->prepare("
+        SELECT u.fullname, u.phone 
         FROM group_members gm 
         JOIN users u ON gm.user_id = u.id 
-        WHERE gm.group_id = {$group['group_id']} AND u.id != $uid");
-    while($m = $members->fetch_assoc()) $group_members[] = $m;
+        WHERE gm.group_id = ? AND u.id != ?
+    ");
+    $members_stmt->bind_param("ii", $group['group_id'], $uid);
+    $members_stmt->execute();
+    $members_result = $members_stmt->get_result();
+    while($m = $members_result->fetch_assoc()) {
+        $group_members[] = $m;
+    }
 }
 
 $error = $success = '';
@@ -91,11 +116,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute()) {
                 $success = "Profile updated.";
                 // Refresh user data
-                $user = $conn->query("SELECT u.fullname, u.gender, u.dob, u.class_level, u.school, u.subjects, u.address, u.phone, u.parent_phone, u.email, u.profile_pic, u.created_at, 
+                $user_stmt = $conn->prepare("
+                    SELECT u.fullname, u.gender, u.dob, u.class_level, u.school, u.subjects, u.address, u.phone, u.parent_phone, u.email, u.profile_pic, u.created_at, 
                     a.ambition, a.university, a.target_points, a.career_reason, a.subject_assist 
                     FROM users u 
                     LEFT JOIN applications a ON u.id = a.user_id 
-                    WHERE u.id = $uid")->fetch_assoc();
+                    WHERE u.id = ?
+                ");
+                $user_stmt->bind_param("i", $uid);
+                $user_stmt->execute();
+                $user = $user_stmt->get_result()->fetch_assoc();
             } else {
                 $error = "Database error.";
             }
@@ -104,7 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old = $_POST['old_password'];
         $new = $_POST['new_password'];
         $confirm = $_POST['confirm_password'];
-        $hash = $conn->query("SELECT password FROM users WHERE id=$uid")->fetch_assoc()['password'];
+        $hash_stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+        $hash_stmt->bind_param("i", $uid);
+        $hash_stmt->execute();
+        $hash = $hash_stmt->get_result()->fetch_assoc()['password'];
         if (!password_verify($old, $hash)) {
             $error = "Current password is incorrect.";
         } elseif ($new !== $confirm) {
@@ -113,7 +146,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Password must be at least 5 characters.";
         } else {
             $new_hash = password_hash($new, PASSWORD_DEFAULT);
-            $conn->query("UPDATE users SET password='$new_hash' WHERE id=$uid");
+            $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt->bind_param("si", $new_hash, $uid);
+            $stmt->execute();
             $success = "Password changed.";
         }
     }
@@ -124,152 +159,141 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head><title>My Profile</title><link rel="stylesheet" href="style.css"></head>
 <body>
     <?php include_once 'includes/header.php'; ?>
+    <div class="container">
+        <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+        <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+        <?php if ($pic_error): ?><div class="error"><?= htmlspecialchars($pic_error) ?></div><?php endif; ?>
 
-<div class="container">
-    <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-    <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-    <?php if ($pic_error): ?><div class="error"><?= htmlspecialchars($pic_error) ?></div><?php endif; ?>
-
-    <!-- Profile Header -->
-    <div class="profile-header" style="margin-top: 1rem;">
-        <?php if ($user['profile_pic'] && file_exists($user['profile_pic'])): ?>
-            <img src="<?= $user['profile_pic'] ?>" class="profile-pic" alt="Profile Picture">
-        <?php else: ?>
-            <i class="fas fa-user-circle" style="font-size: 100px; color: var(--accent);"></i>
-        <?php endif; ?>
-        <div class="profile-name">
-            <h2><?= htmlspecialchars($user['fullname']) ?></h2>
-            <p><?= htmlspecialchars($user['ambition'] ? "An aspiring " . $user['ambition'] . " aiming to study at " . $user['university'] : "No career goal set yet") ?></p>
-        </div>
-    </div>
-
-    <!-- Main Profile Info Grid -->
-    <div class="info-grid">
-        <!-- Personal Details -->
-        <div class="card">
-            <h3>Personal Details</h3>
-            <p><strong>Gender:</strong> <?= $user['gender'] ?></p>
-            <p><strong>Date of Birth:</strong> <?= $user['dob'] ?></p>
-            <p><strong>School:</strong> <?= htmlspecialchars($user['school']) ?></p>
-            <p><strong>Class Level:</strong> <?= $user['class_level'] ?></p>
-            <p><strong>Target Points:</strong> <?= $user['target_points'] ?></p>
-            <p><strong>Membership Date:</strong> <?= date('d M Y', strtotime($user['created_at'])) ?></p>
-        </div>
-
-        <!-- Subjects & Goals -->
-        <div class="card">
-            <h3>Subjects & Goals</h3>
-            <p><strong>Subjects I am currently taking:</strong> <?= nl2br(htmlspecialchars($user['subjects'])) ?></p>
-            <p><strong>Subjects I need assistance with:</strong> <?= nl2br(htmlspecialchars($user['subject_assist'])) ?></p>
-            <p><strong>Career Reason:</strong> <?= nl2br(htmlspecialchars($user['career_reason'])) ?></p>
-        </div>
-
-        <!-- Contact -->
-        <div class="card">
-            <h3>Contact</h3>
-            <p><strong>Phone:</strong> <?= htmlspecialchars($user['phone']) ?></p>
-            <p><strong>Parent/Guardian Phone:</strong> <?= htmlspecialchars($user['parent_phone']) ?></p>
-            <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
-        </div>
-
-        <!-- Group Information -->
-        <div class="card">
-            <h3>Group Information</h3>
-            <p><strong>Group:</strong> <?= $group ? $group['class_level'] . ' – Group ' . $group['group_number'] : 'Not assigned yet' ?></p>
-            <?php if ($group): ?>
-                <div style="margin-bottom: 1rem;">
-                    <button id="showMembersBtn" class="btn btn-secondary">View Group Members</button>
-                    <div id="groupMembersList" style="display:none; margin-top: 0.5rem;">
-                        <?php if (count($group_members) > 0): ?>
-                            <ul style="list-style: none; padding: 0;">
-                                <?php foreach($group_members as $m): ?>
-                                    <li style="border-bottom: 1px solid var(--card-alt-bg); padding: 0.5rem 0;"><?= htmlspecialchars($m['fullname']) ?> (<?= $m['phone'] ?>)</li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            <p>You are the only member in this group.</p>
-                        <?php endif; ?>
-                    </div>
-                </div>
+        <div class="profile-header" style="margin-top: 1rem;">
+            <?php if ($user['profile_pic'] && file_exists($user['profile_pic'])): ?>
+                <img src="<?= $user['profile_pic'] ?>" class="profile-pic" alt="Profile Picture">
             <?php else: ?>
-                <p>No group assigned yet.</p>
+                <i class="fas fa-user-circle" style="font-size: 100px; color: var(--accent);"></i>
             <?php endif; ?>
-        </div>
-
-        <!-- Actions -->
-        <div class="card">
-            <h3>Actions</h3>
-            <div class="card-buttons">
-                <button id="editProfileBtn" class="btn">Edit Profile</button>
-                <button id="changePasswordBtn" class="btn">Change Password</button>
+            <div class="profile-name">
+                <h2><?= htmlspecialchars($user['fullname']) ?></h2>
+                <p><?= htmlspecialchars($user['ambition'] ? "An aspiring " . $user['ambition'] . " aiming to study at " . $user['university'] : "No career goal set yet") ?></p>
             </div>
         </div>
-    </div>
 
-    <!-- Edit Profile Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Edit Profile</h3>
-            <form method="post" enctype="multipart/form-data">
-                <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="<?= htmlspecialchars($user['phone']) ?>"></div>
-                <div class="form-group"><label>Parent/Guardian Phone</label><input type="tel" name="parent_phone" value="<?= htmlspecialchars($user['parent_phone']) ?>"></div>
-                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>"></div>
-                <div class="form-group"><label>School</label><input type="text" name="school" value="<?= htmlspecialchars($user['school']) ?>"></div>
-                <div class="form-group"><label>New Password (leave blank to keep)</label><input type="password" name="password"></div>
-                <div class="form-group"><label>Profile Picture</label><input type="file" name="profile_pic" accept="image/*"></div>
-                <button type="submit" name="update_profile">Save Changes</button>
-            </form>
+        <div class="info-grid">
+            <div class="card">
+                <h3>Personal Details</h3>
+                <p><strong>Gender:</strong> <?= htmlspecialchars($user['gender']) ?></p>
+                <p><strong>Date of Birth:</strong> <?= htmlspecialchars($user['dob']) ?></p>
+                <p><strong>School:</strong> <?= htmlspecialchars($user['school']) ?></p>
+                <p><strong>Class Level:</strong> <?= htmlspecialchars($user['class_level']) ?></p>
+                <p><strong>Target Points:</strong> <?= htmlspecialchars($user['target_points']) ?></p>
+                <p><strong>Membership Date:</strong> <?= date('d M Y', strtotime($user['created_at'])) ?></p>
+            </div>
+
+            <div class="card">
+                <h3>Subjects & Goals</h3>
+                <p><strong>Subjects I am currently taking:</strong> <?= nl2br(htmlspecialchars($user['subjects'])) ?></p>
+                <p><strong>Subjects I need assistance with:</strong> <?= nl2br(htmlspecialchars($user['subject_assist'])) ?></p>
+                <p><strong>Career Reason:</strong> <?= nl2br(htmlspecialchars($user['career_reason'])) ?></p>
+            </div>
+
+            <div class="card">
+                <h3>Contact</h3>
+                <p><strong>Phone:</strong> <?= htmlspecialchars($user['phone']) ?></p>
+                <p><strong>Parent/Guardian Phone:</strong> <?= htmlspecialchars($user['parent_phone']) ?></p>
+                <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
+            </div>
+
+            <div class="card">
+                <h3>Group Information</h3>
+                <p><strong>Group:</strong> <?= $group ? $group['class_level'] . ' – Group ' . $group['group_number'] : 'Not assigned yet' ?></p>
+                <?php if ($group): ?>
+                    <div style="margin-bottom: 1rem;">
+                        <button id="showMembersBtn" class="btn btn-secondary">View Group Members</button>
+                        <div id="groupMembersList" style="display:none; margin-top: 0.5rem;">
+                            <?php if (count($group_members) > 0): ?>
+                                <ul style="list-style: none; padding: 0;">
+                                    <?php foreach($group_members as $m): ?>
+                                        <li style="border-bottom: 1px solid var(--card-alt-bg); padding: 0.5rem 0;"><?= htmlspecialchars($m['fullname']) ?> (<?= htmlspecialchars($m['phone']) ?>)</li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <p>You are the only member in this group.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <p>No group assigned yet.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="card">
+                <h3>Actions</h3>
+                <div class="card-buttons">
+                    <button id="editProfileBtn" class="btn">Edit Profile</button>
+                    <button id="changePasswordBtn" class="btn">Change Password</button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Change Password Modal -->
-    <div id="passwordModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Change Password</h3>
-            <form method="post">
-                <div class="form-group"><label>Current Password</label><input type="password" name="old_password" required></div>
-                <div class="form-group"><label>New Password (min 5 chars)</label><input type="password" name="new_password" required></div>
-                <div class="form-group"><label>Confirm New Password</label><input type="password" name="confirm_password" required></div>
-                <button type="submit" name="change_password">Update Password</button>
-            </form>
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Edit Profile</h3>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="<?= htmlspecialchars($user['phone']) ?>"></div>
+                    <div class="form-group"><label>Parent/Guardian Phone</label><input type="tel" name="parent_phone" value="<?= htmlspecialchars($user['parent_phone']) ?>"></div>
+                    <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>"></div>
+                    <div class="form-group"><label>School</label><input type="text" name="school" value="<?= htmlspecialchars($user['school']) ?>"></div>
+                    <div class="form-group"><label>New Password (leave blank to keep)</label><input type="password" name="password"></div>
+                    <div class="form-group"><label>Profile Picture</label><input type="file" name="profile_pic" accept="image/*"></div>
+                    <button type="submit" name="update_profile">Save Changes</button>
+                </form>
+            </div>
         </div>
+
+        <div id="passwordModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Change Password</h3>
+                <form method="post">
+                    <div class="form-group"><label>Current Password</label><input type="password" name="old_password" required></div>
+                    <div class="form-group"><label>New Password (min 5 chars)</label><input type="password" name="new_password" required></div>
+                    <div class="form-group"><label>Confirm New Password</label><input type="password" name="confirm_password" required></div>
+                    <button type="submit" name="change_password">Update Password</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
     </div>
-
-    <div class="footer"><a href="dashboard.php" class="btn-back">← Back</a></div>
-</div>
-<script>
-    var editModal = document.getElementById('editModal');
-    var passModal = document.getElementById('passwordModal');
-    var editBtn = document.getElementById('editProfileBtn');
-    var passBtn = document.getElementById('changePasswordBtn');
-    var showMembersBtn = document.getElementById('showMembersBtn');
-    var membersList = document.getElementById('groupMembersList');
-    var spans = document.getElementsByClassName('close');
-    
-    editBtn.onclick = function() { editModal.style.display = 'flex'; }
-    passBtn.onclick = function() { passModal.style.display = 'flex'; }
-    if (showMembersBtn) {
-        showMembersBtn.onclick = function() {
-            if (membersList.style.display === 'none') membersList.style.display = 'block';
-            else membersList.style.display = 'none';
+    <script>
+        var editModal = document.getElementById('editModal');
+        var passModal = document.getElementById('passwordModal');
+        var editBtn = document.getElementById('editProfileBtn');
+        var passBtn = document.getElementById('changePasswordBtn');
+        var showMembersBtn = document.getElementById('showMembersBtn');
+        var membersList = document.getElementById('groupMembersList');
+        var spans = document.getElementsByClassName('close');
+        
+        editBtn.onclick = function() { editModal.style.display = 'flex'; }
+        passBtn.onclick = function() { passModal.style.display = 'flex'; }
+        if (showMembersBtn) {
+            showMembersBtn.onclick = function() {
+                if (membersList.style.display === 'none') membersList.style.display = 'block';
+                else membersList.style.display = 'none';
+            }
         }
-    }
-    for (var i = 0; i < spans.length; i++) {
-        spans[i].onclick = function() {
-            editModal.style.display = 'none';
-            passModal.style.display = 'none';
+        for (var i = 0; i < spans.length; i++) {
+            spans[i].onclick = function() {
+                editModal.style.display = 'none';
+                passModal.style.display = 'none';
+            }
         }
-    }
-    window.onclick = function(event) {
-        if (event.target == editModal) editModal.style.display = 'none';
-        if (event.target == passModal) passModal.style.display = 'none';
-    }
-</script>
-
-<a href<?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
-<?php include_once 'includes/testimonial_prompt.php'; ?>
+        window.onclick = function(event) {
+            if (event.target == editModal) editModal.style.display = 'none';
+            if (event.target == passModal) passModal.style.display = 'none';
+        }
+    </script>
+    <?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/testimonial_prompt.php'; ?>
 </body>
 </html>

@@ -1,9 +1,26 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 $success = $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,8 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include_once 'includes/header.php'; ?>
 <div class="container">
-    
-    
     <p>Use this form to report issues, suggest improvements, or ask questions. The admin will respond as soon as possible.</p>
     <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
     <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
@@ -40,5 +55,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
    <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+   <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

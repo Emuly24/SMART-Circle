@@ -1,9 +1,26 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 
 $student = $conn->query("SELECT fullname, class_level FROM users WHERE id=$uid")->fetch_assoc();
 $existing = $conn->query("SELECT id, testimonial, rating, status FROM testimonials WHERE user_id=$uid ORDER BY id DESC LIMIT 1")->fetch_assoc();

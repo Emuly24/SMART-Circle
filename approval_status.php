@@ -1,25 +1,41 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$admin_hash = function_exists('getAdminHash') ? getAdminHash() : (defined('ADMIN_HASH') ? ADMIN_HASH : '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu');
-if (!isset($_SESSION['admin_logged'])) {
-    if (!isset($_SERVER['PHP_AUTH_USER']) || !password_verify($_SERVER['PHP_AUTH_PW'], $admin_hash)) {
-        header('WWW-Authenticate: Basic realm="SMART Circle Admin"');
-        header('HTTP/1.0 401 Unauthorized');
-        echo 'Access denied';
-        exit;
-    }
-    $_SESSION['admin_logged'] = true;
-    $_SESSION['role'] = 'admin';
-    unset($_SESSION['user_id']);
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
 }
-require_once 'check_access.php';
+
+require_once 'config.php';
+
 $conn = getDB();
 $uid = $_SESSION['user_id'];
-$user = $conn->query("SELECT approved, consent_signed, class_level, status FROM users WHERE id=$uid")->fetch_assoc();
+
+// Fetch user (needed before check_access.php)
+$stmt = $conn->prepare("SELECT approved, consent_signed, class_level, status FROM users WHERE id = ?");
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
+if (!$user) {
+    session_destroy();
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
+require_once 'check_access.php';
+
 $application = $conn->query("SELECT status, admin_notes FROM applications WHERE user_id=$uid")->fetch_assoc();
 ?>
 <!DOCTYPE html>
@@ -54,7 +70,8 @@ $application = $conn->query("SELECT status, admin_notes FROM applications WHERE 
                 <p>Please check back later. You will be notified once the admin makes a decision.</p>
             </div>
         <?php endif; ?>
-        <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    </div>
+    <?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

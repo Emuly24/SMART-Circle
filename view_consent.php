@@ -1,25 +1,44 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 
-$user = $conn->query("SELECT fullname, class_level, school, consent_signed, consent_signed_at FROM users WHERE id=$uid")->fetch_assoc();
+$user_stmt = $conn->prepare("SELECT fullname, class_level, school, consent_signed, consent_signed_at FROM users WHERE id = ?");
+$user_stmt->bind_param("i", $uid);
+$user_stmt->execute();
+$user = $user_stmt->get_result()->fetch_assoc();
 if (!$user) die("User not found.");
 
 if (!$user['consent_signed']) {
-    // Not signed yet – redirect to consent form
     header("Location: consent.php");
     exit;
 }
 
 $signed_date = date('Y-m-d', strtotime($user['consent_signed_at']));
-// Generate signature (same as in consent.php)
+
 function generateSignature($fullname) {
     $parts = explode(' ', $fullname);
     $surname = end($parts);
-    $firstName = $parts[0];
+    $firstName = $parts[0] ?? '';
     return substr($surname, 0, 1) . '. ' . $firstName;
 }
 $signed_by = generateSignature($user['fullname']);
@@ -71,30 +90,25 @@ $signed_by = generateSignature($user['fullname']);
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const leftMargin = 20;
-        const rightMargin = pageWidth - 20;
         let y = 20;
-
-        // Header with SMART Circle colors
-        doc.setFillColor(30, 42, 58); // dark blue
+        doc.setFillColor(30, 42, 58);
         doc.rect(0, 0, pageWidth, 40, 'F');
-        doc.setTextColor(212, 175, 55); // gold
+        doc.setTextColor(212, 175, 55);
         doc.setFontSize(18);
         doc.text("SMART Circle Consent Agreement", leftMargin, 25);
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
         doc.text("Discipline & Integrity", leftMargin, 35);
         doc.setTextColor(0, 0, 0);
-        
         y = 50;
         doc.setLineWidth(0.5);
-        doc.line(leftMargin, y, rightMargin, y);
+        doc.line(leftMargin, y, pageWidth-20, y);
         y += 10;
         doc.setFontSize(12);
         const text = "This document certifies that the student named below has read, understood, and agreed to the rules and commitments of the SMART Circle program.";
         const lines = doc.splitTextToSize(text, pageWidth - 40);
         doc.text(lines, leftMargin, y);
         y += lines.length * 6 + 10;
-        
         doc.setFontSize(12);
         doc.setTextColor(30, 42, 58);
         doc.text("Student Information:", leftMargin, y);
@@ -108,7 +122,6 @@ $signed_by = generateSignature($user['fullname']);
         y += 7;
         doc.text("Agreement Date: <?= addslashes($signed_date) ?>", leftMargin + 10, y);
         y += 12;
-        
         doc.setFontSize(12);
         doc.text("The student agrees to:", leftMargin, y);
         y += 8;

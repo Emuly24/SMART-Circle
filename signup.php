@@ -1,11 +1,20 @@
 <?php
 ob_start();
-require_once 'check_remember_me.php';
-require_once 'config.php';
+
+// ===== SESSION SETUP (must be before any output) =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once 'config.php';
+
+// ===== ALREADY LOGGED IN – show welcome message =====
 if (isset($_SESSION['user_id'])) {
     $first_name = '';
     $fullname = $_SESSION['fullname'] ?? '';
@@ -46,9 +55,11 @@ if (isset($_SESSION['user_id'])) {
     <?php include_once 'includes/toc_navigator.php'; ?>
     </body></html>
     <?php
+    ob_end_flush();
     exit;
 }
 
+// ===== SIGN UP FORM =====
 $error = $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -72,21 +83,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid email address.";
     } else {
         $conn = getDB();
-        
-        // Check if username already exists
-        $checkUser = $conn->query("SELECT id FROM users WHERE username = '$username'");
-        if ($checkUser->num_rows) {
+
+        // Check if username already exists (prepared statement)
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows) {
             $error = "Username already taken. Please choose a different one.";
         } else {
             // Check if phone already exists
-            $checkPhone = $conn->query("SELECT id FROM users WHERE phone = '$phone'");
-            if ($checkPhone->num_rows) {
+            $stmt2 = $conn->prepare("SELECT id FROM users WHERE phone = ?");
+            $stmt2->bind_param("s", $phone);
+            $stmt2->execute();
+            if ($stmt2->get_result()->num_rows) {
                 $error = "Phone number already registered. Please login or use a different number.";
             } else {
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (username, fullname, phone, email, school, password, approved) VALUES (?, ?, ?, ?, ?, ?, 0)");
-                $stmt->bind_param("ssssss", $username, $fullname, $phone, $email, $school, $hashed);
-                if ($stmt->execute()) {
+                $stmt3 = $conn->prepare("INSERT INTO users (username, fullname, phone, email, school, password, approved) VALUES (?, ?, ?, ?, ?, ?, 0)");
+                $stmt3->bind_param("ssssss", $username, $fullname, $phone, $email, $school, $hashed);
+                if ($stmt3->execute()) {
+                    if (function_exists('log_activity')) {
+                        log_activity($conn->insert_id, "signup", "New account created");
+                    }
                     $success = "Account created successfully! You can now login and complete your application.";
                 } else {
                     $error = "Database error. Please try again.";
@@ -150,14 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
     </div>
     <script>
-        // Save form data to sessionStorage on input change
         document.querySelectorAll('input[name="username"], input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
             input.addEventListener('input', function() {
                 sessionStorage.setItem('signup_' + this.name, this.value);
             });
         });
 
-        // Restore from sessionStorage on page load
         window.addEventListener('load', function() {
             document.querySelectorAll('input[name="username"], input[name="fullname"], input[name="phone"], input[name="email"], input[name="school"]').forEach(function(input) {
                 const stored = sessionStorage.getItem('signup_' + input.name);
@@ -167,7 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
 
-        // Clear sessionStorage after successful submission
         <?php if ($success): ?>
             sessionStorage.clear();
         <?php endif; ?>

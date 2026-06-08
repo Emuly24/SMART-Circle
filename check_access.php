@@ -1,17 +1,17 @@
 <?php
-require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-// If not logged in, only allow public pages
+// ===== CHECK ACCESS – Must be included AFTER session_start() and user fetch =====
+
+// Prevent direct execution
 if (!isset($_SESSION['user_id'])) {
+    // Allow public pages
     $public_pages = ['index.php', 'signup.php', 'login.php', 'logout.php'];
     $current = basename($_SERVER['SCRIPT_NAME']);
     if (!in_array($current, $public_pages)) {
+        session_write_close();
         header("Location: login.php");
         exit;
     }
-    return; // Allow access to public pages
+    return;
 }
 
 // User is logged in – fetch their status
@@ -22,8 +22,9 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-if (!$user) {  
+if (!$user) {
     session_destroy();
+    session_write_close();
     header("Location: login.php");
     exit;
 }
@@ -40,18 +41,17 @@ $always_allowed = ['index.php', 'logout.php', 'profile.php', 'notifications.php'
 // --- 1. NOT APPROVED (no application) → FORCED TO APPLY.PHP ALWAYS ---
 if (!$user['approved']) {
     $has_application = $conn->query("SELECT id FROM applications WHERE user_id = $user_id")->num_rows > 0;
-    
     if (!$has_application) {
-        // Strict enforcement: only allow apply.php (plus basic pages)
         $allowed = array_merge($always_allowed, ['apply.php']);
         if (!in_array($current, $allowed)) {
+            session_write_close();
             header("Location: apply.php");
             exit;
         }
     } else {
-        // Has application but not approved → only pending.php and approval_status.php
         $allowed = array_merge($always_allowed, ['pending.php', 'approval_status.php']);
         if (!in_array($current, $allowed)) {
+            session_write_close();
             header("Location: pending.php");
             exit;
         }
@@ -63,6 +63,7 @@ if (!$user['approved']) {
 if (!$user['consent_signed']) {
     $allowed = array_merge($always_allowed, ['consent.php']);
     if (!in_array($current, $allowed)) {
+        session_write_close();
         header("Location: consent.php");
         exit;
     }
@@ -73,17 +74,18 @@ if (!$user['consent_signed']) {
 if ($user['status'] == 'suspended') {
     $end = $user['suspension_end'];
     if ($end && $end >= date('Y-m-d')) {
-        die('<!DOCTYPE html><html><head><title>Suspended</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="card error"><h1>Account Suspended</h1><p>You are suspended until ' . $end . '. Contact the admin.</p><a href="logout.php" class="btn-danger">Logout</a></div></div><a href="#" class="back-to-top" id="backToTop">↑</a></body></html>');
+        session_write_close();
+        die('<!DOCTYPE html><html><head><title>Suspended</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="card error"><h1>Account Suspended</h1><p>You are suspended until ' . $end . '. Contact the admin.</p><a href="logout.php" class="btn-danger">Logout</a></div></div></body></html>');
     } else {
-        $conn2 = getDB();
-        $conn2->query("UPDATE users SET status='active', suspension_end=NULL WHERE id=$user_id");
+        $conn->query("UPDATE users SET status='active', suspension_end=NULL WHERE id=$user_id");
         $_SESSION['status'] = 'active';
     }
 }
 if ($user['status'] == 'dismissed') {
-    die('<!DOCTYPE html><html><head><title>Dismissed</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="card error"><h1>Access Denied</h1><p>You have been dismissed from SMART Circle.</p><a href="logout.php" class="btn-danger">Logout</a></div></div><a href="#" class="back-to-top" id="backToTop">↑</a></body></html>');
+    session_write_close();
+    die('<!DOCTYPE html><html><head><title>Dismissed</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="card error"><h1>Access Denied</h1><p>You have been dismissed from SMART Circle.</p><a href="logout.php" class="btn-danger">Logout</a></div></div></body></html>');
 }
 
 // --- 4. FULLY APPROVED AND CONSENT SIGNED → full access ---
-// No restrictions – allow all pages
 return;
+?>

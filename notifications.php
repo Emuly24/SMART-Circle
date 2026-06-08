@@ -1,45 +1,66 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php';
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
-$uid = $_SESSION['user_id'];
 $uid = $_SESSION['user_id'];
 
 // Handle "Mark all as read"
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all'])) {
-    $conn->query("UPDATE admin_messages SET read_at = NOW() WHERE user_id = $uid AND read_at IS NULL");
+    $stmt = $conn->prepare("UPDATE admin_messages SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
 }
 
 // Handle individual "Mark as read"
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_one'])) {
-    $msg_id = intval($_POST['mark_one']);
-    $conn->query("UPDATE admin_messages SET read_at = NOW() WHERE id = $msg_id AND user_id = $uid AND read_at IS NULL");
+    $msg_id = (int)$_POST['mark_one'];
+    $stmt = $conn->prepare("UPDATE admin_messages SET read_at = NOW() WHERE id = ? AND user_id = ? AND read_at IS NULL");
+    $stmt->bind_param("ii", $msg_id, $uid);
+    $stmt->execute();
 }
 
 // Fetch messages
-$messages = $conn->query("SELECT * FROM admin_messages WHERE user_id = $uid ORDER BY sent_at DESC");
+$messages_stmt = $conn->prepare("SELECT * FROM admin_messages WHERE user_id = ? ORDER BY sent_at DESC");
+$messages_stmt->bind_param("i", $uid);
+$messages_stmt->execute();
+$messages = $messages_stmt->get_result();
 
 // Check if user has been approved
-$user = $conn->query("SELECT approved FROM users WHERE id = $uid")->fetch_assoc();
-$approved = $user['approved'];
+$user_stmt = $conn->prepare("SELECT approved FROM users WHERE id = ?");
+$user_stmt->bind_param("i", $uid);
+$user_stmt->execute();
+$user = $user_stmt->get_result()->fetch_assoc();
+$approved = $user['approved'] ?? 0;
 
-// Fetch student details for the dynamic message (always fetch, display only if approved)
-$app_data = $conn->query("
+// Fetch student details for the dynamic message
+$app_stmt = $conn->prepare("
     SELECT u.fullname, u.class_level, g.group_number
     FROM users u
     LEFT JOIN group_members gm ON u.id = gm.user_id
     LEFT JOIN groups g ON gm.group_id = g.id
-    WHERE u.id = $uid
-")->fetch_assoc();
+    WHERE u.id = ?
+");
+$app_stmt->bind_param("i", $uid);
+$app_stmt->execute();
+$app_data = $app_stmt->get_result()->fetch_assoc();
 
 $fullname = $app_data['fullname'] ?? 'Student';
 $class = $app_data['class_level'] ?? '';
@@ -95,6 +116,6 @@ $group_number = $app_data['group_number'] ?? 'Not assigned';
     </div>
 
     <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 </body>
 </html>

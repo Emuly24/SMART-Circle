@@ -1,10 +1,15 @@
 <?php
-require_once 'config.php';
-session_start();
-if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit;
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
 }
+session_save_path($session_path);
+
+// Start session only if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once 'config.php';
 ?>
 <!DOCTYPE html>
 <html>
@@ -75,100 +80,100 @@ if (isset($_SESSION['user_id'])) {
         <div id="testimonialContainer" class="testimonial-slide"></div>
     </div>
 
-<!-- Eligibility Modal -->
-<div id="eligibilityModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2><i class="fas fa-clipboard-list"></i> Am I Eligible?</h2>
-        <p>To join SMART Circle, you must meet the following criteria:</p>
-        <ul class="eligibility-list">
-            <li><i class="fas fa-check-circle"></i> Be in <strong>Form 3 or Form 4</strong> (secondary school)</li>
-            <li><i class="fas fa-check-circle"></i> Live within <strong>Sharpevalley area</strong> or be willing to commute to the designated tutoring place</li>
-            <li><i class="fas fa-check-circle"></i> Be <strong>hardworking, disciplined, and respectful</strong></li>
-            <li><i class="fas fa-check-circle"></i> Have a genuine desire to improve your grades</li>
-            <li><i class="fas fa-check-circle"></i> Commit to punctuality and active participation</li>
-        </ul>
-        <p>If you meet all the above, we welcome you! Click below to create your account.</p>
-        <div class="modal-buttons">
-            <a href="signup.php" class="btn">Yes, I'm Eligible – Sign Up</a>
-            <button id="closeModalBtn" class="btn-secondary">Not Now</button>
+    <!-- Eligibility Modal -->
+    <div id="eligibilityModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-clipboard-list"></i> Am I Eligible?</h2>
+            <p>To join SMART Circle, you must meet the following criteria:</p>
+            <ul class="eligibility-list">
+                <li><i class="fas fa-check-circle"></i> Be in <strong>Form 3 or Form 4</strong> (secondary school)</li>
+                <li><i class="fas fa-check-circle"></i> Live within <strong>Sharpevalley area</strong> or be willing to commute to the designated tutoring place</li>
+                <li><i class="fas fa-check-circle"></i> Be <strong>hardworking, disciplined, and respectful</strong></li>
+                <li><i class="fas fa-check-circle"></i> Have a genuine desire to improve your grades</li>
+                <li><i class="fas fa-check-circle"></i> Commit to punctuality and active participation</li>
+            </ul>
+            <p>If you meet all the above, we welcome you! Click below to create your account.</p>
+            <div class="modal-buttons">
+                <a href="signup.php" class="btn">Yes, I'm Eligible – Sign Up</a>
+                <button id="closeModalBtn" class="btn-secondary">Not Now</button>
+            </div>
         </div>
     </div>
-</div>
 
-<?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+    <?php include_once 'includes/footer.php'; ?>
+    <?php include_once 'includes/toc_navigator.php'; ?>
 
-<script>
-    // Testimonials logic
-    let testimonials = [];
-    let currentIndex = 0;
-    let interval;
-    const section = document.getElementById('testimonialsSection');
-    const container = document.getElementById('testimonialContainer');
+    <script>
+        // Testimonials logic
+        let testimonials = [];
+        let currentIndex = 0;
+        let interval;
+        const section = document.getElementById('testimonialsSection');
+        const container = document.getElementById('testimonialContainer');
 
-    function fetchTestimonials() {
-        fetch('get_testimonials.php')
-            .then(res => res.json())
-            .then(data => {
-                if (data.length === 0) {
+        function fetchTestimonials() {
+            fetch('get_testimonials.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        section.style.display = 'none';
+                        return;
+                    }
+                    section.style.display = 'block';
+                    testimonials = data;
+                    showTestimonial(0);
+                    startRotation();
+                })
+                .catch(err => {
+                    console.error('Error fetching testimonials:', err);
                     section.style.display = 'none';
-                    return;
-                }
-                section.style.display = 'block';
-                testimonials = data;
-                showTestimonial(0);
-                startRotation();
-            })
-            .catch(err => {
-                console.error('Error fetching testimonials:', err);
-                section.style.display = 'none';
+                });
+        }
+
+        function showTestimonial(index) {
+            const t = testimonials[index];
+            const html = `<div class="testimonial-card">
+                <div class="testimonial-rating">${'⭐'.repeat(t.rating)}</div>
+                <p class="testimonial-text">"${escapeHtml(t.testimonial)}"</p>
+                <p class="testimonial-author">– ${escapeHtml(t.fullname)}, ${escapeHtml(t.class_level)}</p>
+            </div>`;
+            container.style.opacity = '0';
+            setTimeout(() => {
+                container.innerHTML = html;
+                container.style.opacity = '1';
+            }, 300);
+        }
+
+        function startRotation() {
+            if (interval) clearInterval(interval);
+            interval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % testimonials.length;
+                showTestimonial(currentIndex);
+            }, 8000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
             });
-    }
+        }
 
-    function showTestimonial(index) {
-        const t = testimonials[index];
-        const html = `<div class="testimonial-card">
-            <div class="testimonial-rating">${'⭐'.repeat(t.rating)}</div>
-            <p class="testimonial-text">"${escapeHtml(t.testimonial)}"</p>
-            <p class="testimonial-author">– ${escapeHtml(t.fullname)}, ${escapeHtml(t.class_level)}</p>
-        </div>`;
-        container.style.opacity = '0';
-        setTimeout(() => {
-            container.innerHTML = html;
-            container.style.opacity = '1';
-        }, 300);
-    }
+        const modal = document.getElementById('eligibilityModal');
+        const getStartedBtn = document.getElementById('mainGetStartedBtn');
+        const closeSpan = document.querySelector('#eligibilityModal .close');
+        const closeBtn = document.getElementById('closeModalBtn');
 
-    function startRotation() {
-        if (interval) clearInterval(interval);
-        interval = setInterval(() => {
-            currentIndex = (currentIndex + 1) % testimonials.length;
-            showTestimonial(currentIndex);
-        }, 8000);
-    }
+        function openModal() { modal.style.display = 'flex'; }
+        if (getStartedBtn) getStartedBtn.addEventListener('click', openModal);
+        if (closeSpan) closeSpan.addEventListener('click', () => modal.style.display = 'none');
+        if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
+        window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
 
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    const modal = document.getElementById('eligibilityModal');
-    const getStartedBtn = document.getElementById('mainGetStartedBtn');
-    const closeSpan = document.querySelector('#eligibilityModal .close');
-    const closeBtn = document.getElementById('closeModalBtn');
-
-    function openModal() { modal.style.display = 'flex'; }
-    if (getStartedBtn) getStartedBtn.addEventListener('click', openModal);
-    if (closeSpan) closeSpan.addEventListener('click', () => modal.style.display = 'none');
-    if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
-    window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-
-    fetchTestimonials();
-</script>
+        fetchTestimonials();
+    </script>
 </body>
 </html>

@@ -1,39 +1,58 @@
 <?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
+    session_write_close();
     header("Location: login.php");
     exit;
 }
-$uid = $_SESSION['user_id'];
+
+require_once 'config.php';
+require_once 'check_access.php';
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
-$uid = $_SESSION['user_id'];
 $uid = $_SESSION['user_id'];
 
 // Fetch group info
-$group = $conn->query("SELECT g.id as group_id, g.group_number, g.class_level, g.route
+$group_stmt = $conn->prepare("SELECT g.id as group_id, g.group_number, g.class_level, g.route
     FROM group_members gm 
     JOIN groups g ON gm.group_id = g.id 
-    WHERE gm.user_id = $uid")->fetch_assoc();
+    WHERE gm.user_id = ?");
+$group_stmt->bind_param("i", $uid);
+$group_stmt->execute();
+$group = $group_stmt->get_result()->fetch_assoc();
 
 $fellow_members = [];
 if ($group) {
-    $fellow = $conn->query("SELECT u.fullname, u.phone 
+    $fellow_stmt = $conn->prepare("SELECT u.fullname, u.phone 
         FROM group_members gm 
         JOIN users u ON gm.user_id = u.id 
-        WHERE gm.group_id = {$group['group_id']} AND u.id != $uid");
-    while ($f = $fellow->fetch_assoc()) $fellow_members[] = $f;
+        WHERE gm.group_id = ? AND u.id != ?");
+    $fellow_stmt->bind_param("ii", $group['group_id'], $uid);
+    $fellow_stmt->execute();
+    $fellow_result = $fellow_stmt->get_result();
+    while ($f = $fellow_result->fetch_assoc()) {
+        $fellow_members[] = $f;
+    }
 }
 
 // Get today's meeting start time for this group
 $today = date('Y-m-d');
 $meeting = null;
 if ($group) {
-    $meeting = $conn->query("SELECT start_time FROM group_meetings WHERE group_id = {$group['group_id']} AND meeting_date = '$today'")->fetch_assoc();
+    $meeting_stmt = $conn->prepare("SELECT start_time FROM group_meetings WHERE group_id = ? AND meeting_date = ?");
+    $meeting_stmt->bind_param("is", $group['group_id'], $today);
+    $meeting_stmt->execute();
+    $meeting = $meeting_stmt->get_result()->fetch_assoc();
 }
 ?>
 <!DOCTYPE html>
@@ -56,7 +75,10 @@ if ($group) {
             <div style="background: #f0f7ff; padding: 10px; border-radius: 8px; margin: 10px 0;">
                 <p><strong>⏰ Today's Meeting:</strong> Starts at <?= date('h:i A', strtotime($meeting['start_time'])) ?></p>
                 <?php
-                $att = $conn->query("SELECT status, remarks FROM attendance WHERE user_id = $uid AND date = '$today'")->fetch_assoc();
+                $att_stmt = $conn->prepare("SELECT status, remarks FROM attendance WHERE user_id = ? AND date = ?");
+                $att_stmt->bind_param("is", $uid, $today);
+                $att_stmt->execute();
+                $att = $att_stmt->get_result()->fetch_assoc();
                 if ($att && $att['status'] == 'late' && empty($att['remarks'])): ?>
                     <p class="warning">You were marked late. Please <a href="attendance.php">submit your reason here</a>.</p>
                 <?php elseif ($att && $att['status'] == 'late' && !empty($att['remarks'])): ?>
@@ -89,5 +111,5 @@ if ($group) {
     </div>
     
    <?php include_once 'includes/footer.php'; ?>
-<?php include_once 'includes/toc_navigator.php'; ?>
+   <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

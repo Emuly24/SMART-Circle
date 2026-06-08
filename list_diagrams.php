@@ -1,18 +1,22 @@
 <?php
-require_once 'check_remember_me.php';
-<?php
-require_once 'config.php';
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header('HTTP/1.0 401 Unauthorized');
+    echo json_encode(['error' => 'Not authenticated']);
     exit;
 }
-$uid = $_SESSION['user_id'];
-$conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
+
+require_once 'config.php';
 
 // List diagrams from uploads/diagrams/ directory
 $diagramsDir = __DIR__ . '/uploads/diagrams/';

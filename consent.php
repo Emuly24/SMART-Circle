@@ -1,38 +1,65 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
-$class = $user['class_level'];
+$uid = $_SESSION['user_id'];
 
-$u = $conn->query("SELECT consent_signed FROM users WHERE id=$uid")->fetch_assoc();
-// === CHANGE START: Show agreement card instead of die() ===
-if ($u['consent_signed']) {
-    // Already signed – show the agreement card with download options
-    $signed_date = $conn->query("SELECT consent_signed_at FROM users WHERE id=$uid")->fetch_assoc()['consent_signed_at'];
+// Fetch user data
+$user_stmt = $conn->prepare("SELECT fullname, class_level, school, consent_signed, consent_signed_at FROM users WHERE id = ?");
+$user_stmt->bind_param("i", $uid);
+$user_stmt->execute();
+$user = $user_stmt->get_result()->fetch_assoc();
+
+if (!$user) {
+    session_destroy();
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
+// If already signed, show the signed view
+if ($user['consent_signed']) {
+    $signed_date = date('Y-m-d', strtotime($user['consent_signed_at']));
+    function generateSignature($fullname) {
+        $parts = explode(' ', $fullname);
+        $surname = end($parts);
+        $firstName = $parts[0] ?? '';
+        return substr($surname, 0, 1) . '. ' . $firstName;
+    }
+    $signed_by = generateSignature($user['fullname']);
     $success = false; // not a fresh signature
 } else {
     $success = false;
 }
-// === CHANGE END ===
 
-function generateSignature($fullname) {
-    $parts = explode(' ', $fullname);
-    $surname = end($parts);
-    $firstName = $parts[0];
-    return substr($surname, 0, 1) . '. ' . $firstName;
-}
-$generated_signature = generateSignature($user['fullname']);
+$message = '';
 
-$success = false;
-$signed_by = '';
-$signed_date = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
     $signed_by = trim($_POST['signed_by']);
     $signed_date = $_POST['signed_date'];
-    $conn->query("UPDATE users SET consent_signed=1, consent_signed_at=NOW() WHERE id=$uid");
+    $stmt = $conn->prepare("UPDATE users SET consent_signed = 1, consent_signed_at = NOW() WHERE id = ?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
     $success = true;
+    $message = "Consent signed successfully.";
 }
 ?>
 <!DOCTYPE html>
@@ -46,16 +73,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
 <?php include_once 'includes/header.php'; ?>
 <?php include_once 'includes/progress_tracker.php'; ?>
 <div class="consent-container">
-    <?php if ($u['consent_signed'] && !$success): ?>
-        <!-- Already signed – show agreement and download options -->
+    <?php if ($user['consent_signed'] && !$success): ?>
         <div class="success-card" id="successCard">
             <h2><i class="fas fa-check-circle"></i> Your Signed Consent Agreement</h2>
             <div class="student-details">
                 <p><strong>Student:</strong> <?= htmlspecialchars($user['fullname']) ?></p>
                 <p><strong>Class:</strong> <?= htmlspecialchars($user['class_level']) ?></p>
                 <p><strong>School:</strong> <?= htmlspecialchars($user['school']) ?></p>
-                <p><strong>Signed on:</strong> <?= date('Y-m-d', strtotime($signed_date)) ?></p>
-                <p><strong>Signature:</strong> <?= htmlspecialchars($generated_signature) ?></p>
+                <p><strong>Signed on:</strong> <?= htmlspecialchars($signed_date) ?></p>
+                <p><strong>Signature:</strong> <?= htmlspecialchars($signed_by) ?></p>
             </div>
             <p>You have already agreed to the SMART Circle group rules. You can download or print a copy below.</p>
             <div class="success-actions">
@@ -65,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
             </div>
         </div>
     <?php elseif ($success): ?>
-        <!-- Just signed -->
         <div class="success-card" id="successCard">
             <h2><i class="fas fa-check-circle"></i> Agreement Confirmed</h2>
             <div class="student-details">
@@ -83,7 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
             </div>
         </div>
     <?php else: ?>
-        <!-- Not signed yet – show form -->
         <h1><i class="fas fa-file-signature"></i> SMART Circle Consent Agreement</h1>
         <p>Dear <strong><?= htmlspecialchars($user['fullname']) ?></strong>, please read the following terms carefully. By signing this document, you commit to the rules below.</p>
 
@@ -116,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
                 <h3>Electronic Signature</h3>
                 <div class="signature-line">
                     <label for="signed_by">Signed by (Full Name):</label>
-                    <input type="text" id="signed_by" name="signed_by" value="<?= htmlspecialchars($generated_signature) ?>" required>
+                    <input type="text" id="signed_by" name="signed_by" value="<?= htmlspecialchars($user['fullname']) ?>" required>
                 </div>
                 <div class="signature-line">
                     <label for="signed_date">Date of Signing:</label>
@@ -133,98 +157,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
 <?php include_once 'includes/testimonial_prompt.php'; ?>
 </body>
 <script>
-    function printConsent() {
-        const content = document.getElementById('successCard').innerHTML;
-        const printWindow = window.open('', '', 'height=600,width=800');
-        printWindow.document.write('<html><head><title>Consent Agreement – SMART Circle</title><style>body{font-family:Arial,sans-serif;padding:20px;} .student-details{background:#f5f5f5;padding:10px;margin:15px 0;}</style></head><body>');
-        printWindow.document.write(content);
-        printWindow.document.write('<div class="footer"><hr><p>SMART Circle – A digital learning community built for your future</p></div>');
-        printWindow.document.close();
-        printWindow.print();
-    }
-    async function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const leftMargin = 20;
-        const rightMargin = pageWidth - 20;
-        let y = 20;
-
-        // Header with SMART Circle colors
-        doc.setFillColor(30, 42, 58);
-        doc.rect(0, 0, pageWidth, 40, 'F');
-        doc.setTextColor(212, 175, 55);
-        doc.setFontSize(18);
-        doc.text("SMART Circle Consent Agreement", leftMargin, 25);
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.text("Discipline & Integrity", leftMargin, 35);
-        doc.setTextColor(0, 0, 0);
-        
-        y = 50;
-        doc.setLineWidth(0.5);
-        doc.line(leftMargin, y, rightMargin, y);
-        y += 10;
-        doc.setFontSize(12);
-        const text = "This document certifies that the student named below has read, understood, and agreed to the rules and commitments of the SMART Circle program.";
-        const lines = doc.splitTextToSize(text, pageWidth - 40);
-        doc.text(lines, leftMargin, y);
-        y += lines.length * 6 + 10;
-        
-        doc.setFontSize(12);
-        doc.setTextColor(30, 42, 58);
-        doc.text("Student Information:", leftMargin, y);
-        y += 8;
-        doc.setFontSize(11);
-        doc.text("Full Name: <?= addslashes($user['fullname']) ?>", leftMargin + 10, y);
-        y += 7;
-        doc.text("Class Level: <?= addslashes($user['class_level']) ?>", leftMargin + 10, y);
-        y += 7;
-        doc.text("School: <?= addslashes($user['school']) ?>", leftMargin + 10, y);
-        y += 7;
-        doc.text("Agreement Date: <?= addslashes($signed_date) ?>", leftMargin + 10, y);
-        y += 12;
-        
-        doc.setFontSize(12);
-        doc.text("The student agrees to:", leftMargin, y);
-        y += 8;
-        const rules = [
-            "Work hard and read extensively to improve knowledge.",
-            "Be punctual and respect the agreed schedule.",
-            "Respect the teacher and peers at all times.",
-            "Not rely solely on past papers but engage fully with materials.",
-            "Never engage in financial or inappropriate exchanges (dismissal)."
-        ];
-        rules.forEach(line => {
-            const bullet = "• " + line;
-            const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
-            doc.text(wrapped, leftMargin + 5, y);
-            y += wrapped.length * 5 + 2;
-        });
-        y += 8;
-        doc.text("Consequences of Breach:", leftMargin, y);
-        y += 8;
-        const cons = [
-            "Warning for minor violations.",
-            "Extra assignments as corrective measures.",
-            "Suspension (content locked).",
-            "Permanent dismissal for serious/repeated violations."
-        ];
-        cons.forEach(line => {
-            const bullet = "• " + line;
-            const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
-            doc.text(wrapped, leftMargin + 5, y);
-            y += wrapped.length * 5 + 2;
-        });
-        y += 10;
-        doc.text("Electronic Signature: <?= addslashes($signed_by) ?>", leftMargin, y);
-        y += 8;
-        doc.text("Date: <?= addslashes($signed_date) ?>", leftMargin, y);
-        y += 20;
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text("SMART Circle – A digital learning community built for your future", leftMargin, y);
-        doc.save("Consent_Agreement_<?= preg_replace('/[^a-zA-Z0-9]/','_', $user['fullname']) ?>.pdf");
-    }
+function printConsent() {
+    const content = document.getElementById('successCard').innerHTML;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Consent Agreement – SMART Circle</title><style>body{font-family:Arial,sans-serif;padding:20px;} .student-details{background:#f5f5f5;padding:10px;margin:15px 0;}</style></head><body>');
+    printWindow.document.write(content);
+    printWindow.document.write('<div class="footer"><hr><p>SMART Circle – A digital learning community built for your future</p></div>');
+    printWindow.document.close();
+    printWindow.print();
+}
+async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const leftMargin = 20;
+    let y = 20;
+    doc.setFillColor(30, 42, 58);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(212, 175, 55);
+    doc.setFontSize(18);
+    doc.text("SMART Circle Consent Agreement", leftMargin, 25);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text("Discipline & Integrity", leftMargin, 35);
+    doc.setTextColor(0, 0, 0);
+    y = 50;
+    doc.setLineWidth(0.5);
+    doc.line(leftMargin, y, pageWidth-20, y);
+    y += 10;
+    doc.setFontSize(12);
+    const text = "This document certifies that the student named below has read, understood, and agreed to the rules and commitments of the SMART Circle program.";
+    const lines = doc.splitTextToSize(text, pageWidth - 40);
+    doc.text(lines, leftMargin, y);
+    y += lines.length * 6 + 10;
+    doc.setFontSize(12);
+    doc.setTextColor(30, 42, 58);
+    doc.text("Student Information:", leftMargin, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.text("Full Name: <?= addslashes($user['fullname']) ?>", leftMargin + 10, y);
+    y += 7;
+    doc.text("Class Level: <?= addslashes($user['class_level']) ?>", leftMargin + 10, y);
+    y += 7;
+    doc.text("School: <?= addslashes($user['school']) ?>", leftMargin + 10, y);
+    y += 7;
+    doc.text("Agreement Date: <?= addslashes($signed_date) ?>", leftMargin + 10, y);
+    y += 12;
+    doc.setFontSize(12);
+    doc.text("The student agrees to:", leftMargin, y);
+    y += 8;
+    const rules = [
+        "Work hard and read extensively to improve knowledge.",
+        "Be punctual and respect the agreed schedule.",
+        "Respect the teacher and peers at all times.",
+        "Not rely solely on past papers but engage fully with materials.",
+        "Never engage in financial or inappropriate exchanges (dismissal)."
+    ];
+    rules.forEach(line => {
+        const bullet = "• " + line;
+        const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
+        doc.text(wrapped, leftMargin + 5, y);
+        y += wrapped.length * 5 + 2;
+    });
+    y += 8;
+    doc.text("Consequences of Breach:", leftMargin, y);
+    y += 8;
+    const cons = [
+        "Warning for minor violations.",
+        "Extra assignments as corrective measures.",
+        "Suspension (content locked).",
+        "Permanent dismissal for serious/repeated violations."
+    ];
+    cons.forEach(line => {
+        const bullet = "• " + line;
+        const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
+        doc.text(wrapped, leftMargin + 5, y);
+        y += wrapped.length * 5 + 2;
+    });
+    y += 10;
+    doc.text("Electronic Signature: <?= addslashes($user['fullname']) ?>", leftMargin, y);
+    y += 8;
+    doc.text("Date: <?= addslashes($signed_date) ?>", leftMargin, y);
+    y += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("SMART Circle – A digital learning community built for your future", leftMargin, y);
+    doc.save("Consent_Agreement_<?= preg_replace('/[^a-zA-Z0-9]/','_', $user['fullname']) ?>.pdf");
+}
 </script>
 </html>

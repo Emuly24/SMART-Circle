@@ -1,23 +1,28 @@
 <?php
-// Fix for InfinityFree HTTPS → Cookie mismatch
-if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => true,
-        'httponly' => true
-    ]);
-} else {
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => false,
-        'httponly' => true
-    ]);
+// ===== SECURE SESSION CONFIGURATION =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
 }
-session_save_path('/tmp');
+session_save_path($session_path);
+
+// Set secure cookie parameters
+$is_https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => $is_https,
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
+// Error reporting (hide in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // 1 for dev, 0 for production
+
+// Timezone
+date_default_timezone_set('Africa/Blantyre');
 
 // ---------- DATABASE (InfinityFree) ----------
 define('DB_HOST', 'sql302.infinityfree.com');
@@ -34,44 +39,61 @@ function getDB() {
     if ($conn !== null && !@$conn->ping()) $conn = null;
     if ($conn === null) {
         $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-        if ($conn->connect_error) die("Database connection failed: " . $conn->connect_error);
+        if ($conn->connect_error) {
+            error_log("Database connection failed: " . $conn->connect_error);
+            die("Database connection failed. Please try again later.");
+        }
+        $conn->set_charset('utf8mb4');
     }
     return $conn;
 }
+
 function log_activity($user_id, $action, $details = null) {
     $conn = getDB();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    $details = $conn->real_escape_string($details);
-    $conn->query("INSERT INTO activity_log (user_id, action, details, ip_address) VALUES ($user_id, '$action', '$details', '$ip')");
+    $details = $details ?? '';
+    $stmt = $conn->prepare("INSERT INTO activity_log (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isss", $user_id, $action, $details, $ip);
+    $stmt->execute();
 }
 
-// Get admin hash from database (fallback to hardcoded if table missing)
 function getAdminHash() {
     static $hash = null;
     if ($hash !== null) return $hash;
     $conn = getDB();
-    $result = $conn->query("SELECT setting_value FROM admin_settings WHERE setting_key = 'admin_hash'");
-    if ($result && $row = $result->fetch_assoc()) {
+    $stmt = $conn->prepare("SELECT setting_value FROM admin_settings WHERE setting_key = 'admin_hash'");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
         $hash = $row['setting_value'];
     } else {
-        // Fallback default (smarttutor@2026)
-        $hash = '$2y$12$mQu7vfNTUfh5cSoif6Gjje6zLtc2RtDFphO.rVMs/kfn75Q92PTcu';
+        // Fallback – should be changed immediately after deployment
+        $hash = password_hash('smarttutor@2026', PASSWORD_DEFAULT);
+        $stmt2 = $conn->prepare("INSERT INTO admin_settings (setting_key, setting_value) VALUES ('admin_hash', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt2->bind_param("ss", $hash, $hash);
+        $stmt2->execute();
     }
     return $hash;
 }
 
-// Group lock helper
 function is_content_unlocked($content_type, $content_id, $user_id = null) {
     if ($user_id === null) $user_id = $_SESSION['user_id'] ?? 0;
     if (!$user_id) return false;
     $conn = getDB();
-    $group = $conn->query("SELECT group_id FROM group_members WHERE user_id = $user_id")->fetch_assoc();
+    $stmt = $conn->prepare("SELECT group_id FROM group_members WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $group = $stmt->get_result()->fetch_assoc();
     if (!$group) return false;
     $group_id = $group['group_id'];
-    $lock = $conn->query("SELECT is_locked FROM group_content_locks 
-        WHERE group_id = $group_id AND content_type = '$content_type' AND content_id = $content_id")->fetch_assoc();
+    $stmt2 = $conn->prepare("SELECT is_locked FROM group_content_locks WHERE group_id = ? AND content_type = ? AND content_id = ?");
+    $stmt2->bind_param("isi", $group_id, $content_type, $content_id);
+    $stmt2->execute();
+    $lock = $stmt2->get_result()->fetch_assoc();
     if (!$lock) {
-        $conn->query("INSERT INTO group_content_locks (group_id, content_type, content_id, is_locked) VALUES ($group_id, '$content_type', $content_id, 1)");
+        $stmt3 = $conn->prepare("INSERT INTO group_content_locks (group_id, content_type, content_id, is_locked) VALUES (?, ?, ?, 1)");
+        $stmt3->bind_param("isi", $group_id, $content_type, $content_id);
+        $stmt3->execute();
         return false;
     }
     return $lock['is_locked'] == 0;

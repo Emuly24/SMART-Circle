@@ -1,59 +1,52 @@
 <?php
+// ===== SESSION SETUP =====
+$session_path = __DIR__ . '/sessions';
+if (!is_dir($session_path)) {
+    mkdir($session_path, 0755, true);
+}
+session_save_path($session_path);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    session_write_close();
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'config.php';
 require_once 'check_access.php';
 
 $conn = getDB();
-$uid = $user['id'];
+$uid = $_SESSION['user_id'];
 $note_id = (int)$_GET['id'];
-$note = $conn->query("SELECT * FROM notes WHERE id=$note_id")->fetch_assoc();
+
+// Fetch note content – NO extra processing, NO exercise extraction
+$note_stmt = $conn->prepare("SELECT * FROM notes WHERE id = ?");
+$note_stmt->bind_param("i", $note_id);
+$note_stmt->execute();
+$note = $note_stmt->get_result()->fetch_assoc();
+
 if (!$note) die("Note not found");
 
-if (!is_content_unlocked('note', $note_id, $uid)) {
-    ?>
-    <!DOCTYPE html>
-    <html><head><title>Content Locked</title><link rel="stylesheet" href="style.css"></head>
-    <body>
-    <?php include_once 'includes/header.php'; ?>
-    <div class="container">
-        <div class="card error">
-            <h2>🔒 Content Locked</h2>
-            <p>This note is not yet available for your group. Please wait until the admin unlocks it.</p>
-            <div class="card-buttons">
-                <a href="library.php" class="btn-back">← Back to Library</a>
-            </div>
-        </div>
-    </div>
-    <?php include_once 'includes/testimonial_prompt.php'; ?>
-    </body></html>
-    <?php
-    exit;
-}
-
+// Log view activity
 if (function_exists('log_activity')) {
     log_activity($uid, "view_note", "Note ID: $note_id");
 }
-
-// ===== FETCH THE NOTE CONTENT =====
-$full_content = $note['content'];
-
-// ===== REMOVE ALL EXERCISE BLOCKS FROM THE CONTENT =====
-// This regex finds <h3> or <h4> containing "Exercise X" and removes the entire exercise block.
-$exercise_pattern = '/<h[34][^>]*>.*?Exercise\s+(\d+).*?<\/h[34]>(.*?)(?=<h[34]|$)/si';
-$clean_content = preg_replace($exercise_pattern, '', $full_content);
-
-// If the note has no exercises or the pattern didn't match, display the full content
-if (empty(trim($clean_content))) {
-    $clean_content = $full_content;
-}
 ?>
 <!DOCTYPE html>
-<html><head><title><?=htmlspecialchars($note['title'])?></title>
+<html><head><title><?= htmlspecialchars($note['title']) ?></title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
+    /* ===== BASE ===== */
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    
+    /* ===== MAIN CONTAINER – No override of editor layout ===== */
     .student-note-container {
         max-width: 1000px;
         margin: 2rem auto;
@@ -62,29 +55,113 @@ if (empty(trim($clean_content))) {
         box-shadow: var(--card-shadow);
         border-radius: 1rem;
         border-top: 5px solid var(--accent);
-        /* No extra alignment overrides - respects your editor's alignment */
     }
+    
+    /* ===== BEAUTIFUL BRAND‑COLOUR TEXT (bolder, rich slate) ===== */
+    .student-note-container {
+        color: #1e293b;          /* Dark slate – rich, professional */
+        font-weight: 500;        /* Bolder than normal */
+    }
+    
+    /* Allow editor headings to keep their natural weight and color */
+    .student-note-container h1,
+    .student-note-container h2,
+    .student-note-container h3,
+    .student-note-container h4,
+    .student-note-container h5,
+    .student-note-container h6 {
+        all: revert;
+        color: #0f172a;         /* Even darker for headings */
+        font-weight: 700;
+    }
+    
+    /* Allow editor bold / strong tags to be bolder */
+    .student-note-container strong,
+    .student-note-container b {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    
+    /* ===== LATEX EQUATIONS – #C7390D, bold, same font as text ===== */
+    /* Target MathJax output – works for both inline and block equations */
+    .MathJax,
+    .MathJax *,
+    .mjx-chtml,
+    .mjx-math,
+    .mjx-box,
+    .mjx-mtext,
+    .mjx-mi,
+    .mjx-mn,
+    .mjx-mo,
+    .mjx-mrow,
+    .mjx-table,
+    .mjx-mtd,
+    .mjx-mtr {
+        color: #C7390D !important;
+        font-weight: bold !important;
+        font-family: inherit !important;
+    }
+    
+    /* Ensure block equations (display math) also get the color */
+    .MathJax_Display {
+        color: #C7390D !important;
+    }
+    
+    /* ===== ALLOW EDITOR STYLES TO PASS THROUGH ===== */
+    .student-note-container p,
+    .student-note-container div,
+    .student-note-container span,
+    .student-note-container ol,
+    .student-note-container ul,
+    .student-note-container li,
+    .student-note-container table {
+        all: revert;
+        /* The container's color and weight will apply if not overridden */
+    }
+    
+    .student-note-container img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .student-note-container figure {
+        margin: 0;
+    }
+    
+    /* ===== ASSIGNMENT PROMPT – standalone, beautiful ===== */
     .assignment-prompt {
         text-align: center;
         margin-top: 3rem;
-        padding: 2rem;
+        padding: 2.5rem;
         background: #f8fafc;
-        border-radius: 1rem;
+        border-radius: 1.5rem;
         border: 2px dashed var(--accent);
     }
+    
+    .assignment-prompt p {
+        font-size: 1.15rem;
+        color: #1e293b;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+    }
+    
     .assignment-prompt .btn {
         background: var(--accent);
         color: #1e293b;
-        padding: 0.75rem 2.5rem;
-        border-radius: 2rem;
+        padding: 0.85rem 3rem;
+        border-radius: 2.5rem;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
+        font-size: 1.1rem;
         display: inline-block;
-        transition: 0.2s;
+        transition: 0.25s ease;
+        box-shadow: 0 4px 12px rgba(212,175,55,0.3);
     }
+    
     .assignment-prompt .btn:hover {
-        transform: scale(1.05);
+        transform: scale(1.04) translateY(-2px);
         background: var(--accent-dark);
+        box-shadow: 0 8px 24px rgba(212,175,55,0.4);
     }
 </style>
 </head>
@@ -92,16 +169,17 @@ if (empty(trim($clean_content))) {
 <?php include_once 'includes/header.php'; ?>
 <div class="container">
     <div style="margin-bottom:1rem; display:flex; justify-content:space-between; flex-wrap:wrap;">
-        <h2><?=htmlspecialchars($note['title'])?></h2>
+        <h2><?= htmlspecialchars($note['title']) ?></h2>
         <a href="library.php" class="btn-back">← Back</a>
     </div>
     
     <div class="student-note-container" id="main-container">
-        <?php echo $clean_content; ?>
+        <!-- ===== THE NOTE CONTENT – EXACTLY AS STORED ===== -->
+        <?php echo $note['content']; ?>
         
-        <!-- ===== ASSIGNMENT ROOM PROMPT ===== -->
+        <!-- ===== ASSIGNMENT PROMPT ===== -->
         <div class="assignment-prompt">
-            <p style="margin-bottom: 1rem; font-size: 1.1rem;">
+            <p>
                 ✅ You have reached the end of this note.<br>
                 All exercises from this note have been moved to the <strong>Assignment Room</strong>.
             </p>
