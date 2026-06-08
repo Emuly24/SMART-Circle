@@ -1,12 +1,7 @@
 <?php
-// ===== COMPREHENSIVE REDIRECT LOOP DIAGNOSTIC WITH DEEP DATABASE CHECKS =====
-// Run this file once to get a full system health report.
-// It WILL NOT redirect anywhere.
-
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-
 echo "<h1>🚨 REDIRECT LOOP DIAGNOSTIC – DEEP DB CHECK</h1>";
 echo "<p>Run this file from your browser. If you see this text, PHP is working and no redirect is happening.</p>";
 echo "<hr>";
