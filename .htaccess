@@ -1,16 +1,22 @@
-# Force HTTPS (redirect HTTP to HTTPS)
+# Force HTTPS (keep this - it's fine)
 RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+# Prevent directory listing
 Options -Indexes
 
+# Block sensitive files (Apache 2.4+ syntax)
 <FilesMatch "^(config\.php|update_config\.php)$">
-    Order Allow,Deny
-    Deny from all
+    Require all denied
 </FilesMatch>
 
-<FilesMatch "^\.(htaccess|env)$">
-    Order Allow,Deny
-    Deny from all
+# Block all hidden files (.htaccess, .env, etc.)
+<FilesMatch "^\.">
+    Require all denied
 </FilesMatch>
+
+# Explicitly block .htaccess itself
+<Files ".htaccess">
+    Require all denied
+</Files>
