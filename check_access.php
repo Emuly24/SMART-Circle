@@ -1,7 +1,12 @@
 <?php
 // ===== CHECK ACCESS – Must be included AFTER session_start() and user fetch =====
 
-// Prevent direct execution
+// Ensure database functions are available
+if (!function_exists('getDB')) {
+    require_once 'config.php';
+}
+
+// Prevent direct execution if no session
 if (!isset($_SESSION['user_id'])) {
     // Allow public pages
     $public_pages = ['index.php', 'signup.php', 'login.php', 'logout.php'];
@@ -11,6 +16,7 @@ if (!isset($_SESSION['user_id'])) {
         header("Location: login.php");
         exit;
     }
+    session_write_close();
     return;
 }
 
@@ -40,7 +46,12 @@ $always_allowed = ['index.php', 'logout.php', 'profile.php', 'notifications.php'
 
 // --- 1. NOT APPROVED (no application) → FORCED TO APPLY.PHP ALWAYS ---
 if (!$user['approved']) {
-    $has_application = $conn->query("SELECT id FROM applications WHERE user_id = $user_id")->num_rows > 0;
+    // Use prepared statement for application check
+    $stmt_app = $conn->prepare("SELECT id FROM applications WHERE user_id = ?");
+    $stmt_app->bind_param("i", $user_id);
+    $stmt_app->execute();
+    $has_application = $stmt_app->get_result()->num_rows > 0;
+    
     if (!$has_application) {
         $allowed = array_merge($always_allowed, ['apply.php']);
         if (!in_array($current, $allowed)) {
@@ -56,6 +67,7 @@ if (!$user['approved']) {
             exit;
         }
     }
+    session_write_close();
     return;
 }
 
@@ -67,6 +79,7 @@ if (!$user['consent_signed']) {
         header("Location: consent.php");
         exit;
     }
+    session_write_close();
     return;
 }
 
@@ -77,7 +90,10 @@ if ($user['status'] == 'suspended') {
         session_write_close();
         die('<!DOCTYPE html><html><head><title>Suspended</title><link rel="stylesheet" href="style.css"></head><body><div class="container"><div class="card error"><h1>Account Suspended</h1><p>You are suspended until ' . $end . '. Contact the admin.</p><a href="logout.php" class="btn-danger">Logout</a></div></div></body></html>');
     } else {
-        $conn->query("UPDATE users SET status='active', suspension_end=NULL WHERE id=$user_id");
+        // Reactivate using prepared statement
+        $stmt_reactivate = $conn->prepare("UPDATE users SET status='active', suspension_end=NULL WHERE id = ?");
+        $stmt_reactivate->bind_param("i", $user_id);
+        $stmt_reactivate->execute();
         $_SESSION['status'] = 'active';
     }
 }
@@ -87,5 +103,6 @@ if ($user['status'] == 'dismissed') {
 }
 
 // --- 4. FULLY APPROVED AND CONSENT SIGNED → full access ---
+session_write_close();
 return;
 ?>
