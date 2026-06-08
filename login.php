@@ -1,5 +1,5 @@
 <?php
-// ===== SESSION SETUP (must come before any output) =====
+// ===== SESSION SETUP =====
 $session_path = __DIR__ . '/sessions';
 if (!is_dir($session_path)) {
     mkdir($session_path, 0755, true);
@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Loop-breaker guard: if already logged in, redirect appropriately
+// ===== LOOP BREAKER – if already logged in, redirect and exit =====
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     session_write_close();
     if ($_SESSION['role'] === 'admin') {
@@ -39,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
 
         if ($user && password_verify($pass, $user['password'])) {
-            // Set session variables
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['fullname'] = $user['fullname'];
 
@@ -58,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['suspension_end'] = $user['suspension_end'];
             }
 
-            // Regenerate session ID AFTER setting data, then force write
             session_regenerate_id(true);
             session_write_close();
 
