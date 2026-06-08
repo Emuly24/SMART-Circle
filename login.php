@@ -1,4 +1,8 @@
 <?php
+// ===== ERROR REPORTING (enable for debugging) =====
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // ===== SESSION SETUP =====
 $session_path = __DIR__ . '/sessions';
 if (!is_dir($session_path)) {
