@@ -24,6 +24,9 @@ jobs:
             .github
             .vscode
             .env
+            vendor
             node_modules
             *.sql
             README.md
+            config.php.example
+            .env.example

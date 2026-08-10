@@ -1,0 +1,14 @@
+{
+    "name": "smartcircle/platform",
+    "description": "SMART Circle tutoring platform for Form 3/4 students",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SmartCircle\\": "src/"
+        }
+    }
+}
