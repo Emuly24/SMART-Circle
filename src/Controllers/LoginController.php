@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SmartCircle\Controllers;
 
 use SmartCircle\Models\UserModel;
+use SmartCircle\Support\Csrf;
+use SmartCircle\Support\InputValidator;
 
 final class LoginController extends Controller
 {
@@ -17,6 +19,13 @@ final class LoginController extends Controller
 
     public function handle(): void
     {
+        $this->runSafely(function (): void {
+            $this->processRequest();
+        });
+    }
+
+    private function processRequest(): void
+    {
         if ($this->isAlreadyLoggedIn()) {
             $this->redirectAfterLogin((string) $_SESSION['role']);
         }
@@ -25,22 +34,32 @@ final class LoginController extends Controller
         $login = '';
 
         if ($this->isPost()) {
-            $login = trim((string) ($_POST['login'] ?? ''));
-            $password = (string) ($_POST['password'] ?? '');
+            if (!$this->validateCsrf()) {
+                $this->respondCsrfFailure();
+            }
+
+            $login = InputValidator::login($_POST['login'] ?? '') ?? '';
+            $password = InputValidator::password($_POST['password'] ?? '') ?? '';
 
             $result = $this->attemptLogin($login, $password);
 
             if ($result['success']) {
+                Csrf::regenerate();
                 $this->establishSession($result['user']);
                 $this->redirectForUser($result['user']);
             }
 
             $error = $result['error'];
+
+            if ($this->wantsJson()) {
+                $this->jsonError($error, ['login' => $error], 401);
+            }
         }
 
         $this->render('auth/login', [
             'error' => $error,
             'login' => $login,
+            'csrfField' => $this->csrfField(),
             'pageTitle' => 'Login - SMART Circle',
         ]);
     }
@@ -61,14 +80,6 @@ final class LoginController extends Controller
             ];
         }
 
-        if (!$this->isValidLoginFormat($login)) {
-            return [
-                'success' => false,
-                'error' => 'Enter a valid phone number or email address.',
-                'user' => null,
-            ];
-        }
-
         $user = $this->users->findByLogin($login);
 
         if (!$user || !password_verify($password, (string) $user['password'])) {
@@ -84,17 +95,6 @@ final class LoginController extends Controller
             'error' => '',
             'user' => $user,
         ];
-    }
-
-    private function isValidLoginFormat(string $login): bool
-    {
-        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
-            return true;
-        }
-
-        $digits = preg_replace('/\D/', '', $login);
-
-        return $digits !== null && strlen($digits) >= 9 && strlen($digits) <= 15;
     }
 
     private function establishSession(array $user): void
@@ -119,6 +119,22 @@ final class LoginController extends Controller
 
     private function redirectForUser(array $user): void
     {
+        if ($this->wantsJson()) {
+            $destination = 'dashboard.php';
+
+            if (isset($user['role']) && $user['role'] === 'admin') {
+                $destination = 'admin_dashboard.php';
+            } elseif ((int) $user['approved'] === 0) {
+                $destination = $this->users->hasApplication((int) $user['id'])
+                    ? 'pending.php'
+                    : 'apply.php';
+            } elseif ((int) $user['approved'] === 1 && (int) $user['consent_signed'] === 0) {
+                $destination = 'consent.php';
+            }
+
+            $this->jsonSuccess('Login successful.', ['redirect' => $destination]);
+        }
+
         if (isset($user['role']) && $user['role'] === 'admin') {
             $this->redirect('admin_dashboard.php');
         }
@@ -140,6 +156,11 @@ final class LoginController extends Controller
     private function redirectAfterLogin(string $role): void
     {
         session_write_close();
+
+        if ($this->wantsJson()) {
+            $destination = $role === 'admin' ? 'admin_dashboard.php' : 'dashboard.php';
+            $this->jsonSuccess('Already logged in.', ['redirect' => $destination]);
+        }
 
         if ($role === 'admin') {
             $this->redirect('admin_dashboard.php');

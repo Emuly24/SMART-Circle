@@ -18,6 +18,8 @@
             <?php endif; ?>
 
             <form method="post" action="login.php" novalidate>
+                <?= $csrfField ?? '' ?>
+
                 <div class="form-group">
                     <label for="login">Phone Number or Email</label>
                     <input
