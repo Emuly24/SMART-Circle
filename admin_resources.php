@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve'])) {
         $conn->query($update_sql . " WHERE id = $id");
         
         // Only add to library if: type is 'book', admin checked the box, and it's not essential
-        if ($resource['type'] == 'book' && $add_to_library && !$is_essential) {
+        if ($resource['resource_type'] == 'book' && $add_to_library && !$is_essential) {
             $title = $resource['title'];
             $subject = $subject_library ?: $resource['subject'];
             $class = $class_library ?: 'Form 3/4';
@@ -78,7 +78,7 @@ $resources = $conn->query("SELECT r.*, u.fullname FROM student_resources r JOIN 
                 <h3><?= htmlspecialchars($r['title']) ?></h3>
                 <p><strong>Original subject:</strong> <?= htmlspecialchars($r['subject']) ?></p>
                 <p><strong>Student:</strong> <?= htmlspecialchars($r['fullname']) ?></p>
-                <p><strong>Type:</strong> <?= ucfirst($r['type'] ?? 'other') ?></p>
+                <p><strong>Type:</strong> <?= ucfirst($r['resource_type'] ?? 'other') ?></p>
                 <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($r['description'])) ?></p>
                 <?php if ($r['file_paths']): ?>
                     <p><strong>Files:</strong></p>
@@ -97,7 +97,7 @@ $resources = $conn->query("SELECT r.*, u.fullname FROM student_resources r JOIN 
                         <div class="form-group">
                             <label><input type="checkbox" name="is_essential"> 📌 Mark as essential (internal use only, not added to library)</label>
                         </div>
-                        <?php if ($r['type'] == 'book'): ?>
+                        <?php if ($r['resource_type'] == 'book'): ?>
                             <div class="form-group">
                                 <label><input type="checkbox" name="add_to_library"> ✅ Add to library (students will see this book)</label>
                             </div>
@@ -120,7 +120,7 @@ $resources = $conn->query("SELECT r.*, u.fullname FROM student_resources r JOIN 
                             </div>
                         <?php else: ?>
                             <div class="info" style="background:#f0f0f0; padding:6px; margin-bottom:10px; border-radius:5px;">
-                                ℹ️ This resource type (<?= ucfirst($r['type']) ?>) will <strong>NOT</strong> be added to the library. It will be available for admin reference only (e.g., to use when writing notes).
+                                ℹ️ This resource type (<?= ucfirst($r['resource_type']) ?>) will <strong>NOT</strong> be added to the library. It will be available for admin reference only (e.g., to use when writing notes).
                             </div>
                         <?php endif; ?>
                         <div class="form-group">

@@ -23,17 +23,21 @@ if (!isset($_SESSION['user_id'])) {
 // User is logged in – fetch their status
 $conn = getDB();
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT approved, consent_signed, status, suspension_end, class_level FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT id, approved, consent_signed, status, suspension_end, class_level FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+$access_row = $stmt->get_result()->fetch_assoc();
 
-if (!$user) {
+if (!$access_row) {
     session_destroy();
     session_write_close();
     header("Location: login.php");
     exit;
 }
+
+// Pages like dashboard.php load the full user row BEFORE including this file;
+// merge instead of overwriting so their fullname/phone/etc. survive.
+$user = (isset($user) && is_array($user)) ? array_merge($user, $access_row) : $access_row;
 
 // Store session variables
 $_SESSION['class_level'] = $user['class_level'];
