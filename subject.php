@@ -8,38 +8,48 @@ $class = $user['class_level'];
 $subject = isset($_GET['subject']) ? trim($_GET['subject']) : '';
 if (!$subject) die("No subject specified.");
 
+// All queries use bound parameters: $subject comes straight from the URL.
+$uid = (int) $uid;
+$group_lock = "AND EXISTS (SELECT 1 FROM group_content_locks gcl
+                WHERE gcl.content_type = ? AND gcl.content_id = %s
+                AND gcl.group_id = (SELECT group_id FROM group_members WHERE user_id = ?)
+                AND gcl.is_locked = 0)";
+
 // Fetch unlocked notes
-$notes = $conn->query("SELECT n.id, n.title, n.created_at 
-    FROM notes n 
-    WHERE n.class_level='$class' AND n.subject='$subject'
-    AND EXISTS (SELECT 1 FROM group_content_locks gcl 
-                WHERE gcl.content_type='note' AND gcl.content_id=n.id 
-                AND gcl.group_id = (SELECT group_id FROM group_members WHERE user_id=$uid) 
-                AND gcl.is_locked = 0)
+$stmt = $conn->prepare("SELECT n.id, n.title, n.created_at
+    FROM notes n
+    WHERE n.class_level = ? AND n.subject = ?
+    " . sprintf($group_lock, 'n.id') . "
     ORDER BY n.title");
+$type = 'note';
+$stmt->bind_param("sssi", $class, $subject, $type, $uid);
+$stmt->execute();
+$notes = $stmt->get_result();
 
 // Fetch assignments
-$assignments = $conn->query("SELECT a.id, a.title, a.due_date, 
-    (SELECT submitted_at FROM assignment_submissions WHERE assignment_id=a.id AND user_id=$uid) as submitted,
-    (SELECT marks FROM assignment_submissions WHERE assignment_id=a.id AND user_id=$uid) as marks
-    FROM assignments a 
-    WHERE a.class_level='$class' AND a.subject='$subject'
-    AND EXISTS (SELECT 1 FROM group_content_locks gcl 
-                WHERE gcl.content_type='assignment' AND gcl.content_id=a.id 
-                AND gcl.group_id = (SELECT group_id FROM group_members WHERE user_id=$uid) 
-                AND gcl.is_locked = 0)
+$stmt = $conn->prepare("SELECT a.id, a.title, a.due_date,
+    (SELECT submitted_at FROM assignment_submissions WHERE assignment_id = a.id AND user_id = ?) AS submitted,
+    (SELECT marks FROM assignment_submissions WHERE assignment_id = a.id AND user_id = ?) AS marks
+    FROM assignments a
+    WHERE a.class_level = ? AND a.subject = ?
+    " . sprintf($group_lock, 'a.id') . "
     ORDER BY a.due_date");
+$type = 'assignment';
+$stmt->bind_param("iisssi", $uid, $uid, $class, $subject, $type, $uid);
+$stmt->execute();
+$assignments = $stmt->get_result();
 
 // Fetch quizzes
-$quizzes = $conn->query("SELECT q.id, q.title, q.description, q.time_limit
-    FROM quizzes q 
+$stmt = $conn->prepare("SELECT q.id, q.title, q.description, q.time_limit
+    FROM quizzes q
     JOIN notes n ON q.note_id = n.id
-    WHERE n.class_level='$class' AND n.subject='$subject'
-    AND EXISTS (SELECT 1 FROM group_content_locks gcl 
-                WHERE gcl.content_type='quiz' AND gcl.content_id=q.id 
-                AND gcl.group_id = (SELECT group_id FROM group_members WHERE user_id=$uid) 
-                AND gcl.is_locked = 0)
+    WHERE n.class_level = ? AND n.subject = ?
+    " . sprintf($group_lock, 'q.id') . "
     ORDER BY q.title");
+$type = 'quiz';
+$stmt->bind_param("sssi", $class, $subject, $type, $uid);
+$stmt->execute();
+$quizzes = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html><head><title><?= htmlspecialchars($subject) ?> - SMART Circle</title><link rel="stylesheet" href="style.css"></head><body>

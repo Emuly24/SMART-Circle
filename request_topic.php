@@ -26,7 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($topics)) {
             $error = "Please select at least one topic.";
         } else {
-            $conn->query("DELETE FROM topic_requests WHERE user_id = $uid AND subject = '$subject'");
+            $del = $conn->prepare("DELETE FROM topic_requests WHERE user_id = ? AND subject = ?");
+            $del->bind_param("is", $uid, $subject);
+            $del->execute();
             $stmt = $conn->prepare("INSERT INTO topic_requests (user_id, subject, topic, class_level) VALUES (?, ?, ?, ?)");
             foreach ($topics as $topic) {
                 if (!empty($topic)) {
@@ -43,7 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($topic)) {
             $error = "Enter a topic to check.";
         } else {
-            $check = $conn->query("SELECT covered_date FROM topics_covered WHERE class_level='$class' AND subject='$subject' AND topic='$topic'");
+            $check_stmt = $conn->prepare("SELECT covered_date FROM topics_covered WHERE class_level = ? AND subject = ? AND topic = ?");
+            $check_stmt->bind_param("sss", $class, $subject, $topic);
+            $check_stmt->execute();
+            $check = $check_stmt->get_result();
             if ($check && $check->num_rows) {
                 $covered_date = $check->fetch_assoc()['covered_date'];
                 $error = "⚠️ This topic was covered on $covered_date. You can still request it but priority may be lower.";
