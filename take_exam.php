@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_exam'])) {
         $file_path = null;
         if (isset($_FILES['answer_files']) && isset($_FILES['answer_files']['name'][$qid]) && $_FILES['answer_files']['error'][$qid] == UPLOAD_ERR_OK) {
             $dir = 'uploads/exam_answers/';
-            if (!is_dir($dir)) mkdir($dir, 0777, true);
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
             $ext = pathinfo($_FILES['answer_files']['name'][$qid], PATHINFO_EXTENSION);
             if (in_array(strtolower($ext), ['jpg','jpeg','png','pdf'])) {
                 $dest = $dir . "user_{$uid}_exam_{$exam_id}_q{$qid}_" . time() . ".$ext";

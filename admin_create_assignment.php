@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $attach = null;
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == UPLOAD_ERR_OK) {
         $dir = 'uploads/assignments/';
-        if (!is_dir($dir)) mkdir($dir, 0777, true);
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
         $ext = pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION);
         if (in_array(strtolower($ext), ['jpg','png','pdf','doc','txt'])) {
             $name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $_FILES['attachment']['name']);

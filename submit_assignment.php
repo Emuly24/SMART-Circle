@@ -43,9 +43,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $text = trim($_POST['submission_text']);
     $file = null;
     if (isset($_FILES['submission_file']) && $_FILES['submission_file']['error'] == UPLOAD_ERR_OK) {
+        // Only document/image types; anything else (e.g. .php) could be executed by the web server.
+        $allowed_types = [
+            'jpg'  => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png'  => ['image/png'],
+            'pdf'  => ['application/pdf'],
+            'doc'  => ['application/msword', 'application/vnd.ms-office', 'application/octet-stream'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
+            'txt'  => ['text/plain'],
+        ];
+        $max_bytes = 10 * 1024 * 1024; // InfinityFree upload limit is about 10 MB
+
+        $ext = strtolower(pathinfo($_FILES['submission_file']['name'], PATHINFO_EXTENSION));
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['submission_file']['tmp_name']);
+
+        if (!isset($allowed_types[$ext]) || !in_array($mime, $allowed_types[$ext], true)) {
+            die("Invalid file type. Allowed: " . implode(', ', array_keys($allowed_types)) . ".");
+        }
+        if ($_FILES['submission_file']['size'] > $max_bytes) {
+            die("File is too large (maximum 10 MB).");
+        }
+
         $dir = 'uploads/assignments/';
-        if (!is_dir($dir)) mkdir($dir, 0777, true);
-        $ext = pathinfo($_FILES['submission_file']['name'], PATHINFO_EXTENSION);
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
         $dest = $dir . "user_{$uid}_assign_{$aid}_" . time() . ".$ext";
         if (move_uploaded_file($_FILES['submission_file']['tmp_name'], $dest)) $file = $dest;
     }
@@ -69,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2>📝 Submit Assignment</h2>
             <form method="post" enctype="multipart/form-data">
                 <div class="form-group"><label>Your Answer (text)</label><textarea name="submission_text" rows="6" class="form-control"></textarea></div>
-                <div class="form-group"><label>OR Upload File</label><input type="file" name="submission_file" accept=".jpg,.png,.pdf,.doc,.txt" class="form-control"></div>
+                <div class="form-group"><label>OR Upload File</label><input type="file" name="submission_file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt" class="form-control"></div>
                 <button type="submit" class="btn">Submit</button>
             </form>
         </div>

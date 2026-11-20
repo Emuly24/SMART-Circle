@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['pdf_file'])) {
     $subject = $_POST['subject'];
     $class = $_POST['class_level'];
     $dir = 'uploads/books/';
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
     
     $file = $_FILES['pdf_file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
