@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ext = strtolower(pathinfo($_FILES['files']['name'][$index], PATHINFO_EXTENSION));
                 if (!in_array($ext, $allowed)) {
                     $error = "Invalid file type: {$_FILES['files']['name'][$index]}";
-                    break 2;
+                    break;
                 }
                 $safeName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $_FILES['files']['name'][$index]);
                 $dest = $uploadDir . $safeName;
@@ -53,17 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $file_paths[] = $dest;
                 } else {
                     $error = "Failed to upload {$_FILES['files']['name'][$index]}";
-                    break 2;
+                    break;
                 }
             }
         }
-        if (empty($file_paths) && !empty($external_url)) {
+        if (empty($error) && empty($file_paths) && !empty($external_url)) {
             $external_url = filter_var($external_url, FILTER_SANITIZE_URL);
             if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
                 $error = "Invalid external URL.";
             }
         }
-        if (empty($file_paths) && empty($external_url)) {
+        if (empty($error) && empty($file_paths) && empty($external_url)) {
             $error = "Please upload at least one file or provide an external link.";
         }
         

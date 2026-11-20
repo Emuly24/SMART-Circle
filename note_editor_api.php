@@ -1,26 +1,28 @@
 <?php
-require_once 'check_remember_me.php';
-<?php
-require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+// JSON API for the admin note editor (admin_note_editor.php): uploads, research notes, drafts.
+require_once __DIR__ . '/config.php';
+
+header('Content-Type: application/json');
+
+// Admin only. admin_note_editor.php sets admin_logged after Basic Auth / admin login.
+if (empty($_SESSION['admin_logged'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Admin login required']);
     exit;
 }
-$uid = $_SESSION['user_id'];
+
 $conn = getDB();
-$user = $conn->query("SELECT * FROM users WHERE id = $uid")->fetch_assoc();
-?>
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 if ($action === 'upload_image') {
     // CKEditor image upload
     $uploadDir = 'uploads/note_images/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload'])) {
-        $file = $_FILES['upload'];
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+    // TinyMCE 6 posts the image as "file"; older CKEditor code used "upload".
+    $file_field = isset($_FILES['file']) ? 'file' : 'upload';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES[$file_field])) {
+        $file = $_FILES[$file_field];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
             echo json_encode(['error' => 'Invalid image type']);
@@ -29,17 +31,20 @@ if ($action === 'upload_image') {
         $safeName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file['name']);
         $destination = $uploadDir . $safeName;
         if (move_uploaded_file($file['tmp_name'], $destination)) {
-            echo json_encode(['url' => $destination]);
+            // TinyMCE reads "location"; "url" kept for any older callers.
+            echo json_encode(['location' => $destination, 'url' => $destination]);
         } else {
+            http_response_code(500);
             echo json_encode(['error' => 'Upload failed']);
         }
     } else {
+        http_response_code(400);
         echo json_encode(['error' => 'No file']);
     }
 } elseif ($action === 'upload_attachment') {
     // Generic file attachment
     $uploadDir = 'uploads/note_attachments/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         $file = $_FILES['file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -92,7 +97,7 @@ if ($action === 'upload_image') {
     echo json_encode($draft ?: []);
     } elseif ($action === 'upload_media') {
     $uploadDir = 'uploads/media/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         $file = $_FILES['file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
