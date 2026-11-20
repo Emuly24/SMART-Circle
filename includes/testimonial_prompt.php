@@ -93,7 +93,7 @@ $conn->query("UPDATE users SET testimonial_prompt_shown=1 WHERE id=$uid");
         }
     });
     document.getElementById('dismissTestimonialPrompt')?.addEventListener('click', function() {
-        fetch('dismiss_testimonial_prompt.php', { method: 'POST' })
-            .then(() => promptDiv.style.display = 'none');
+        // The prompt is already marked as shown when it is displayed, so just hide it.
+        promptDiv.style.display = 'none';
     });
 </script>

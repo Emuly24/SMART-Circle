@@ -199,7 +199,7 @@ $page_title = $page_titles[$current_file] ?? ucfirst(str_replace('_', ' ', $curr
                         <li><a href="request_topic.php">💡 Request Topic</a></li>
                         <li><a href="covered_topics.php">📜 Covered Topics</a></li>
                         <li><a href="my_group.php">👥 My Group</a></li>
-                        <li><a href="upload_resource.php">📤 Share a Learning Resource</a></li>
+                        <li><a href="share_resource.php">📤 Share a Learning Resource</a></li>
                         <li><a href="logout.php">🚪 Logout</a></li>
                     <?php endif; ?>
                 <?php endif; ?>

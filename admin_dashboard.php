@@ -96,7 +96,7 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
         <a href="admin_book_questions.php">📚 Book Questions</a>
         <a href="admin_bulk_import.php">📤 Bulk Import Notes/Books (CSV)</a>
         <a href="admin_resources.php">📂 Student Resource Submissions</a>
-        <a href="admin_select_note_for_extraction.php">📤 Extract Exercises to Assignments</a>
+        <a href="admin_notes_list.php">📤 Extract Exercises to Assignments (pick a note)</a>
     </div>
 </div>
         <!-- Exams Card -->
@@ -141,7 +141,6 @@ $suspensions = $conn->query("SELECT COUNT(*) FROM users WHERE status='suspended'
                 <a href="admin_attendance_report.php">Attendance Report</a>
                 <a href="admin_discipline_log.php">Discipline Log</a>
                 <a href="admin_class_overview.php">Class Overview</a>
-                <a href="admin_group_insights.php">📊 Group Insights Dashboard</a>
                 <a href="admin_set_meeting.php">⏰ Set Group Meeting Time</a>
                 <a href="admin_group_locks.php">🔒 Group Content Locks</a>
             </div>

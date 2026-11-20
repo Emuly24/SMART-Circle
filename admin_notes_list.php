@@ -49,6 +49,7 @@ $notes = $conn->query("SELECT id, title, subject, class_level, created_at FROM n
                         <td class="card-buttons">
                         <a href="admin_view_note.php?id=<?= $n['id'] ?>" class="btn">View</a>
                         <a href="admin_note_editor.php?id=<?= $n['id'] ?>" class="btn">Edit</a>
+                        <a href="admin_extract_exercises.php?note_id=<?= $n['id'] ?>" class="btn">Extract exercises</a>
                         <a href="?delete=<?= $n['id'] ?>" onclick="return confirm('Delete this note?')" class="btn-danger">Delete</a>
                     </td>
                     </tr>

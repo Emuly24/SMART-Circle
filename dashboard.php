@@ -275,8 +275,8 @@ while ($s = $subj_result->fetch_assoc()) {
 
     <?php if ($paper_count > 0): ?>
         <div class="warning">
-            ⚠️ You have <?= $paper_count ?> exercise(s) that you promised to submit on paper. 
-            <a href="pending_exercises.php">View pending</a>
+            ⚠️ You have <?= $paper_count ?> exercise(s) that you promised to submit on paper.
+            Please hand them in to your tutor.
         </div>
     <?php endif; ?>
 
