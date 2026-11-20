@@ -10,6 +10,9 @@ uploads/
 *.sql
 *.log
 backup_*.sql
+# ...but the schema and migrations ARE source code
+!database/*.sql
+!database/migrations/*.sql
 
 # OS metadata
 .DS_Store
