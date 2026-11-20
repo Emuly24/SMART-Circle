@@ -78,7 +78,7 @@ $total_quizzes = $stats['total_quizzes'] ?? 0;
 $done_quizzes = $stats['done_quizzes'] ?? 0;
 
 // Attendance (30 days)
-$att_stmt = $conn->prepare("SELECT COUNT(*) as total, SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present, SUM(CASE WHEN status='late' THEN 1 ELSE 0 END) as late FROM attendance WHERE user_id=? AND date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+$att_stmt = $conn->prepare("SELECT COUNT(*) as total, SUM(CASE WHEN status IN ('on_time','present') THEN 1 ELSE 0 END) as present, SUM(CASE WHEN status='late' THEN 1 ELSE 0 END) as late FROM attendance WHERE user_id=? AND date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
 $att_stmt->bind_param("i", $uid);
 $att_stmt->execute();
 $att_stats = $att_stmt->get_result()->fetch_assoc();

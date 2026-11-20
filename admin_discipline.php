@@ -23,10 +23,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = (int)$_POST['user_id'];
     $action = $_POST['action'];
     $reason = $_POST['reason'];
-    $sus_end = $_POST['suspension_end'] ?? null;
-    $conn->query("INSERT INTO discipline_log (user_id,action,reason,suspension_end,admin_notes) VALUES ($uid,'$action','$reason','$sus_end','{$_POST['admin_notes']}')");
+    // An empty date must be stored as NULL: MariaDB strict mode rejects '' for a DATE column.
+    $sus_end = trim($_POST['suspension_end'] ?? '');
+    $sus_end = $sus_end === '' ? null : $sus_end;
+    $admin_notes = $_POST['admin_notes'] ?? '';
+    $log_stmt = $conn->prepare("INSERT INTO discipline_log (user_id, action, reason, suspension_end, admin_notes) VALUES (?, ?, ?, ?, ?)");
+    $log_stmt->bind_param("issss", $uid, $action, $reason, $sus_end, $admin_notes);
+    $log_stmt->execute();
     if ($action == 'suspension') {
-    $conn->query("UPDATE users SET status='suspended', suspension_end='$sus_end' WHERE id=$uid");
+    $sus_stmt = $conn->prepare("UPDATE users SET status='suspended', suspension_end=? WHERE id=?");
+    $sus_stmt->bind_param("si", $sus_end, $uid);
+    $sus_stmt->execute();
 } elseif ($action == 'dismissal') {
     $conn->query("UPDATE users SET status='dismissed', suspension_end=NULL WHERE id=$uid");
     // Remove student from any group
