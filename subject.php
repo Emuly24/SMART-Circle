@@ -68,7 +68,7 @@ $quizzes = $conn->query("SELECT q.id, q.title, q.description, q.time_limit
                             Submitted on <?=$a['submitted']?>
                             <?php if($a['marks']!==null) echo " - Marks: {$a['marks']}";?>
                         <?php else:?>
-                            <a href="student_submit_assignment.php?assignment_id=<?=$a['id']?>">Submit Assignment</a>
+                            <a href="submit_assignment.php?assignment_id=<?=$a['id']?>">Submit Assignment</a>
                         <?php endif;?>
                         </p>
                     <?php endwhile; ?>

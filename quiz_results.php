@@ -35,7 +35,7 @@ $passed = $percentage >= $quiz['passing_percentage'];
 <div class="card"><strong><?=nl2br(htmlspecialchars($a['question_text']))?></strong><br>Your answer: <?=nl2br(htmlspecialchars($a['user_answer']))?><br>Marks: <?=$a['points_awarded']?>/<?=$a['points']?></div>
 <?php endwhile; ?>
 </div>
-<a href="view_note.php?id=<?=$quiz['note_id']?>">Back to Note</a>
+<a href="student_view_note.php?id=<?=$quiz['note_id']?>">Back to Note</a>
 </div><<?php include_once 'includes/footer.php'; ?>
 <?php include_once 'includes/toc_navigator.php'; ?>
 </body></html>

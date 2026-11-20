@@ -54,7 +54,7 @@
 
             <nav class="login-links" aria-label="Account links">
                 <a href="signup.php">Don&rsquo;t have an account? Sign up here</a>
-                <a href="forgot_password.php">Forgot password?</a>
+                <span>Forgot password? Ask the admin to reset it.</span>
             </nav>
         </section>
     </main>

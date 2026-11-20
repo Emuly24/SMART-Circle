@@ -37,7 +37,7 @@ while ($n = $notes->fetch_assoc()) {
         echo "<div class='card'><h3>" . htmlspecialchars($n['subject']) . "</h3>";
         $current_subject = $n['subject'];
     }
-    echo "<p><strong>" . htmlspecialchars($n['title']) . "</strong><br><a href='view_note.php?id={$n['id']}'>Read Note</a></p>";
+    echo "<p><strong>" . htmlspecialchars($n['title']) . "</strong><br><a href='student_view_note.php?id={$n['id']}'>Read Note</a></p>";
 }
 if ($current_subject != '') echo "</div>";
 if ($notes->num_rows == 0) echo "<div class='card'><p>No notes available for your group yet.</p></div>";
