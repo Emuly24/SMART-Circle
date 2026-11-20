@@ -20,3 +20,9 @@ Options -Indexes
 <Files ".htaccess">
     Require all denied
 </Files>
+
+# Never serve docs, SQL dumps or text exports (robots.txt stays public).
+# database_schema_export.txt may still exist on the server from the old export_schema.php.
+<FilesMatch "\.(md|sql|log)$|^database_schema_export\.txt$">
+    Require all denied
+</FilesMatch>

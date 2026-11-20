@@ -30,3 +30,8 @@ jobs:
             README.md
             config.php.example
             .env.example
+            docs/**
+            database/**
+            tools/**
+            CLAUDE.md
+            *.md
