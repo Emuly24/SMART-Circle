@@ -1,10 +1,6 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Helper function to uppercase acronyms inside parentheses (e.g., (must) → (MUST))
 function formatUniversityName($uni) {
     return preg_replace_callback('/\(([^)]+)\)/', function($matches) {

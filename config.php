@@ -123,18 +123,44 @@ try {
     die($e->getMessage());
 }
 
-session_set_save_handler(
-    'sess_open',
-    'sess_close',
-    'sess_read',
-    'sess_write',
-    'sess_destroy',
-    'sess_gc'
-);
+// ===== SESSION START (the ONLY place in the app that starts a session) =====
+// Pages must require config.php BEFORE touching $_SESSION and must never call
+// session_save_path() or session_start() themselves.
 
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_ACTIVE) {
+    // A script started a native (file) session before loading config.php.
+    // That session is NOT stored in the database, so log it loudly instead of failing silently.
+    error_log('Session was started before config.php in ' . ($_SERVER['SCRIPT_NAME'] ?? 'unknown script')
+        . '. Remove session_start() from that script and require config.php first.');
+} else {
+    session_set_save_handler(
+        'sess_open',
+        'sess_close',
+        'sess_read',
+        'sess_write',
+        'sess_destroy',
+        'sess_gc'
+    );
+
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'secure'   => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
     session_start();
 }
+
+// Flush session data to the database before PDO is torn down at script end.
+register_shutdown_function('session_write_close');
 
 // ===== SHARED HELPERS =====
 
