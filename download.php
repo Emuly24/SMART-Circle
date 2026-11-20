@@ -49,9 +49,30 @@ if (!file_exists($real_file)) {
     die("File not found.");
 }
 
+// Students may only download their OWN exam answers, assignments and exercises.
+// (File names are predictable, so the name alone is not a secret.) Books are shared.
+$owner_queries = [
+    'exam'       => 'SELECT 1 FROM exam_answers WHERE answer_file_path = ? AND user_id = ? LIMIT 1',
+    'assignment' => 'SELECT 1 FROM assignment_submissions WHERE file_path = ? AND user_id = ? LIMIT 1',
+    'exercise'   => 'SELECT 1 FROM exercise_attempts WHERE answer_file_path = ? AND user_id = ? LIMIT 1',
+];
+if (isset($owner_queries[$type])) {
+    $owner_stmt = getPDO()->prepare($owner_queries[$type]);
+    $owner_stmt->execute([$file_path, (int) $uid]);
+    if (!$owner_stmt->fetchColumn()) {
+        http_response_code(403);
+        die("You do not have access to this file.");
+    }
+}
+
 $mime = mime_content_type($real_file);
+// Only render PDFs and images in the browser; force everything else to download
+// so an uploaded HTML/SVG file cannot run script on this site.
+$inline_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$disposition = in_array($mime, $inline_types, true) ? 'inline' : 'attachment';
+header('X-Content-Type-Options: nosniff');
 header('Content-Type: ' . $mime);
-header('Content-Disposition: inline; filename="' . basename($real_file) . '"');
+header('Content-Disposition: ' . $disposition . '; filename="' . basename($real_file) . '"');
 header('Content-Length: ' . filesize($real_file));
 readfile($real_file);
 exit;
