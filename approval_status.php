@@ -1,14 +1,6 @@
 <?php
-// ===== SESSION SETUP =====
-$session_path = __DIR__ . '/sessions';
-if (!is_dir($session_path)) {
-    mkdir($session_path, 0755, true);
-}
-session_save_path($session_path);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Bootstrap: loads .env, DB connection and the database-backed session (config.php is the only place that starts a session).
+require_once __DIR__ . '/config.php';
 
 if (!isset($_SESSION['user_id'])) {
     session_write_close();
@@ -16,7 +8,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once 'config.php';
 
 $conn = getDB();
 $uid = $_SESSION['user_id'];

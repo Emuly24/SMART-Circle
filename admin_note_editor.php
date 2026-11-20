@@ -1,8 +1,5 @@
 <?php
 require_once 'config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 $admin_hash = getAdminHash();
 if (!isset($_SESSION['admin_logged'])) {
@@ -49,7 +46,6 @@ function extractSectionsFromHTML($html, $conn, $note_id) {
     return $sections;
 }
 
-if (session_status() === PHP_SESSION_NONE) session_start();
 
  if (!isset($_SESSION['admin_logged']) || $_SESSION['admin_logged'] !== true) {
     header("Location: login.php");
