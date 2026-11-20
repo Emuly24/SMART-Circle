@@ -167,7 +167,17 @@ function getAdminHash(): string
         return $hash;
     }
 
-    $hash = password_hash('smarttutor@2026', PASSWORD_DEFAULT);
+    // No hash stored yet: take it from ADMIN_PASSWORD_HASH (.env / secrets.php).
+    // There is deliberately NO built-in default password.
+    $envHash = Env::get('ADMIN_PASSWORD_HASH');
+
+    if ($envHash === null || !str_starts_with($envHash, '$2')) {
+        error_log('Admin login disabled: set ADMIN_PASSWORD_HASH (a password_hash() value) in .env.');
+        // An empty hash never verifies, so admin pages stay locked until it is configured.
+        return '';
+    }
+
+    $hash = $envHash;
     $stmt = $pdo->prepare(
         "INSERT INTO admin_settings (setting_key, setting_value) VALUES ('admin_hash', ?)
          ON DUPLICATE KEY UPDATE setting_value = ?"
