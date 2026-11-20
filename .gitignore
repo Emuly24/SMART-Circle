@@ -22,3 +22,6 @@ Thumbs.db
 # Any file containing production credentials
 *secret*
 *password*
+
+# Templates with placeholders only (no real secrets) ARE tracked
+!secrets.example.php
