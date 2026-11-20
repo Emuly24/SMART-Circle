@@ -3,6 +3,9 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+# Never execute scripts from the uploads folder (student files live there).
+RewriteRule ^uploads/.*\.(php\d?|phtml|phar|pht|phps|cgi|pl|py|sh)$ - [F,NC,L]
+
 # Prevent directory listing
 Options -Indexes
 

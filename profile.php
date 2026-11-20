@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == UPLOAD_ERR_OK) {
             $dir = 'uploads/profiles/';
-            if (!is_dir($dir)) mkdir($dir, 0777, true);
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
             $ext = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
             $allowed = ['jpg', 'jpeg', 'png', 'gif'];
             if (in_array($ext, $allowed)) {

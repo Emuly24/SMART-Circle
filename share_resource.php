@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         if (isset($_FILES['files']) && !empty($_FILES['files']['name'][0])) {
             $uploadDir = 'uploads/student_resources/';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
             $allowed = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'jpg', 'jpeg', 'png', 'gif'];
             foreach ($_FILES['files']['tmp_name'] as $index => $tmpName) {
                 if ($_FILES['files']['error'][$index] !== UPLOAD_ERR_OK) continue;

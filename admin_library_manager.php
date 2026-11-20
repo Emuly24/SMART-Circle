@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $title = $_POST['diagram_title'];
         $category = $_POST['diagram_category'];
         $dir = 'uploads/diagrams/';
-        if (!is_dir($dir)) mkdir($dir, 0777, true);
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
         $ext = strtolower(pathinfo($_FILES['diagram_image']['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg','jpeg','png','gif','svg'];
         if (!in_array($ext, $allowed)) {
