@@ -45,7 +45,7 @@ All text in the SVG files is converted to shapes, so the logo looks identical on
 | **Slate** | `#5B6577` | Secondary text, captions, tagline (5.9:1 on white). |
 | **Mist** | `#F4F6FA` | Page background, cards on white. |
 
-Subject accent colours (badges only, always with a text label): Physics `#1D4E89`, Chemistry `#7B3FA0`, Biology `#1F9D6B`, Mathematics `#C2410C`.
+Subject accent colours (badges only, always with a text label; white text passes on all of them): Mathematics `#C2410C`, Physics `#1D4E89`, Chemistry `#7B3FA0`, Biology `#157A52`, English `#BE185D`.
 
 ## Typography
 
