@@ -18,7 +18,7 @@
     },
     "scripts": {
         "test": "phpunit",
-        "lint": "find src config public tests -name '*.php' -print0 | xargs -0 -n1 php -l"
+        "lint": "find index.php src config public tests -name '*.php' -print0 | xargs -0 -n1 php -l"
     },
     "config": { "sort-packages": true }
 }
