@@ -17,6 +17,8 @@
 # Backups and dumps (the schema lives in database/migrations)
 *.sql
 !/database/migrations/*.sql
+!/database/schema.sql
+!/database/drop-old-site-tables.sql
 backup_*
 
 # OS / editor

@@ -1,6 +1,8 @@
 <?php
 /**
  * @var list<array{key: string, name: string, blurb: string}> $subjects
+ * @var \SmartCircle\Application\Admissions\SeatChart|null $chart
+ * @var bool $isOpen
  * @var callable $asset
  */
 ?>
@@ -15,9 +17,15 @@
                 and the lesson is made for you, with real-life examples from Malawi.
             </p>
             <div class="hero__actions">
-                <a class="btn" href="/about">How it works</a>
-                <span class="hero__note">Applications open soon</span>
+                <?php if ($isOpen): ?>
+                    <a class="btn btn--green" href="/apply">Apply now. It's free</a>
+                    <a class="btn btn--ghost" href="/about">How it works</a>
+                <?php else: ?>
+                    <a class="btn" href="/about">How it works</a>
+                    <span class="hero__note">Applications open soon</span>
+                <?php endif; ?>
             </div>
+            <p class="hero__links"><a href="/apply/status">Check my application</a> · <a href="/welcome">Admitted? Set up my account</a></p>
         </div>
         <img class="hero__mark" src="<?= e($asset('brand/logo-mark.svg')) ?>" alt="" width="260" height="260">
     </div>
@@ -77,6 +85,7 @@
                 24 places: six per form, three girls and three boys, from different schools.
                 It's free, and it's for students who take their schoolwork seriously.
             </p>
+            <?= $view->partial('seat_chart', ['chart' => $chart]) ?>
             <p>
                 Every lesson answers two questions: <strong>why does this matter?</strong> and
                 <strong>where will I use it in real life?</strong>

@@ -31,13 +31,14 @@ dd if="$WORK/lesson.scl" of="$WORK/p3" bs=1048576 skip=2 status=none
 $MYSQL -e "DELETE FROM login_attempts"
 
 echo "Database update button"
-$MYSQL -e "DELETE FROM schema_migrations WHERE version='0002_lessons'; DROP TABLE IF EXISTS lesson_uploads; DROP TABLE IF EXISTS lessons;"
+# Simulate a pending update by un-applying the seed migration (no applications exist yet).
+$MYSQL -e "DELETE FROM entry_quiz_questions; DELETE FROM intakes; DELETE FROM schema_migrations WHERE version='0004_seed';"
 login "$TJ" 0999123456 correct-horse-1
 check "dashboard offers the update"      "A database update is ready" "$(curl -s -b "$TJ" -c "$TJ" "$BASE/dashboard")"
 T=$(token "$TJ" "$BASE/dashboard")
 curl -s -o /dev/null -b "$TJ" -c "$TJ" --data-urlencode "_token=$T" "$BASE/dashboard/database-update"
 check "update applied"                   "Database updated (1 update)" "$(curl -s -b "$TJ" -c "$TJ" "$BASE/dashboard")"
-check "lessons table exists again"       "lessons" "$($MYSQL -N -e "SHOW TABLES LIKE 'lessons'")"
+check "seed data restored by the update" "40" "$($MYSQL -N -e "SELECT COUNT(*) FROM entry_quiz_questions")"
 
 echo "Upload API"
 CSRF=$(token "$TJ" "$BASE/studio/lab")

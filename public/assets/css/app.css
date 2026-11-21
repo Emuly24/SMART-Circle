@@ -258,3 +258,84 @@ code { background: var(--mist); padding: .1em .35em; border-radius: 6px; font-si
     .field-row { grid-template-columns: 1fr; }
     .table th:nth-child(3), .table td:nth-child(3) { display: none; }
 }
+
+/* ---------- Seat chart ---------- */
+.seats { display: grid; gap: 6px; margin: 8px 0; }
+.seats__row { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 8px; align-items: center; }
+.seats__row--head span { font-size: .8rem; font-weight: 700; color: var(--slate); text-transform: uppercase; letter-spacing: .06em; }
+.seats__form { font-weight: 700; }
+.seats__cell { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; background: var(--mist); border-radius: var(--radius-small); }
+.seats__dots { display: inline-flex; gap: 4px; }
+.seat { width: 16px; height: 16px; border-radius: 50%; }
+.seat--open { background: var(--white); border: 2px solid var(--green); }
+.seat--taken { background: var(--blue); border: 2px solid var(--blue); }
+.seats__label { font-size: .85rem; font-weight: 600; }
+.seats__total { margin-top: 4px; }
+.seats-card summary { cursor: pointer; font-weight: 700; }
+.seats-card[open] summary { margin-bottom: 8px; }
+
+/* ---------- Application form ---------- */
+.apply-form fieldset.card { border: 1px solid var(--line); display: grid; gap: 14px; margin: 0; }
+.apply-form legend { font: 700 1.1rem var(--font-display); padding: 0 6px; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.choice-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.choice-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.choice { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1.5px solid #C4CDD9; border-radius: var(--radius-small); background: var(--white); cursor: pointer; font-weight: 500; min-height: 46px; }
+.choice input { width: 20px; height: 20px; accent-color: var(--blue); flex: 0 0 auto; }
+.choice--block { display: flex; align-items: flex-start; }
+.choice--block input { margin-top: 2px; }
+.choice.is-disabled { opacity: .45; cursor: not-allowed; }
+.choice:has(input:checked) { border-color: var(--blue); background: var(--blue-tint); }
+.field input[type="file"] { padding: 8px; }
+
+/* ---------- Quiz ---------- */
+.quiz-timer { position: sticky; top: 76px; z-index: 3; display: inline-block; padding: 8px 14px; border-radius: 999px; background: var(--blue); color: var(--white); font-weight: 700; font-variant-numeric: tabular-nums; }
+.quiz-timer.is-low { background: var(--red); }
+.quiz-q { display: grid; gap: 8px; border: 1px solid var(--line); margin: 0; }
+.quiz-q legend { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 0 6px; }
+.quiz-q__text { font-size: 1.05rem; margin: 0 0 4px; }
+.quiz-review { padding-left: 1.2em; display: grid; gap: 6px; }
+.quiz-review .is-right strong { color: var(--green-text); }
+.quiz-review .is-wrong strong { color: var(--red); }
+
+/* ---------- Confirmation / status ---------- */
+.done-card__icon { width: 64px; height: 64px; margin: 0 auto 8px; border-radius: 50%; background: var(--green); color: var(--white); font-size: 2rem; line-height: 64px; }
+.reference { font: 700 1.6rem var(--font-display); letter-spacing: .08em; color: var(--blue); background: var(--blue-tint); display: inline-block; padding: 8px 16px; border-radius: var(--radius-small); }
+.status-card { border-left: 6px solid var(--slate); }
+.status-card--admitted { border-left-color: var(--green); }
+.status-card--shortlisted, .status-card--waitlisted { border-left-color: var(--amber); }
+.status-card--declined { border-left-color: var(--red); }
+.status-card__label { font: 700 1.3rem var(--font-display); margin-bottom: 4px; }
+.status { display: inline-block; font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--mist); color: var(--slate); }
+.status--submitted { background: var(--blue-tint); color: var(--blue); }
+.status--shortlisted, .status--waitlisted { background: var(--amber-tint); color: #7A5200; }
+.status--admitted { background: var(--green-tint); color: var(--green-text); }
+.status--declined { background: var(--red-tint); color: var(--red); }
+.hero__links { margin-top: 12px; font-size: .95rem; }
+
+/* ---------- Tutor admissions ---------- */
+.title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.title-row__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 18px 0 12px; }
+.filters label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
+.filters select { min-height: 40px; padding: 6px 10px; border: 1.5px solid #C4CDD9; border-radius: var(--radius-small); font: inherit; }
+.detail-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 16px; }
+.detail-grid .card, .narrow-wide > .card { margin-bottom: 16px; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+.facts dt { font-weight: 600; color: var(--slate); }
+.facts dd { margin: 0; }
+.decision__buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.setup-code { border: 2px solid var(--green); background: var(--green-tint); }
+.setup-code__actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.setup-code__actions form { margin: 0; }
+.letter-list { padding-left: 1.1em; margin: 0; }
+.agreement ol { padding-left: 1.2em; display: grid; gap: 8px; }
+.verify-icon { width: 64px; height: 64px; margin: 0 auto 8px; border-radius: 50%; background: var(--green); color: var(--white); font-size: 2rem; line-height: 64px; }
+.verify-icon--bad { background: var(--red); }
+
+@media (max-width: 560px) {
+    .seats__row { grid-template-columns: 58px 1fr 1fr; }
+    .seat { width: 13px; height: 13px; }
+    .table th:nth-child(3), .table td:nth-child(3) { display: none; }
+}

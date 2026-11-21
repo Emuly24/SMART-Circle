@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation;
 
 use PDOException;
+use SmartCircle\Application\Admissions\AccountSetupService;
+use SmartCircle\Application\Admissions\ApplicationService;
+use SmartCircle\Application\Admissions\DocumentService;
+use SmartCircle\Application\Admissions\ReviewService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
@@ -13,18 +17,26 @@ use SmartCircle\Data\Database;
 use SmartCircle\Data\DatabaseSessionHandler;
 use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Migrator;
+use SmartCircle\Data\Repositories\ApplicationRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\DocumentRepository;
+use SmartCircle\Data\Repositories\IntakeRepository;
+use SmartCircle\Data\Repositories\StudentRepository;
 use SmartCircle\Data\Repositories\LessonRepository;
 use SmartCircle\Data\Repositories\LessonUploadRepository;
 use SmartCircle\Data\Repositories\LoginAttemptRepository;
 use SmartCircle\Data\Repositories\UserRepository;
+use SmartCircle\Presentation\Controllers\AdmissionsController;
+use SmartCircle\Presentation\Controllers\ApplyController;
 use SmartCircle\Presentation\Controllers\AuthController;
+use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\PageController;
 use SmartCircle\Presentation\Controllers\StudioController;
 use SmartCircle\Presentation\Controllers\UploadController;
+use SmartCircle\Presentation\Controllers\WelcomeController;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Csrf;
 use SmartCircle\Presentation\Http\HttpException;
@@ -33,6 +45,7 @@ use SmartCircle\Presentation\Http\Response;
 use SmartCircle\Presentation\Http\Router;
 use SmartCircle\Presentation\Http\Session;
 use SmartCircle\Presentation\Middleware\RequireGuest;
+use SmartCircle\Presentation\Middleware\RequireOnboarded;
 use SmartCircle\Presentation\Middleware\RequireRole;
 use SmartCircle\Presentation\Middleware\VerifyCsrf;
 use SmartCircle\Presentation\View\View;
@@ -129,6 +142,9 @@ final class App
             if ($userId !== null) {
                 $user = $auth->activeUser($userId);
                 $user === null ? $this->session->logout() : $this->context->setUser($user);
+                if ($user !== null && $user['role'] === 'student') {
+                    $this->context->setNeedsOnboarding($this->accountSetup($db, $users, $audit)->needsOnboarding((int) $user['id']));
+                }
             }
         } elseif ($request->path !== '/install') {
             return Response::redirect('/install');
@@ -165,6 +181,27 @@ final class App
         $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view);
         $uploads = new UploadController($uploadService, $this->context);
 
+        $users = new UserRepository($db);
+        $audit = new AuditLogRepository($db);
+        $applicationRepo = new ApplicationRepository($db);
+        $intakeRepo = new IntakeRepository($db);
+        $documentService = new DocumentService(new DocumentRepository($db));
+        $applicationService = new ApplicationService(
+            $applicationRepo,
+            $intakeRepo,
+            $this->storage(''),
+            $this->config->int('admissions.min_seconds_to_fill', 20),
+            $this->config->int('admissions.max_per_ip_per_day', 5),
+        );
+        $reviewService = new ReviewService($db, $applicationRepo, $intakeRepo, $users, new StudentRepository($db), $documentService, $audit);
+        $apply = new ApplyController($applicationService, $documentService, $this->session, $this->context, $this->view);
+        $admissions = new AdmissionsController($reviewService, $applicationService, $documentService, $this->context, $this->session, $this->view);
+        $welcome = new WelcomeController($this->accountSetup($db, $users, $audit), $this->session, $this->context, $this->view);
+        $docs = new DocumentController($documentService, $this->context, $this->session, $this->view, $this->config->string('app.url'));
+        $onboarded = new RequireOnboarded($this->context);
+        $student = new RequireRole($this->context, $this->session, ['student']);
+        $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
+
         // Public
         $r->get('/', $pages->home(...));
         $r->get('/about', $pages->about(...));
@@ -174,15 +211,35 @@ final class App
         $r->post('/login', $authCtl->login(...), [$csrf, $guest]);
         $r->post('/logout', $authCtl->logout(...), [$csrf]);
 
+        // Admissions (public)
+        $r->get('/apply', $apply->show(...));
+        $r->post('/apply', $apply->submit(...), [$csrf]);
+        $r->get('/apply/quiz', $apply->quiz(...));
+        $r->post('/apply/quiz', $apply->submitQuiz(...), [$csrf]);
+        $r->get('/apply/done', $apply->done(...));
+        $r->get('/apply/status', $apply->statusForm(...));
+        $r->post('/apply/status', $apply->status(...), [$csrf]);
+        $r->get('/letters/{code}', $docs->letter(...));
+        $r->get('/verify', $docs->verifyForm(...));
+        $r->get('/verify/{code}', $docs->verify(...));
+
+        // New students: setup code -> password -> agreement
+        $r->get('/welcome', $welcome->codeForm(...));
+        $r->post('/welcome', $welcome->checkCode(...), [$csrf]);
+        $r->get('/welcome/password', $welcome->passwordForm(...));
+        $r->post('/welcome/password', $welcome->setPassword(...), [$csrf]);
+        $r->get('/welcome/onboarding', $welcome->onboardingForm(...), [$student]);
+        $r->post('/welcome/onboarding', $welcome->completeOnboarding(...), [$csrf, $student]);
+
         // Logged in
-        $r->get('/dashboard', $dashboard->index(...), [$member]);
+        $r->get('/dashboard', $dashboard->index(...), [$member, $onboarded]);
 
         $r->post('/dashboard/database-update', $dashboard->updateDatabase(...), [$csrf, $tutor]);
 
         // Lessons: watching (students see published lessons; tutor sees all)
-        $r->get('/lessons', $lessons->index(...), [$member]);
-        $r->get('/lessons/{id}', $lessons->show(...), [$member]);
-        $r->get('/lessons/{id}/file', $lessons->file(...), [$member]);
+        $r->get('/lessons', $lessons->index(...), [$member, $onboarded]);
+        $r->get('/lessons/{id}', $lessons->show(...), [$member, $onboarded]);
+        $r->get('/lessons/{id}/file', $lessons->file(...), [$member, $onboarded]);
 
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [$tutor]);
@@ -191,6 +248,16 @@ final class App
         $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $tutor]);
         $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $tutor]);
         $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $tutor]);
+
+        // Tutor: admissions
+        $r->get('/studio/admissions', $admissions->index(...), [$tutor]);
+        $r->get('/studio/admissions/intake', $admissions->intakeForm(...), [$tutor]);
+        $r->post('/studio/admissions/intake', $admissions->intakeSave(...), [$csrf, $tutor]);
+        $r->get('/studio/admissions/{id}', $admissions->show(...), [$tutor]);
+        $r->post('/studio/admissions/{id}/decision', $admissions->decide(...), [$csrf, $tutor]);
+        $r->post('/studio/admissions/{id}/code', $admissions->newCode(...), [$csrf, $tutor]);
+        $r->post('/studio/admissions/{id}/code/hide', $admissions->forgetCode(...), [$csrf, $tutor]);
+        $r->get('/studio/admissions/{id}/report', $admissions->report(...), [$tutor]);
 
         // Tutor: resumable lesson upload API (JSON; CSRF token in X-CSRF-Token header)
         $r->post('/studio/uploads', $uploads->start(...), [$tutor, $csrf]);
@@ -202,6 +269,13 @@ final class App
         $r->post('/install', $installCtl->run(...), [$csrf]);
 
         return $r;
+    }
+
+    private ?AccountSetupService $accountSetup = null;
+
+    private function accountSetup(Database $db, UserRepository $users, AuditLogRepository $audit): AccountSetupService
+    {
+        return $this->accountSetup ??= new AccountSetupService($users, new StudentRepository($db), $audit);
     }
 
     private function isInstalled(InstallService $installer): bool

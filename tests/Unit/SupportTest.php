@@ -54,6 +54,19 @@ final class SupportTest extends TestCase
         }
     }
 
+    public function testTemplatesCanUseVariableNamesTheRendererUsesInternally(): void
+    {
+        $dir = sys_get_temp_dir() . '/sc-view-' . bin2hex(random_bytes(4));
+        mkdir($dir);
+        file_put_contents("$dir/t.php", '<?= e($data["name"]) ?>|<?= e($file) ?>|<?= e($template) ?>');
+        $view = new \SmartCircle\Presentation\View\View($dir);
+
+        self::assertSame('Chikondi|f|x', $view->render('t', ['data' => ['name' => 'Chikondi'], 'file' => 'f', 'template' => 'x'], null));
+
+        unlink("$dir/t.php");
+        rmdir($dir);
+    }
+
     public function testEscapeHelperNeutralisesHtml(): void
     {
         self::assertSame('&lt;script&gt;alert(&#039;x&#039;)&lt;/script&gt;', e("<script>alert('x')</script>"));

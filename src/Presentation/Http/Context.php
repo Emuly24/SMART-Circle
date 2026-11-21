@@ -39,4 +39,17 @@ final class Context
     {
         return $this->user === null;
     }
+
+    private bool $needsOnboarding = false;
+
+    public function setNeedsOnboarding(bool $needs): void
+    {
+        $this->needsOnboarding = $needs;
+    }
+
+    /** A newly admitted student who has not yet accepted the class agreement. */
+    public function needsOnboarding(): bool
+    {
+        return $this->needsOnboarding;
+    }
 }

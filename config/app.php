@@ -55,6 +55,12 @@ return [
         'batch_size' => 10,
     ],
 
+    'admissions' => [
+        // Spam protection without outside services.
+        'min_seconds_to_fill' => 20,
+        'max_per_ip_per_day'  => 5,
+    ],
+
     'lessons' => [
         // Largest lesson file accepted (about 10 hours of voice at 32 kbps).
         'max_bytes' => 150 * 1024 * 1024,

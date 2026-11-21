@@ -49,15 +49,20 @@ final class View
             throw new RuntimeException("Template not found: $template");
         }
 
-        $view = $this;
-        extract($this->shared + $data, EXTR_SKIP);
-        ob_start();
-        try {
-            require $file;
-        } finally {
-            $output = (string) ob_get_clean();
-        }
+        // Render in a separate scope so template variables (e.g. one called $data or $file)
+        // can never collide with this method's own variables.
+        $render = static function (View $view, string $__file, array $__vars): string {
+            extract($__vars, EXTR_SKIP);
+            ob_start();
+            try {
+                require $__file;
+            } finally {
+                $__output = (string) ob_get_clean();
+            }
 
-        return $output;
+            return $__output;
+        };
+
+        return $render($this, $file, $this->shared + $data);
     }
 }

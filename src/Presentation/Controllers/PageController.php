@@ -11,8 +11,20 @@ use SmartCircle\Presentation\View\View;
 /** Public pages that need no login. */
 final class PageController
 {
+    /** @var (\Closure(): ?\SmartCircle\Application\Admissions\SeatChart)|null */
+    private ?\Closure $seatChart = null;
+    /** @var (\Closure(): ?array)|null */
+    private ?\Closure $openIntake = null;
+
     public function __construct(private readonly View $view)
     {
+    }
+
+    /** The home page shows the live seat chart and whether applications are open. */
+    public function setSeatChart(\Closure $seatChart, \Closure $openIntake): void
+    {
+        $this->seatChart = $seatChart;
+        $this->openIntake = $openIntake;
     }
 
     public function home(Request $request): Response
@@ -20,6 +32,8 @@ final class PageController
         return Response::html($this->view->render('pages/home', [
             'title' => 'Free science, maths and English support for Forms 1–4',
             'subjects' => self::subjects(),
+            'chart' => $this->seatChart !== null ? ($this->seatChart)() : null,
+            'isOpen' => $this->openIntake !== null && ($this->openIntake)() !== null,
         ]));
     }
 

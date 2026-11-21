@@ -70,8 +70,11 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 ## 5. Workflow
 
 - Work on a branch (`v2/...`); never commit to `main` directly.
-- Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh` and
-  `tools/e2e-lessons.sh` when a database is available (ideally also against Apache, which honours the .htaccess files).
+- Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
+  `tools/e2e-lessons.sh` and `tools/e2e-admissions.sh` when a database is available (ideally also against
+  Apache, which honours the .htaccess files).
+- After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
+  (a unit test fails if it is out of date). See `docs/database.md`.
 - New tables arrive as migrations; on the live site the tutor applies them with the dashboard's "Update database" button.
 - Schema changes: a new numbered file in `database/migrations/` — never edit an applied migration.
 - Keep each change focused; describe it clearly in the commit message.

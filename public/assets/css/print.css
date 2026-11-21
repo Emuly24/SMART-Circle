@@ -1,0 +1,42 @@
+/* SMART Circle — A4 letters and certificates. */
+
+.print-body { background: #E9EDF3; }
+.print-toolbar { display: flex; justify-content: center; padding: 14px; }
+
+.letter {
+    width: 210mm;
+    max-width: 100%;
+    min-height: 297mm;
+    margin: 0 auto 24px;
+    padding: 18mm 18mm 14mm;
+    background: var(--white);
+    box-shadow: 0 2px 16px rgba(20, 33, 61, .12);
+    display: flex;
+    flex-direction: column;
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--ink);
+}
+.letter__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 10px; border-bottom: 3px solid var(--blue); margin-bottom: 20px; }
+.letter__logo { width: 62mm; height: auto; }
+.letter__meta { text-align: right; font-size: 10pt; color: var(--slate); }
+.letter__meta p { margin: 0; }
+.letter__to { margin-bottom: 18px; }
+.letter__title { font-size: 17pt; color: var(--blue); margin: 0 0 14px; }
+.letter ol { padding-left: 1.3em; }
+.letter__sign { margin-top: 18px; }
+.letter__signature { height: 18mm; width: 60mm; border-bottom: 1px solid var(--line); margin: 6px 0; }
+.letter__void { padding: 10px; border: 2px solid var(--red); color: var(--red); font-weight: 700; text-align: center; }
+.letter__foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); font-size: 9pt; color: var(--slate); }
+.letter__foot p { margin: 0; }
+
+@media (max-width: 760px) {
+    .letter { padding: 20px 16px; min-height: 0; }
+}
+
+@media print {
+    @page { size: A4; margin: 0; }
+    .no-print { display: none !important; }
+    .print-body { background: none; }
+    .letter { box-shadow: none; margin: 0; width: 210mm; min-height: 297mm; }
+}

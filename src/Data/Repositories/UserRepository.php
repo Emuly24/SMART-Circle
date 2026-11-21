@@ -39,6 +39,18 @@ final class UserRepository
         );
     }
 
+    /** @return array<string, mixed>|null */
+    public function findByPhone(string $phone): ?array
+    {
+        return $this->db->one('SELECT id, role, full_name, phone, status FROM users WHERE phone = ?', [$phone]);
+    }
+
+    /** Set a new password and clear any "must change" flag. */
+    public function setPassword(int $id, string $hash): void
+    {
+        $this->db->run('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?', [$hash, $id]);
+    }
+
     public function updatePasswordHash(int $id, string $hash): void
     {
         $this->db->run('UPDATE users SET password_hash = ? WHERE id = ?', [$hash, $id]);

@@ -21,7 +21,30 @@ final class Request
         private readonly array $post = [],
         private readonly array $server = [],
         private ?string $rawBody = null,
+        private readonly array $files = [],
     ) {
+    }
+
+    /** A file sent with a multipart form, or null if none was chosen. */
+    public function file(string $key): ?\SmartCircle\Support\UploadedFile
+    {
+        $file = $this->files[$key] ?? null;
+
+        return is_array($file) ? \SmartCircle\Support\UploadedFile::fromArray($file) : null;
+    }
+
+    /** @return list<string> all values of a checkbox group such as subjects[] */
+    public function inputList(string $key): array
+    {
+        $value = $this->post[$key] ?? [];
+
+        return is_array($value) ? array_values(array_map('strval', array_filter($value, 'is_scalar'))) : [];
+    }
+
+    /** @return array<string, mixed> all posted fields */
+    public function allInput(): array
+    {
+        return $this->post;
     }
 
     /** Raw request body (uploads send file pieces this way). */
@@ -54,6 +77,8 @@ final class Request
             $_GET,
             $_POST,
             $_SERVER,
+            null,
+            $_FILES,
         );
     }
 
