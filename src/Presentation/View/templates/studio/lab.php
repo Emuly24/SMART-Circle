@@ -72,6 +72,8 @@
             <h2>Saved on this device</h2>
             <ul class="library__list" id="library"></ul>
             <p class="library__empty" id="library-empty">No lessons yet. Record one on the Board tab.</p>
+            <p class="library__upload" id="upload-status" aria-live="polite" hidden></p>
+            <a class="btn btn--small btn--ghost" href="/studio/lessons">Lessons on the site</a>
             <label class="btn btn--small btn--ghost file-btn">
                 Open a lesson file
                 <input type="file" id="import" accept=".scl,application/octet-stream" hidden>

@@ -63,13 +63,15 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 | No cron | Scheduled work runs lazily on normal requests or from an admin button. |
 | No shell / long scripts | No `exec`/`shell_exec`/`proc_open`, no `sleep()`, keep requests short. |
 | ~50,000 hits/day | Avoid polling; replays and static files only. |
-| 10 MB per file, ~30,000 files | Store lessons in ≤ 10 MB pieces; combine small files; clean up drafts. |
+| 10 MB per file, ~30,000 files | Lessons upload in 1 MB pieces and are stored as ≤ 9 MB part files (`LessonStorage`); unfinished uploads are cleaned after 7 days. |
 | Few DB connections | One PDO connection per request (`Database` is created once in `App`). |
 | No env-var panel | Settings live in `secrets.php`, uploaded once. |
 
 ## 5. Workflow
 
 - Work on a branch (`v2/...`); never commit to `main` directly.
-- Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh` when a database is available.
+- Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh` and
+  `tools/e2e-lessons.sh` when a database is available (ideally also against Apache, which honours the .htaccess files).
+- New tables arrive as migrations; on the live site the tutor applies them with the dashboard's "Update database" button.
 - Schema changes: a new numbered file in `database/migrations/` — never edit an applied migration.
 - Keep each change focused; describe it clearly in the commit message.

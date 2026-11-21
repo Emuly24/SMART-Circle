@@ -7,17 +7,24 @@ namespace SmartCircle\Presentation;
 use PDOException;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Install\InstallService;
+use SmartCircle\Application\Lessons\LessonService;
+use SmartCircle\Application\Lessons\UploadService;
 use SmartCircle\Data\Database;
 use SmartCircle\Data\DatabaseSessionHandler;
+use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Migrator;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\LessonRepository;
+use SmartCircle\Data\Repositories\LessonUploadRepository;
 use SmartCircle\Data\Repositories\LoginAttemptRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\InstallController;
+use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\PageController;
 use SmartCircle\Presentation\Controllers\StudioController;
+use SmartCircle\Presentation\Controllers\UploadController;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Csrf;
 use SmartCircle\Presentation\Http\HttpException;
@@ -127,12 +134,12 @@ final class App
             return Response::redirect('/install');
         }
 
-        $router = $this->routes($auth, $installer);
+        $router = $this->routes($auth, $installer, $db);
 
         return $router->dispatch($request);
     }
 
-    private function routes(AuthService $auth, InstallService $installer): Router
+    private function routes(AuthService $auth, InstallService $installer, Database $db): Router
     {
         $r = new Router();
         $csrf = new VerifyCsrf($this->csrf);
@@ -143,8 +150,20 @@ final class App
         $pages = new PageController($this->view);
         $authCtl = new AuthController($auth, $this->session, $this->context, $this->view);
         $installCtl = new InstallController($installer, $this->session, $this->view, $this->storage('installed.lock'));
-        $dashboard = new DashboardController($this->context, $this->view);
+        $dashboard = new DashboardController($this->context, $this->view, $installer, $this->session);
         $studio = new StudioController($this->view);
+
+        $lessonRepo = new LessonRepository($db);
+        $lessonStorage = new LessonStorage($this->storage(''));
+        $lessonService = new LessonService($lessonRepo, $lessonStorage);
+        $uploadService = new UploadService(
+            new LessonUploadRepository($db),
+            $lessonRepo,
+            $lessonStorage,
+            $this->config->int('lessons.max_bytes', 150 * 1024 * 1024),
+        );
+        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view);
+        $uploads = new UploadController($uploadService, $this->context);
 
         // Public
         $r->get('/', $pages->home(...));
@@ -158,8 +177,25 @@ final class App
         // Logged in
         $r->get('/dashboard', $dashboard->index(...), [$member]);
 
-        // Tutor: recording studio
+        $r->post('/dashboard/database-update', $dashboard->updateDatabase(...), [$csrf, $tutor]);
+
+        // Lessons: watching (students see published lessons; tutor sees all)
+        $r->get('/lessons', $lessons->index(...), [$member]);
+        $r->get('/lessons/{id}', $lessons->show(...), [$member]);
+        $r->get('/lessons/{id}/file', $lessons->file(...), [$member]);
+
+        // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [$tutor]);
+        $r->get('/studio/lessons', $lessons->manage(...), [$tutor]);
+        $r->get('/studio/lessons/{id}', $lessons->edit(...), [$tutor]);
+        $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $tutor]);
+        $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $tutor]);
+        $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $tutor]);
+
+        // Tutor: resumable lesson upload API (JSON; CSRF token in X-CSRF-Token header)
+        $r->post('/studio/uploads', $uploads->start(...), [$tutor, $csrf]);
+        $r->post('/studio/uploads/{id}/chunk', $uploads->chunk(...), [$tutor, $csrf]);
+        $r->post('/studio/uploads/{id}/finish', $uploads->finish(...), [$tutor, $csrf]);
 
         // One-time setup
         $r->get('/install', $installCtl->show(...));

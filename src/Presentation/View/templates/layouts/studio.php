@@ -15,6 +15,7 @@
     <!-- No pinch-zoom on the board page: two fingers are for the board, not the browser. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="robots" content="noindex">
+    <meta name="csrf-token" content="<?= e($csrf->token()) ?>">
     <meta name="theme-color" content="#1D4E89">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title><?= e($title ?? 'Studio') ?> · <?= e($appName) ?></title>

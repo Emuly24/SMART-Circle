@@ -20,7 +20,22 @@ final class Request
         private readonly array $query = [],
         private readonly array $post = [],
         private readonly array $server = [],
+        private ?string $rawBody = null,
     ) {
+    }
+
+    /** Raw request body (uploads send file pieces this way). */
+    public function body(): string
+    {
+        return $this->rawBody ??= (string) file_get_contents('php://input');
+    }
+
+    /** @return array<string, mixed> the body decoded as JSON (empty array if not JSON) */
+    public function json(): array
+    {
+        $data = json_decode($this->body(), true);
+
+        return is_array($data) ? $data : [];
     }
 
     public static function fromGlobals(): self

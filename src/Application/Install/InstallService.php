@@ -64,6 +64,23 @@ final class InstallService
         return $errors;
     }
 
+    /** @return list<string> database updates shipped with new code but not applied yet */
+    public function pendingUpdates(): array
+    {
+        return $this->migrator->pending();
+    }
+
+    /** @return list<string> the updates applied */
+    public function applyUpdates(int $userId, string $ip): array
+    {
+        $applied = $this->migrator->migrate();
+        if ($applied !== []) {
+            $this->audit->record($userId, 'database_update', implode(', ', $applied), $ip);
+        }
+
+        return $applied;
+    }
+
     /** @return int the new tutor's user id */
     public function install(string $fullName, string $phoneInput, string $password, string $ip): int
     {

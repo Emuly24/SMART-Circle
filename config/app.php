@@ -55,6 +55,11 @@ return [
         'batch_size' => 10,
     ],
 
+    'lessons' => [
+        // Largest lesson file accepted (about 10 hours of voice at 32 kbps).
+        'max_bytes' => 150 * 1024 * 1024,
+    ],
+
     'paths' => [
         'storage' => dirname(__DIR__) . '/storage',
     ],

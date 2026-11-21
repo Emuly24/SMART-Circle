@@ -8,6 +8,7 @@ import { BoardInput } from './board-input.js';
 import { LessonClock, VoiceRecorder } from './recorder.js';
 import { decodeLesson, encodeLesson, listLocal, loadLocal, saveLocal, deleteLocal } from './lesson-file.js';
 import { formatTime, LessonPlayer } from './player.js';
+import { uploadLesson } from './lesson-upload.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -229,10 +230,72 @@ async function refreshLibrary() {
                 refreshLibrary();
             }
         });
-        li.append(open, del);
+        const up = document.createElement('button');
+        up.type = 'button';
+        up.className = 'library__upload-btn';
+        const uploadedId = uploadedLessonId(item.id);
+        up.textContent = uploadedId ? '✓ On site' : '⬆ Upload';
+        up.setAttribute('aria-label', `Upload ${item.title} to the site`);
+        up.disabled = item.id.endsWith('-autosave');
+        up.addEventListener('click', () => uploadItem(item, up));
+        li.append(open, up, del);
         return li;
     }));
     $('#library-empty').hidden = items.length > 0;
+}
+
+function uploadedLessonId(localId) {
+    try {
+        return localStorage.getItem(`sc-uploaded-${localId}`);
+    } catch {
+        return null;
+    }
+}
+
+let uploading = false;
+async function uploadItem(item, button) {
+    if (uploading) return;
+    const note = $('#upload-status');
+    const existing = uploadedLessonId(item.id);
+    if (existing) {
+        window.location.href = `/studio/lessons/${existing}`;
+        return;
+    }
+    uploading = true;
+    button.disabled = true;
+    note.hidden = false;
+    try {
+        const blob = await loadLocal(item.id);
+        const lessonId = await uploadLesson(blob, {
+            clientKey: item.id,
+            title: item.title,
+            onProgress: (sent, total, msg) => {
+                const pct = total ? Math.round((sent / total) * 100) : 0;
+                note.textContent = `Uploading "${item.title}": ${pct}% ${msg || ''}`;
+                button.textContent = `${pct}%`;
+            },
+        });
+        try {
+            localStorage.setItem(`sc-uploaded-${item.id}`, String(lessonId));
+        } catch {
+            // Private mode: the site still has the lesson.
+        }
+        note.textContent = 'Uploaded. Add the real-life sections and publish it on the lesson page.';
+        button.textContent = '✓ On site';
+        status('Lesson uploaded to the site');
+        const link = document.createElement('a');
+        link.href = `/studio/lessons/${lessonId}`;
+        link.className = 'library__link';
+        link.textContent = 'Open lesson details →';
+        note.append(' ', link);
+    } catch (err) {
+        console.error(err);
+        note.textContent = err.message || 'Upload failed. Your lesson is still saved on this device.';
+        button.textContent = '⬆ Retry';
+    } finally {
+        uploading = false;
+        button.disabled = false;
+    }
 }
 
 $('#import').addEventListener('change', async (e) => {

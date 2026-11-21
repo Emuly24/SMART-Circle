@@ -110,3 +110,10 @@
     .replay-layout { grid-template-columns: 280px 1fr; grid-template-rows: 1fr; }
     .library { max-height: none; }
 }
+
+/* Upload to site */
+.library__upload-btn { min-width: 84px; border-radius: 10px; border: 0; background: var(--green-text); color: var(--white); font: 600 .82rem var(--font-body); cursor: pointer; }
+.library__upload-btn:disabled { opacity: .5; cursor: default; }
+.library__upload { font-size: .88rem; color: #DCE6F2; margin: 6px 0 10px; }
+.library__link { color: var(--amber); font-weight: 600; }
+.library .btn { margin: 0 6px 8px 0; }
