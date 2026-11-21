@@ -1,0 +1,112 @@
+/* SMART Circle — recording studio / board lab. Uses the tokens from app.css. */
+
+.studio {
+    background: var(--ink);
+    color: var(--white);
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* No text selection or iOS callouts while writing. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* ---------- Top bar ---------- */
+.studio-bar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--blue); flex: 0 0 auto; }
+.studio-bar__logo img { display: block; width: 34px; height: 34px; background: var(--white); border-radius: 50%; padding: 2px; }
+.studio-bar__status { margin-left: auto; font-size: .9rem; color: #DCE6F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; }
+
+.seg { display: inline-flex; background: rgba(255, 255, 255, .14); border-radius: 999px; padding: 3px; }
+.seg__btn { border: 0; background: transparent; color: var(--white); font: 600 .95rem var(--font-body); padding: 8px 16px; border-radius: 999px; min-height: 40px; cursor: pointer; }
+.seg__btn.is-active { background: var(--white); color: var(--blue); }
+.seg--small .seg__btn { padding: 6px 10px; min-height: 36px; font-size: .85rem; }
+
+.mode { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.mode[hidden] { display: none; }
+
+/* ---------- Toolbar ---------- */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; background: #1B2A4A; flex: 0 0 auto; }
+.tool-group { display: flex; align-items: center; gap: 6px; }
+.tool {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    min-width: 48px; min-height: 48px; padding: 4px 8px;
+    border: 2px solid transparent; border-radius: 12px;
+    background: rgba(255, 255, 255, .08); color: var(--white);
+    font: 600 1.15rem var(--font-body); cursor: pointer;
+}
+.tool span { font-size: .68rem; font-weight: 600; margin-top: 2px; opacity: .9; }
+.tool.is-active { border-color: var(--amber); background: rgba(242, 169, 0, .18); }
+.tool:active { transform: scale(.96); }
+
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .25); cursor: pointer; padding: 0; }
+.swatch.is-active { border-color: var(--white); box-shadow: 0 0 0 3px var(--amber); }
+.swatch[data-color="ink"] { background: #14213D; }
+.swatch[data-color="blue"] { background: #1D4E89; }
+.swatch[data-color="green"] { background: #157A52; }
+.swatch[data-color="red"] { background: #C62828; }
+.swatch[data-color="amber"] { background: #F2A900; }
+.swatch[data-color="purple"] { background: #7B3FA0; }
+
+.size { width: 40px; height: 40px; border-radius: 10px; border: 2px solid transparent; background: rgba(255, 255, 255, .08); color: var(--white); cursor: pointer; font-size: 1rem; }
+.size[data-size="4"] { font-size: .7rem; }
+.size[data-size="12"] { font-size: 1.4rem; }
+.size.is-active { border-color: var(--amber); }
+
+.page-label { min-width: 62px; text-align: center; font-size: .9rem; font-weight: 600; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; font-weight: 600; cursor: pointer; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--green); }
+
+/* ---------- Board ---------- */
+.board-wrap { flex: 1 1 auto; min-height: 0; padding: 8px; display: flex; }
+.board {
+    flex: 1 1 auto; width: 100%; height: 100%;
+    display: block; border-radius: 10px; background: #E9EDF3;
+    touch-action: none; /* Pencil and fingers draw; the page never scrolls or zooms */
+    cursor: crosshair;
+}
+
+/* ---------- Record bar ---------- */
+.rec-bar { display: flex; align-items: center; gap: 14px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: #1B2A4A; flex: 0 0 auto; }
+.rec-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    min-height: 48px; padding: 8px 22px; border-radius: 999px;
+    border: 0; background: var(--white); color: var(--ink);
+    font: 700 1rem var(--font-body); cursor: pointer;
+}
+.rec-dot { width: 16px; height: 16px; border-radius: 50%; background: #D32F2F; }
+.rec-btn.is-recording .rec-dot { animation: pulse 1.2s infinite; }
+.rec-btn.is-paused .rec-dot { background: var(--amber); }
+.rec-bar .btn--ghost, .player-bar .btn--ghost, .library .btn--ghost { color: var(--white); border-color: rgba(255, 255, 255, .6); }
+.rec-bar .btn--ghost:disabled { opacity: .4; cursor: default; }
+.rec-time { font: 700 1.05rem var(--font-body); font-variant-numeric: tabular-nums; }
+.rec-size { font-size: .85rem; color: #B8C4D6; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* ---------- Replay ---------- */
+.replay-layout { flex: 1 1 auto; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; min-height: 0; }
+.library { padding: 10px 12px; background: #1B2A4A; overflow-y: auto; max-height: 30vh; }
+.library h2 { color: var(--white); font-size: 1rem; margin-bottom: 8px; }
+.library__list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.library__list li { display: flex; gap: 6px; }
+.library__item { flex: 1; text-align: left; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, .08); color: var(--white); font: 500 .9rem var(--font-body); cursor: pointer; }
+.library__item:hover { background: rgba(255, 255, 255, .16); }
+.library__delete { width: 44px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, .08); color: #F4B4B4; cursor: pointer; }
+.library__empty { color: #B8C4D6; font-size: .9rem; }
+.file-btn { cursor: pointer; }
+
+.player { display: flex; flex-direction: column; min-height: 0; }
+.player-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 8px 12px; background: #1B2A4A; }
+.play-btn { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--amber); color: var(--ink); font-size: 1.2rem; font-weight: 700; cursor: pointer; }
+.play-btn:disabled { opacity: .4; cursor: default; }
+#seek { flex: 1 1 160px; accent-color: var(--amber); height: 32px; }
+.player-info { margin: 0; padding: 4px 12px 10px; font-size: .85rem; color: #B8C4D6; background: #1B2A4A; }
+
+@media (min-width: 900px) {
+    .replay-layout { grid-template-columns: 280px 1fr; grid-template-rows: 1fr; }
+    .library { max-height: none; }
+}

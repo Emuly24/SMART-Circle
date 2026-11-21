@@ -1,0 +1,100 @@
+<?php
+/**
+ * Board lab: record strokes + voice, save on this device, replay.
+ * @var callable $asset
+ */
+?>
+<header class="studio-bar">
+    <a class="studio-bar__logo" href="/dashboard" aria-label="Back to dashboard">
+        <img src="<?= e($asset('brand/logo-mark.svg')) ?>" alt="" width="34" height="34">
+    </a>
+    <div class="seg" role="tablist" aria-label="Mode">
+        <button type="button" class="seg__btn is-active" data-mode="record" role="tab" aria-selected="true">Board</button>
+        <button type="button" class="seg__btn" data-mode="replay" role="tab" aria-selected="false">Replay</button>
+    </div>
+    <div class="studio-bar__status" id="status" aria-live="polite">Ready</div>
+</header>
+
+<!-- ============ RECORD MODE ============ -->
+<section class="mode" id="mode-record">
+    <div class="toolbar" role="toolbar" aria-label="Drawing tools">
+        <div class="tool-group" aria-label="Tool">
+            <button type="button" class="tool is-active" data-tool="pen" title="Pen">✏️<span>Pen</span></button>
+            <button type="button" class="tool" data-tool="highlighter" title="Highlighter">🖍️<span>Highlight</span></button>
+            <button type="button" class="tool" data-tool="eraser" title="Eraser">🧽<span>Erase</span></button>
+            <button type="button" class="tool" data-tool="laser" title="Laser pointer">🔴<span>Laser</span></button>
+        </div>
+        <div class="tool-group" aria-label="Colour">
+            <button type="button" class="swatch is-active" data-color="ink" aria-label="Black ink"></button>
+            <button type="button" class="swatch" data-color="blue" aria-label="Blue"></button>
+            <button type="button" class="swatch" data-color="green" aria-label="Green"></button>
+            <button type="button" class="swatch" data-color="red" aria-label="Red"></button>
+            <button type="button" class="swatch" data-color="amber" aria-label="Amber"></button>
+            <button type="button" class="swatch" data-color="purple" aria-label="Purple"></button>
+        </div>
+        <div class="tool-group" aria-label="Pen size">
+            <button type="button" class="size" data-size="4" aria-label="Thin">•</button>
+            <button type="button" class="size is-active" data-size="7" aria-label="Medium">●</button>
+            <button type="button" class="size" data-size="12" aria-label="Thick">⬤</button>
+        </div>
+        <div class="tool-group">
+            <button type="button" class="tool" id="undo" title="Undo">↶<span>Undo</span></button>
+            <button type="button" class="tool" id="redo" title="Redo">↷<span>Redo</span></button>
+            <button type="button" class="tool" id="clear" title="Clear page">🗑️<span>Clear</span></button>
+        </div>
+        <div class="tool-group">
+            <button type="button" class="tool" id="page-prev" title="Previous page">◀</button>
+            <span class="page-label" id="page-label">Page 1</span>
+            <button type="button" class="tool" id="page-next" title="Next / new page">▶</button>
+        </div>
+        <label class="toggle" title="When off, only the Apple Pencil draws (palm rejection)">
+            <input type="checkbox" id="fingers-draw" checked>
+            <span>Fingers draw</span>
+        </label>
+    </div>
+
+    <div class="board-wrap">
+        <canvas id="board" class="board" aria-label="Drawing board"></canvas>
+    </div>
+
+    <div class="rec-bar">
+        <button type="button" class="rec-btn" id="rec" aria-label="Start recording"><span class="rec-dot"></span><span id="rec-label">Record</span></button>
+        <button type="button" class="btn btn--small btn--ghost" id="stop" disabled>Stop &amp; save</button>
+        <span class="rec-time" id="rec-time">0:00</span>
+        <span class="rec-size" id="rec-size"></span>
+    </div>
+</section>
+
+<!-- ============ REPLAY MODE ============ -->
+<section class="mode" id="mode-replay" hidden>
+    <div class="replay-layout">
+        <aside class="library">
+            <h2>Saved on this device</h2>
+            <ul class="library__list" id="library"></ul>
+            <p class="library__empty" id="library-empty">No lessons yet. Record one on the Board tab.</p>
+            <label class="btn btn--small btn--ghost file-btn">
+                Open a lesson file
+                <input type="file" id="import" accept=".scl,application/octet-stream" hidden>
+            </label>
+        </aside>
+        <div class="player">
+            <div class="board-wrap">
+                <canvas id="replay" class="board" aria-label="Lesson replay"></canvas>
+            </div>
+            <div class="player-bar">
+                <button type="button" class="play-btn" id="play" disabled aria-label="Play">▶</button>
+                <span class="rec-time" id="play-time">0:00 / 0:00</span>
+                <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled aria-label="Position">
+                <div class="seg seg--small" aria-label="Speed">
+                    <button type="button" class="seg__btn is-active" data-rate="1">1×</button>
+                    <button type="button" class="seg__btn" data-rate="1.25">1.25×</button>
+                    <button type="button" class="seg__btn" data-rate="1.5">1.5×</button>
+                </div>
+                <a class="btn btn--small btn--ghost" id="export" hidden download>Download file</a>
+            </div>
+            <p class="player-info" id="player-info"></p>
+        </div>
+    </div>
+</section>
+
+<script type="module" src="<?= e($asset('js/board/lab.js')) ?>"></script>

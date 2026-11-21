@@ -17,6 +17,7 @@ use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\PageController;
+use SmartCircle\Presentation\Controllers\StudioController;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Csrf;
 use SmartCircle\Presentation\Http\HttpException;
@@ -137,11 +138,13 @@ final class App
         $csrf = new VerifyCsrf($this->csrf);
         $guest = new RequireGuest($this->context);
         $member = new RequireRole($this->context, $this->session);
+        $tutor = new RequireRole($this->context, $this->session, ['tutor']);
 
         $pages = new PageController($this->view);
         $authCtl = new AuthController($auth, $this->session, $this->context, $this->view);
         $installCtl = new InstallController($installer, $this->session, $this->view, $this->storage('installed.lock'));
         $dashboard = new DashboardController($this->context, $this->view);
+        $studio = new StudioController($this->view);
 
         // Public
         $r->get('/', $pages->home(...));
@@ -154,6 +157,9 @@ final class App
 
         // Logged in
         $r->get('/dashboard', $dashboard->index(...), [$member]);
+
+        // Tutor: recording studio
+        $r->get('/studio/lab', $studio->lab(...), [$tutor]);
 
         // One-time setup
         $r->get('/install', $installCtl->show(...));
