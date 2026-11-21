@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="SMART Circle">
+  <title>SMART Circle</title>
+  <path d="M66.90 10.92 A49.559999999999995 49.559999999999995 0 0 1 109.08 53.10" fill="none" stroke="#1D4E89" stroke-width="9.44" stroke-linecap="round"/>
+  <path d="M109.08 66.90 A49.559999999999995 49.559999999999995 0 0 1 66.90 109.08" fill="none" stroke="#1F9D6B" stroke-width="9.44" stroke-linecap="round"/>
+  <path d="M53.10 109.08 A49.559999999999995 49.559999999999995 0 0 1 10.92 66.90" fill="none" stroke="#1D4E89" stroke-width="9.44" stroke-linecap="round"/>
+  <path d="M10.92 53.10 A49.559999999999995 49.559999999999995 0 0 1 53.10 10.92" fill="none" stroke="#1F9D6B" stroke-width="9.44" stroke-linecap="round"/>
+  <ellipse cx="60" cy="60" rx="29.50" ry="11.80" fill="none" stroke="#14213D" stroke-width="4.01" transform="rotate(-32 60 60)"/>
+  <ellipse cx="60" cy="60" rx="29.50" ry="11.80" fill="none" stroke="#14213D" stroke-width="4.01" transform="rotate(32 60 60)"/>
+  <circle cx="60" cy="60" r="8.26" fill="#F2A900"/>
+  <circle cx="85.02" cy="44.37" r="3.78" fill="#1F9D6B"/>
+</svg>

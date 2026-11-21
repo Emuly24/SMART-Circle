@@ -1,31 +1,14 @@
-# Force HTTPS (keep this - it's fine)
-RewriteEngine On
-RewriteCond %{HTTPS} off
-RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-
-# Never execute scripts from the uploads folder (student files live there).
-RewriteRule ^uploads/.*\.(php\d?|phtml|phar|pht|phps|cgi|pl|py|sh)$ - [F,NC,L]
-
-# Prevent directory listing
+# SMART Circle — root rules (the repository root is the InfinityFree htdocs folder).
+# Only public/ is reachable from the web. Code (src/), settings (config/, secrets.php),
+# migrations (database/) and uploads (storage/) can never be requested directly.
 Options -Indexes
+RewriteEngine On
 
-# Block sensitive files (Apache 2.4+ syntax)
-<FilesMatch "^(config\.php|update_config\.php)$">
-    Require all denied
-</FilesMatch>
+# Send every request into public/ (unless it already points there).
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]
 
-# Block all hidden files (.htaccess, .env, etc.)
-<FilesMatch "^\.">
-    Require all denied
-</FilesMatch>
-
-# Explicitly block .htaccess itself
-<Files ".htaccess">
-    Require all denied
-</Files>
-
-# Never serve docs, SQL dumps or text exports (robots.txt stays public).
-# database_schema_export.txt may still exist on the server from the old export_schema.php.
-<FilesMatch "\.(md|sql|log)$|^database_schema_export\.txt$">
+# Belt and braces: never serve dotfiles or PHP/SQL files outside public/.
+<FilesMatch "^\.|\.(sql|md|lock|dist|sh|py|log)$">
     Require all denied
 </FilesMatch>

@@ -2,43 +2,40 @@
 
 declare(strict_types=1);
 
-/**
- * SMART Circle — secrets template.
+/*
+ * SMART Circle — server secrets.
  *
- * HOW TO USE
- *   1. Copy this file to `secrets.php` (same folder) and fill in the real values.
- *   2. Upload `secrets.php` to the server ONCE by FTP / the InfinityFree file manager.
- *   3. NEVER commit `secrets.php` (it is git-ignored by the `*secret*` rule in .gitignore).
+ * 1. Copy this file to secrets.php in the same folder.
+ * 2. Fill in the real values.
+ * 3. Upload secrets.php to the server ONCE (InfinityFree file manager / FTP).
+ *    It is git-ignored and never deployed by GitHub Actions.
  *
- * WHY A .php FILE?
- *   If the web server ever serves this file directly, PHP runs it and it returns an array,
- *   so nothing is printed. A plain-text `.env` would be exposed if the `.htaccess` dotfile rule failed.
- *
- * STATUS
- *   The app currently reads these values from `.env` (see `.env.example` and
- *   `src/Support/Env.php`). Loading `secrets.php` is planned for config/bootstrap.php;
- *   until then, put the same values in `.env`. Keys here match the `.env` variable names.
- *
- * ADMIN PASSWORD
- *   Store a HASH, never the plain password. Generate one locally with:
- *     php -r "echo password_hash('your-new-admin-password', PASSWORD_DEFAULT), PHP_EOL;"
+ * Any key here overrides the same key in config/app.php.
  */
 
 return [
-    // ----- Application -----
-    'APP_DEBUG' => 'false', // never 'true' on the live site
+    'app' => [
+        'url'   => 'https://your-site.example',
+        'debug' => false,
+    ],
 
-    // ----- Database (InfinityFree control panel → MySQL Databases) -----
-    'DB_HOST' => 'sqlXXX.infinityfree.com',
-    'DB_NAME' => 'if0_XXXXXXXX_smartcircle',
-    'DB_USER' => 'if0_XXXXXXXX',
-    'DB_PASS' => 'change-me',
+    // InfinityFree control panel -> MySQL Databases
+    'db' => [
+        'host'     => 'sqlXXX.infinityfree.com',
+        'name'     => 'if0_XXXXXXXX_smartcircle',
+        'user'     => 'if0_XXXXXXXX',
+        'password' => 'change-me',
+    ],
 
-    // ----- Admin -----
-    'ADMIN_EMAIL'         => 'admin@example.com',
-    'ADMIN_PASSWORD_HASH' => '$2y$12$replace.with.output.of.password_hash.................',
+    'security' => [
+        // A long random string. Needed once to run /install, then you can remove it.
+        // Generate: php -r "echo bin2hex(random_bytes(24));"
+        'install_token' => 'replace-with-a-long-random-string',
+    ],
 
-    // ----- Security keys (each: 64 random hex chars, e.g. php -r "echo bin2hex(random_bytes(32));") -----
-    'CSRF_SECRET'    => 'replace-with-64-hex-characters',
-    'SESSION_SECRET' => 'replace-with-another-64-hex-characters',
+    // Zoho Mail SMTP (smartcircle@zohomail.com)
+    'mail' => [
+        'username' => 'smartcircle@zohomail.com',
+        'password' => 'your-zoho-password-or-app-password',
+    ],
 ];

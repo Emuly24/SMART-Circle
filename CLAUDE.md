@@ -1,110 +1,83 @@
-# CLAUDE.md — SMART Circle Project Rules
+# CLAUDE.md — SMART Circle v2 project rules
 
-These rules apply to every change in this repository, by humans or AI assistants.
-Background and evidence: `docs/audit.md`.
+These rules apply to every change, by humans or AI assistants.
 
-## 1. What this project is
+## 1. What SMART Circle is
 
-- SMART Circle: a tutoring platform for Form 3/4 students (notes, quizzes, exams, assignments, library, admin tools).
-- **PHP 8.1+**, MariaDB/MySQL, server-rendered HTML, Apache `.htaccess`.
-- Hosted on **InfinityFree** (free shared hosting). Deployed by FTP from GitHub Actions (`.github/workflows/deploy.yml`).
-- The code is mid-migration from "one PHP file per page" (repo root, `admin_*.php`) to a layered structure under `src/`.
-  **All new code goes into the layered structure. Legacy pages are migrated one at a time.**
+A free, **replay-based** support programme for **24 Form 1–4 students** in Malawi
+(6 per form: 3 girls, 3 boys) in **Mathematics, Physics, Chemistry, Biology and English grammar**.
+Students request topics their school has covered; the tutor records lessons on an iPad board;
+every lesson answers "why does this matter / where is it used in real life?".
+Admitted students get everything; the public gets free PDF handouts from each lesson.
 
-## 2. Architecture: three layers
+- Forms 1–2: all five subjects. Forms 3–4 science track (Physics **and** Chemistry): all five.
+  Forms 3–4 humanities track: Mathematics, Biology, English grammar.
+- No live streaming. No attendance or discipline features.
+- **Honesty rule:** a topic, its lessons, requests and (later) exercises open to a student only when
+  their own school has taught it (`AccessService`). Never bypass it; early access is a tutor decision.
+- Brand: logo, colours and typography in `brand/README.md` — use them everywhere.
 
-Dependencies point **downward only**: Presentation → Application → Data. `Support/` may be used by any layer.
+## 2. Layout and layers
 
 ```
-public/                     Web root (target). Front controller, assets. Nothing else is web-reachable.
-src/
-├── Presentation/           LAYER 1 — HTTP in, HTML/JSON out
-│   ├── Http/               Router, Request, Response, Middleware (Auth, AdminAuth, Csrf, Approved, Consent)
-│   ├── Controllers/        Thin: read input → call a service → render a view
-│   └── View/               Templates + View::render() with escaping helper e()
-├── Application/            LAYER 2 — use-cases & business rules
-│   └── <Domain>/           e.g. Auth, Enrollment, Content, Assessment, Library, Social, Notification, Scheduling, Upload
-├── Data/                   LAYER 3 — persistence
-│   ├── Database.php        The single PDO connection
-│   ├── Repositories/       One per aggregate; prepared statements only
-│   └── Entities/           Plain data objects
-└── Support/                Cross-cutting: Env, Csrf, Logger, InputValidator
-config/                     bootstrap.php (autoload + env), routes.php
-database/                   schema.sql, migrations/NNNN_description.sql, seeds/
-storage/                    uploads/, logs/, cache/ — never web-reachable
-tools/                      Dev-only scripts (schema export, diagnostics) — never deployed
-tests/                      Unit/ and Integration/
-docs/                       Audit, decisions, runbooks
+public/            Web root: index.php (front controller), assets/ (css, js, fonts, brand)
+src/Presentation/  HTTP in, HTML/JSON out: App, Http/, Middleware/, Controllers/, View/templates/
+src/Application/   Use-cases and rules, grouped by domain (Auth, Install, ...)
+src/Data/          Database, session handler, migrator, Repositories/
+src/Support/       Cross-cutting helpers (Config, Logger, PhoneNumber, e())
+config/            app.php (defaults), bootstrap.php (autoload + config)
+database/migrations/  NNNN_name.sql, applied in order by the web installer / admin page
+storage/           logs, uploads, cache, sessions (pre-install) — never web-reachable
+tests/             PHPUnit (dev only, never deployed)
+brand/             Logo sources, PNG exports, brand guide
 ```
 
-### Layer rules
+The root `.htaccess` sends every request into `public/`; nothing else is reachable.
 
 | Layer | May use | Must NOT |
 |---|---|---|
-| **Presentation** | Application, Support | Run SQL, call `getDB()`/`getPDO()`, contain business rules, echo unescaped data |
-| **Application** | Data (repositories), Support | Read `$_GET`/`$_POST`/`$_SESSION`/`$_FILES` directly, output HTML, run raw SQL |
-| **Data** | Support | Contain business rules, build SQL from unbound values, start sessions, output anything |
+| Presentation | Application, Support | Run SQL; contain business rules; print unescaped data |
+| Application | Data (repositories), Support | Read `$_GET`/`$_POST`/`$_SESSION`/`$_SERVER`; output HTML |
+| Data | Support | Contain business rules; build SQL from unbound values; output anything |
 
-- Controllers pass plain arrays/value objects to services; services return data or throw domain exceptions.
-- One service method = one use-case (e.g. `CommentService::post()`), easy to test without HTTP.
-- Legacy URLs keep working: a migrated `foo.php` becomes a thin shim that calls its controller.
+Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESSION`.
 
 ## 3. Coding standards
 
-- **`declare(strict_types=1);`** as the first statement of every new or touched PHP file (except pure templates).
-- **PSR-12** formatting; **PSR-4** autoloading under the `SmartCircle\` namespace → `src/`.
-- Type every parameter, return value and property. Prefer `final` classes and `readonly` properties where it fits.
-- Names: classes `PascalCase`, methods/variables `camelCase`, constants `UPPER_SNAKE`, DB tables/columns `snake_case`.
-- One class per file; file name = class name.
-- **Database:** PDO only (`SmartCircle\Data\Database`). **Prepared statements for every query with a variable — no exceptions.**
-  Do not add new `mysqli`/`getDB()` usage; migrate it when you touch a file.
-- **Output:** escape everything with `htmlspecialchars($v, ENT_QUOTES, 'UTF-8')` (or `e()`). Use `json_encode(..., JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP)` when embedding data in JS.
-  Rich-text note HTML must go through an allow-list sanitiser before rendering.
-- **Forms:** every state-changing request is **POST** and validates `Csrf` (`SmartCircle\Support\Csrf::hiddenField()` / `validate()`). Never change state on GET.
-- **Auth:** check access in middleware or at the top of the controller, before any work. Admin pages use session-based admin auth (HTTP Basic Auth is legacy and being removed).
-- **Uploads:** extension allow-list + MIME sniff (`finfo`) + size limit + random file name; store under `storage/uploads/`; serve through a controller that checks ownership.
-- **Errors:** never show stack traces or SQL errors to users. Log via `error_log()`/`ErrorLogger`; show `views/errors/generic.php`.
-- **Secrets:** never commit credentials. Read them from `.env` / `secrets.php` (see `secrets.example.php`). No hard-coded passwords, hashes or tokens in code or workflows.
-- No new dependencies that need Composer at runtime unless they are committed/vendored; the host has no shell.
+- `declare(strict_types=1);` in every PHP file except templates. PSR-12. PSR-4 (`SmartCircle\` → `src/`).
+- Type every parameter, return and property; prefer `final` classes and `readonly` properties.
+- **Database:** PDO through `SmartCircle\Data\Database`; prepared statements for every value. No mysqli.
+- **Output:** every value in templates goes through `e()`. No inline `<script>` or `style=""`
+  (the Content-Security-Policy blocks them): put CSS in `public/assets/css`, JS in `public/assets/js`.
+- **Forms:** every POST route has the `VerifyCsrf` middleware and the form prints `$csrf->field()`.
+  Never change data on GET.
+- **Access:** protect routes with `RequireRole` (any login, or specific roles).
+- **Errors:** never show stack traces to users; `Logger` writes to `storage/logs`.
+- **Secrets:** only in `/secrets.php` on the server (template: `secrets.example.php`). Never committed.
+- **Assets:** self-hosted only (no CDNs, no external APIs). Link with `$asset('path')` for cache-busting.
+- Phone numbers are stored as `+265XXXXXXXXX` (`PhoneNumber::normalize`).
 
-### Sessions (fixed in `fix/session-unification`)
-
-- **`config.php` is the only place that starts a session.** It registers the database session handler (table `sessions`) and calls `session_start()`.
-- Every page must `require_once __DIR__ . '/config.php';` **before** reading or writing `$_SESSION`.
-- **Never** call `session_save_path()` or `session_start()` in a page, include or controller.
-- Logout must go through `logout.php` (clears `$_SESSION`, expires the cookie, `session_destroy()` deletes the DB row).
-- Required table:
-  ```sql
-  CREATE TABLE IF NOT EXISTS sessions (
-      id            VARCHAR(128) NOT NULL PRIMARY KEY,
-      data          MEDIUMTEXT   NOT NULL,
-      last_accessed DATETIME     NOT NULL,
-      INDEX idx_sessions_last_accessed (last_accessed)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-  ```
-
-## 4. InfinityFree hosting constraints
-
-Design for these limits; do not write code that depends on anything blocked here.
+## 4. InfinityFree constraints
 
 | Constraint | Rule |
 |---|---|
-| **No `mail()`** | Do not use `mail()`. Notifications are in-app (`admin_messages`). If email is required, use PHPMailer over external SMTP / an HTTPS mail API, behind a `Mailer` interface, and confirm outbound access on the plan first. |
-| **No cron jobs** | Do not rely on cron or external pingers (InfinityFree's browser check blocks non-browser clients like `curl`). Use a **lazy scheduler**: a `scheduled_jobs` table with `last_run_at`, checked at most every N minutes during normal requests, plus an admin "Run now" button. |
-| **No `sleep()`/`usleep()`, no long-running scripts** | Requests must finish fast. No polling loops, no background workers, no `set_time_limit()` tricks. |
-| **No shell/process functions** | No `exec`, `shell_exec`, `system`, `passthru`, `proc_open`, `popen`. |
-| **Limited outbound connections** | Avoid server-side HTTP calls to third parties; prefer client-side CDNs for front-end libraries (pinned exact versions). |
-| **Low DB connection limit** | One connection per request (PDO singleton). Do not open a second `mysqli` connection in new code. |
-| **No environment-variable panel** | Configuration lives in a file uploaded once by FTP (`.env` or `secrets.php`), never in Git and never overwritten by deploys. |
-| **HTTP Basic Auth unreliable** (PHP via FastCGI) | Do not add new Basic-Auth pages; use session-based login. |
-| **Upload limit ≈ 10 MB per file** | Validate size server-side and show a clear error. |
-| **Web root is `htdocs/`** | Keep non-public code outside the web root, or protect it with `Require all denied` in `.htaccess`. Do not deploy `tools/`, debug scripts or `docs/`. |
-| **Shared resources / hit limits** | Cache expensive queries, avoid `ORDER BY RAND()` on large tables, paginate lists. |
+| No `mail()` | Email goes out through Zoho SMTP (smartcircle@zohomail.com) from a queue. Replies arrive in Zoho, not the site. |
+| No cron | Scheduled work runs lazily on normal requests or from an admin button. |
+| No shell / long scripts | No `exec`/`shell_exec`/`proc_open`, no `sleep()`, keep requests short. |
+| ~50,000 hits/day | Avoid polling; replays and static files only. |
+| 10 MB per file, ~30,000 files | Lessons upload in 1 MB pieces and are stored as ≤ 9 MB part files (`LessonStorage`); unfinished uploads are cleaned after 7 days. |
+| Few DB connections | One PDO connection per request (`Database` is created once in `App`). |
+| No env-var panel | Settings live in `secrets.php`, uploaded once. |
 
-## 5. Workflow rules
+## 5. Workflow
 
-- Never commit directly to `main`. Work on a feature branch (`fix/...`, `feat/...`, `refactor/...`, `audit/...`).
-- Keep each change focused; do not mix refactors with behaviour changes.
-- Before committing: `php -l` on every changed PHP file (and PHPStan/tests once they exist).
-- Schema changes go in `database/migrations/` as numbered, idempotent SQL files. Never change the live DB by hand without a migration.
-- Update `docs/` when a decision changes the architecture or a hosting assumption.
+- Work on a branch (`v2/...`); never commit to `main` directly.
+- Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
+  `tools/e2e-lessons.sh`, `tools/e2e-admissions.sh`,
+  `tools/e2e-topics.sh`, `tools/e2e-partners.sh` and `tools/e2e-honesty.sh` when a database is available (ideally also against
+  Apache, which honours the .htaccess files).
+- After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
+  (a unit test fails if it is out of date). See `docs/database.md`.
+- New tables arrive as migrations; on the live site the tutor applies them with the dashboard's "Update database" button.
+- Schema changes: a new numbered file in `database/migrations/` — never edit an applied migration.
+- Keep each change focused; describe it clearly in the commit message.
