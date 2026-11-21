@@ -1,0 +1,25 @@
+# SMART Circle — public/ is the only web-reachable folder.
+Options -Indexes
+RewriteEngine On
+
+# Existing files (CSS, JS, fonts, images) are served directly; everything else goes to index.php.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L,QSA]
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Long cache for versioned static assets (filenames change when content changes).
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+</IfModule>
+<IfModule mod_mime.c>
+    AddType font/woff2 .woff2
+    AddType application/manifest+json .webmanifest
+</IfModule>

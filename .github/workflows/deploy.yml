@@ -1,17 +1,37 @@
-name: Deploy to SMART Circle
+name: Deploy SMART Circle to InfinityFree
 
+# Runs only when code reaches main. Feature branches (v2/...) are never deployed.
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
-  deploy:
+  checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: FTP Deploy
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Lint every PHP file
+        run: find src config public tests tools -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Unit tests
+        run: |
+          composer install --no-interaction --no-progress
+          vendor/bin/phpunit
+
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: FTP deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_HOST }}
@@ -19,14 +39,21 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
           server-dir: ${{ secrets.REMOTE_PATH }}/
+          # The server needs: .htaccess, public/, src/, config/, database/, storage/ (empty folders).
+          # secrets.php is uploaded once by hand and is never in the repository.
           exclude: |
-            .git*
-            .github
-            .vscode
-            .env
-            vendor
-            node_modules
-            *.sql
-            README.md
-            config.php.example
-            .env.example
+            **/.git*
+            **/.git*/**
+            .github/**
+            vendor/**
+            node_modules/**
+            tests/**
+            tools/**
+            brand/**
+            docs/**
+            .phpunit.cache/**
+            composer.json
+            composer.lock
+            phpunit.xml.dist
+            *.md
+            secrets.example.php

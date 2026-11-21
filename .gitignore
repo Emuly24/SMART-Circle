@@ -1,24 +1,26 @@
-# Sensitive configuration
-config.php
-admin_config.php
+# Secrets: real values live only on the server (copy secrets.example.php)
+/secrets.php
 .env
 
-# Uploaded files (exam answers, books, assignments, exercises)
-uploads/
+# Runtime data (created on the server)
+/storage/logs/*
+/storage/uploads/*
+/storage/cache/*
+!/storage/**/.gitkeep
 
-# Backup and temporary files
+# Dev tooling
+/vendor/
+/node_modules/
+/.phpunit.cache/
+/tests/_output/
+
+# Backups and dumps (the schema lives in database/migrations)
 *.sql
-*.log
-backup_*.sql
+!/database/migrations/*.sql
+backup_*
 
-# OS metadata
+# OS / editor
 .DS_Store
 Thumbs.db
-
-# IDE folders (if any)
 .vscode/
 .idea/
-
-# Any file containing production credentials
-*secret*
-*password*

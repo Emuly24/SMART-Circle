@@ -1,22 +1,14 @@
-# Force HTTPS (keep this - it's fine)
-RewriteEngine On
-RewriteCond %{HTTPS} off
-RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-
-# Prevent directory listing
+# SMART Circle — root rules (the repository root is the InfinityFree htdocs folder).
+# Only public/ is reachable from the web. Code (src/), settings (config/, secrets.php),
+# migrations (database/) and uploads (storage/) can never be requested directly.
 Options -Indexes
+RewriteEngine On
 
-# Block sensitive files (Apache 2.4+ syntax)
-<FilesMatch "^(config\.php|update_config\.php)$">
+# Send every request into public/ (unless it already points there).
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Belt and braces: never serve dotfiles or PHP/SQL files outside public/.
+<FilesMatch "^\.|\.(sql|md|lock|dist|sh|py|log)$">
     Require all denied
 </FilesMatch>
-
-# Block all hidden files (.htaccess, .env, etc.)
-<FilesMatch "^\.">
-    Require all denied
-</FilesMatch>
-
-# Explicitly block .htaccess itself
-<Files ".htaccess">
-    Require all denied
-</Files>
