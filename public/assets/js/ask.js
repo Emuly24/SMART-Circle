@@ -4,7 +4,8 @@
     const box = form && form.querySelector('.js-exception-reason');
     if (!box) return;
     const update = () => {
-        const notCovered = form.querySelector('.js-not-covered').checked;
+        const radio = form.querySelector('.js-not-covered');
+        const notCovered = radio !== null && radio.checked;
         box.hidden = !notCovered;
     };
     form.querySelectorAll('input[name="covered"]').forEach((r) => r.addEventListener('change', update));

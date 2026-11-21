@@ -15,7 +15,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <img src="<?= e($asset('brand/logo-horizontal.svg')) ?>" alt="SMART Circle" class="letter__logo">
         <div class="letter__meta">
             <p><?= e($date) ?></p>
-            <p>Ref: <?= e($data['reference'] ?? '') ?></p>
+            <?php if (isset($data['reference'])): ?><p>Ref: <?= e($data['reference']) ?></p><?php endif; ?>
         </div>
     </header>
 
@@ -25,7 +25,11 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <p class="letter__to">
         <?= e($data['full_name'] ?? '') ?><br>
-        Form <?= e($data['form'] ?? '') ?>, <?= e($data['school'] ?? '') ?>
+        <?php if ($doc['type'] === 'partner_invite'): ?>
+            <?= e($data['school'] ?? '') ?>, <?= e($data['district'] ?? '') ?>
+        <?php else: ?>
+            Form <?= e($data['form'] ?? '') ?>, <?= e($data['school'] ?? '') ?>
+        <?php endif; ?>
     </p>
 
     <h1 class="letter__title"><?= e($doc['title']) ?></h1>
@@ -48,6 +52,25 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
             Every lesson will show you not only <em>how</em> but also <em>why it matters</em> and <em>where it is used in real life</em>.
             I look forward to learning with you.
         </p>
+    <?php elseif ($doc['type'] === 'partner_invite'): ?>
+        <p>
+            I would like to invite you to become a <strong>school partner</strong> of <strong>SMART Circle</strong>, a free
+            programme of recorded lessons in Mathematics, Physics, Chemistry, Biology and English grammar for up to
+            24 committed Form 1–4 students.
+        </p>
+        <p>
+            SMART Circle does not replace or compete with your teaching. We only explain again the topics your school has
+            <em>already taught</em>, and we always show students why each topic matters and where it is used in real life in Malawi.
+        </p>
+        <p><strong>How you can help (a few minutes a month):</strong></p>
+        <ol>
+            <li>Tell us which topics in <strong><?= e($subjects) ?></strong> your school has taught, is teaching now, or teaches next.</li>
+            <li>List the textbooks your students use, with the chapter and pages for each topic, so every lesson points them to their own book.</li>
+            <li>See, without names, which topics your students find hardest, which may help your own lessons.</li>
+        </ol>
+        <p><strong>To start:</strong> open the SMART Circle website, choose <strong>Log in</strong> and then <strong>set up your account</strong>,
+            and enter your phone number with the setup code the tutor gives you.</p>
+        <p>Thank you for supporting your students.</p>
     <?php elseif ($doc['type'] === 'waitlist_letter'): ?>
         <p>
             Thank you for applying to <strong>SMART Circle</strong>. Your application was strong, but all the seats for
@@ -66,7 +89,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         </p>
     <?php endif; ?>
 
-    <p>Parent/guardian: <?= e($data['guardian_name'] ?? '') ?></p>
+    <?php if (isset($data['guardian_name'])): ?><p>Parent/guardian: <?= e($data['guardian_name']) ?></p><?php endif; ?>
 
     <div class="letter__sign">
         <p>Yours sincerely,</p>

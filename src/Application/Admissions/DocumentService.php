@@ -16,6 +16,7 @@ final class DocumentService
         'admission_letter' => 'Letter of admission',
         'waitlist_letter' => 'Waiting list letter',
         'decline_letter' => 'Application outcome',
+        'partner_invite' => 'Invitation to partner with SMART Circle',
     ];
 
     public function __construct(private readonly DocumentRepository $documents)
@@ -50,5 +51,11 @@ final class DocumentService
     public function forApplication(int $applicationId): array
     {
         return $this->documents->forSubject('application', $applicationId);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function forUser(int $userId): array
+    {
+        return $this->documents->forSubject('user', $userId);
     }
 }

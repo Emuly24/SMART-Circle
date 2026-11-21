@@ -32,7 +32,7 @@
                 </label>
                 <button type="submit" class="btn btn--block">Log in</button>
             </form>
-            <p class="note">New student, or forgot your password? Get a code from the tutor, then <a href="/welcome">set up your account</a>.</p>
+            <p class="note">New student or school partner, or forgot your password? Get a code from the tutor, then <a href="/welcome">set up your account</a>.</p>
         </div>
     </div>
 </section>

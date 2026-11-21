@@ -14,6 +14,8 @@ use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
 use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Application\Partners\PartnerService;
+use SmartCircle\Application\Partners\SchoolService;
 use SmartCircle\Application\Topics\RequestService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\Database;
@@ -22,6 +24,10 @@ use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Migrator;
 use SmartCircle\Data\Repositories\ApplicationRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\CoverageRepository;
+use SmartCircle\Data\Repositories\PartnerRepository;
+use SmartCircle\Data\Repositories\SchoolRepository;
+use SmartCircle\Data\Repositories\TextbookRepository;
 use SmartCircle\Data\Repositories\DocumentRepository;
 use SmartCircle\Data\Repositories\IntakeRepository;
 use SmartCircle\Data\Repositories\StudentRepository;
@@ -40,6 +46,8 @@ use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\NotificationController;
+use SmartCircle\Presentation\Controllers\PartnerController;
+use SmartCircle\Presentation\Controllers\SchoolController;
 use SmartCircle\Presentation\Controllers\StudioTopicController;
 use SmartCircle\Presentation\Controllers\TopicController;
 use SmartCircle\Presentation\Controllers\PageController;
@@ -181,13 +189,12 @@ final class App
         $pages = new PageController($this->view);
         $authCtl = new AuthController($auth, $this->session, $this->context, $this->view);
         $installCtl = new InstallController($installer, $this->session, $this->view, $this->storage('installed.lock'));
-        $dashboard = new DashboardController($this->context, $this->view, $installer, $this->session);
         $studio = new StudioController($this->view);
 
         $lessonRepo = new LessonRepository($db);
         $lessonStorage = new LessonStorage($this->storage(''));
-        $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db));
-        $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db));
+        $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db), new TextbookRepository($db));
+        $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db), new CoverageRepository($db));
         $lessonService = new LessonService($lessonRepo, $lessonStorage, $topicService, $requestService);
         $uploadService = new UploadService(
             new LessonUploadRepository($db),
@@ -220,6 +227,27 @@ final class App
         $docs = new DocumentController($documentService, $this->context, $this->session, $this->view, $this->config->string('app.url'));
         $onboarded = new RequireOnboarded($this->context);
         $student = new RequireRole($this->context, $this->session, ['student']);
+        $partnerService = new PartnerService($db, $users, new PartnerRepository($db), new SchoolRepository($db), new StudentRepository($db), $documentService, $audit);
+        $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService);
+        $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
+        $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
+        $partner = new RequireRole($this->context, $this->session, ['partner']);
+        $dashboard = new DashboardController($this->context, $this->view, $installer, $this->session, static function (int $userId) use ($partnerService, $schoolService): ?array {
+            $p = $partnerService->find($userId);
+            if ($p === null || empty($p['school_id'])) {
+                return null;
+            }
+            $schoolId = (int) $p['school_id'];
+
+            return [
+                'partner' => $p,
+                'progress' => $schoolService->progress($schoolId),
+                'students' => $schoolService->studentsByForm($schoolId),
+                'top' => $schoolService->topRequests($schoolId, $p['subject_list']),
+                'books' => count($schoolService->textbooks($schoolId)),
+                'letters' => $partnerService->letters($userId),
+            ];
+        });
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
         // Public
@@ -280,6 +308,31 @@ final class App
         $r->post('/studio/topics/import', $studioTopics->importTopics(...), [$csrf, $tutor]);
         $r->get('/studio/topics/{id}', $studioTopics->editTopic(...), [$tutor]);
         $r->post('/studio/topics/{id}', $studioTopics->updateTopic(...), [$csrf, $tutor]);
+
+        // School partners: their own school's coverage and textbooks
+        $r->get('/partner/coverage', $schoolsCtl->coverage(...), [$partner]);
+        $r->post('/partner/coverage', $schoolsCtl->saveCoverage(...), [$csrf, $partner]);
+        $r->get('/partner/textbooks', $schoolsCtl->textbooks(...), [$partner]);
+        $r->post('/partner/textbooks', $schoolsCtl->addTextbook(...), [$csrf, $partner]);
+        $r->get('/partner/textbooks/{book}', $schoolsCtl->refs(...), [$partner]);
+        $r->post('/partner/textbooks/{book}', $schoolsCtl->saveRefs(...), [$csrf, $partner]);
+        $r->post('/partner/textbooks/{book}/remove', $schoolsCtl->removeTextbook(...), [$csrf, $partner]);
+
+        // Tutor: partners and schools (the tutor can also enter a school's reports)
+        $r->get('/studio/partners', $partnersCtl->index(...), [$tutor]);
+        $r->post('/studio/partners', $partnersCtl->invite(...), [$csrf, $tutor]);
+        $r->get('/studio/partners/{id}', $partnersCtl->show(...), [$tutor]);
+        $r->post('/studio/partners/{id}/code', $partnersCtl->newCode(...), [$csrf, $tutor]);
+        $r->post('/studio/partners/{id}/code/hide', $partnersCtl->hideCode(...), [$csrf, $tutor]);
+        $r->post('/studio/partners/{id}/status', $partnersCtl->setStatus(...), [$csrf, $tutor]);
+        $r->get('/studio/schools/{school}', $schoolsCtl->summary(...), [$tutor]);
+        $r->get('/studio/schools/{school}/coverage', $schoolsCtl->coverage(...), [$tutor]);
+        $r->post('/studio/schools/{school}/coverage', $schoolsCtl->saveCoverage(...), [$csrf, $tutor]);
+        $r->get('/studio/schools/{school}/textbooks', $schoolsCtl->textbooks(...), [$tutor]);
+        $r->post('/studio/schools/{school}/textbooks', $schoolsCtl->addTextbook(...), [$csrf, $tutor]);
+        $r->get('/studio/schools/{school}/textbooks/{book}', $schoolsCtl->refs(...), [$tutor]);
+        $r->post('/studio/schools/{school}/textbooks/{book}', $schoolsCtl->saveRefs(...), [$csrf, $tutor]);
+        $r->post('/studio/schools/{school}/textbooks/{book}/remove', $schoolsCtl->removeTextbook(...), [$csrf, $tutor]);
 
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [$tutor]);

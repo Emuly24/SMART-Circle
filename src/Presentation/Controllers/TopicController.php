@@ -86,6 +86,7 @@ final class TopicController
     {
         $id = (int) $topic['id'];
         $parent = $topic['parent_id'] !== null ? $this->topics->find((int) $topic['parent_id']) : null;
+        $profile = $this->profile();
 
         return Response::html($this->view->render('topics/show', [
             'title' => (string) $topic['title'],
@@ -93,6 +94,8 @@ final class TopicController
             'parent' => $parent,
             'children' => $this->topics->children($id),
             'lessons' => $this->topics->lessons($id),
+            'books' => $this->topics->textbookRefs($id, $profile),
+            'schoolCoverage' => $this->topics->schoolCoverage($profile, $id),
             'request' => $this->requests->forTopic($id, (int) $this->context->userId()),
             'isStudent' => $this->context->role() === 'student',
             'names' => Subjects::NAMES,

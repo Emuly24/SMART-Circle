@@ -71,7 +71,8 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 
 - Work on a branch (`v2/...`); never commit to `main` directly.
 - Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
-  `tools/e2e-lessons.sh` and `tools/e2e-admissions.sh` when a database is available (ideally also against
+  `tools/e2e-lessons.sh`, `tools/e2e-admissions.sh`,
+  `tools/e2e-topics.sh` and `tools/e2e-partners.sh` when a database is available (ideally also against
   Apache, which honours the .htaccess files).
 - After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
   (a unit test fails if it is out of date). See `docs/database.md`.

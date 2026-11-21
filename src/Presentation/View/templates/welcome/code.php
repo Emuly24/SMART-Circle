@@ -8,7 +8,7 @@
 <section class="section">
     <div class="container narrow">
         <div class="card">
-            <p class="eyebrow">Admitted students</p>
+            <p class="eyebrow">Students and school partners</p>
             <h1>Set up your account</h1>
             <p>Enter your phone number and the code your tutor gave you. (Forgot your password? Ask the tutor for a new code and start here.)</p>
             <?php if ($error !== ''): ?><div class="alert alert--error" role="alert"><?= e($error) ?></div><?php endif; ?>

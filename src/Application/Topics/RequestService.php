@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Application\Topics;
 
 use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\TopicRepository;
 use SmartCircle\Data\Repositories\TopicRequestRepository;
 use SmartCircle\Support\Subjects;
@@ -46,6 +47,7 @@ final class RequestService
         private readonly TopicRepository $topics,
         private readonly TopicRequestRepository $requests,
         private readonly NotificationService $notifications,
+        private readonly ?CoverageRepository $coverage = null,
     ) {
     }
 
@@ -188,6 +190,7 @@ final class RequestService
         }
         $request['voices'] = $this->requests->voices($id);
         $request['struggles'] = self::sortBreakdown(array_count_values(array_column($request['voices'], 'struggle_type')));
+        $request['schools'] = $this->coverage?->forTopic((int) $request['topic_id']) ?? [];
 
         return $request;
     }

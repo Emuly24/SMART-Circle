@@ -1,11 +1,34 @@
 <?php
-/** @var \SmartCircle\Presentation\Http\Context $ctx */
+/**
+ * @var \SmartCircle\Presentation\Http\Context $ctx
+ * @var array<string, mixed>|null $summary
+ */
 $user = $ctx->user() ?? [];
 ?>
 <section class="section">
-    <div class="container">
+    <div class="container narrow-wide">
         <p class="eyebrow">School partner</p>
-        <h1>Welcome, <?= e((string) ($user['full_name'] ?? '')) ?></h1>
-        <p class="lead">Thank you for supporting your students. Topic tracking and your school's summary will appear here.</p>
+        <h1>Welcome, <?= e(explode(' ', (string) ($user['full_name'] ?? ''))[0]) ?></h1>
+        <?php if ($summary === null): ?>
+            <p class="lead">Your account is not linked to a school yet. Please contact the tutor.</p>
+        <?php else:
+            $p = $summary['partner'];
+            $total = array_sum($summary['students']); ?>
+            <p class="lead">
+                Thank you for supporting <?= e($p['school_name']) ?>’s students.
+                <?= e($total) ?> of your students <?= $total === 1 ? 'is' : 'are' ?> in SMART Circle.
+                Lessons follow what your school has taught, so your reports keep everyone on the same page.
+            </p>
+            <?= $view->partial('school_overview', [
+                'scope' => ['id' => (int) $p['school_id'], 'school' => ['name' => $p['school_name']], 'subjects' => $p['subject_list'], 'base' => '/partner', 'isTutor' => false],
+                'progress' => $summary['progress'],
+                'top' => $summary['top'],
+                'bookCount' => $summary['books'],
+                'names' => \SmartCircle\Support\Subjects::NAMES,
+            ]) ?>
+            <?php if ($summary['letters'] !== []): ?>
+                <p class="note">Your invitation letter: <a href="/letters/<?= e($summary['letters'][0]['code']) ?>">open and print</a>.</p>
+            <?php endif; ?>
+        <?php endif; ?>
     </div>
 </section>

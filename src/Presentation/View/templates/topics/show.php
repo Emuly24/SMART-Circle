@@ -5,6 +5,8 @@
  * @var list<array<string, mixed>> $children
  * @var list<array<string, mixed>> $lessons
  * @var array<string, mixed>|null $request
+ * @var list<array<string, mixed>> $books
+ * @var string|null $schoolCoverage
  * @var bool $isStudent
  * @var array<string, string> $names
  * @var array<string, string> $struggles
@@ -36,6 +38,21 @@ $mine = $request !== null && !empty($request['joined']);
                     <li><a href="/topics/<?= e($c['id']) ?>"><?= e($c['title']) ?></a></li>
                 <?php endforeach; ?>
             </ul>
+        <?php endif; ?>
+
+        <?php if ($books !== []): ?>
+            <div class="card book-refs">
+                <h2 class="h3">Read it in your textbook</h2>
+                <ul>
+                    <?php foreach ($books as $b): ?>
+                        <li>
+                            <strong><?= e($b['title']) ?></strong><?= $b['edition'] !== '' ? ' <span class="muted">(' . e($b['edition']) . ')</span>' : '' ?>
+                            <?php if ($b['at_my_school']): ?><span class="chip chip--lesson">Used at your school</span><?php endif; ?>
+                            <br><span class="book-refs__where"><?= $b['chapter'] !== '' ? 'Chapter ' . e($b['chapter']) : '' ?><?= $b['chapter'] !== '' && $b['pages'] !== '' ? ' · ' : '' ?><?= $b['pages'] !== '' ? 'pages ' . e($b['pages']) : '' ?><?= !$b['exact'] ? ' <span class="muted">(for: ' . e($b['topic_title']) . ')</span>' : '' ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         <?php endif; ?>
 
         <?php if ($lessons !== []): ?>
@@ -81,6 +98,10 @@ $mine = $request !== null && !empty($request['joined']);
                     <textarea name="details" rows="3" maxlength="1000" placeholder="e.g. I can balance simple equations but get lost when there are brackets."><?= e($old['details'] ?? '') ?></textarea>
                     <?= $err('details') ?>
                 </label>
+                <?php if (in_array($schoolCoverage, ['covered', 'covering'], true)): ?>
+                    <p class="note">Your school has told us it <?= $schoolCoverage === 'covered' ? 'has taught' : 'is teaching' ?> this topic.</p>
+                    <input type="hidden" name="covered" value="yes">
+                <?php else: ?>
                 <fieldset class="field">
                     <legend class="field__label">Has your school taught this topic yet?</legend>
                     <div class="choice-row">
@@ -95,6 +116,7 @@ $mine = $request !== null && !empty($request['joined']);
                     <span class="muted field__hint">SMART Circle follows your school. Topics not yet taught need the tutor’s approval.</span>
                     <?= $err('exception_reason') ?>
                 </label>
+                <?php endif; ?>
                 <div class="form-actions">
                     <button type="submit" class="btn"><?= $first ? 'Ask for this topic' : 'Add my voice' ?></button>
                 </div>

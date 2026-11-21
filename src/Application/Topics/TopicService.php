@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Application\Topics;
 
 use SmartCircle\Data\Repositories\StudentRepository;
+use SmartCircle\Data\Repositories\TextbookRepository;
 use SmartCircle\Data\Repositories\TopicRepository;
 use SmartCircle\Support\Subjects;
 
@@ -17,7 +18,23 @@ final class TopicService
     public function __construct(
         private readonly TopicRepository $topics,
         private readonly StudentRepository $students,
+        private readonly ?TextbookRepository $textbooks = null,
     ) {
+    }
+
+    /** What the student's school reported for a topic: covered | covering | next | null */
+    public function schoolCoverage(?array $profile, int $topicId): ?string
+    {
+        return !empty($profile['school_id']) ? $this->topics->coverage((int) $profile['school_id'], $topicId) : null;
+    }
+
+    /**
+     * Textbook chapters/pages for a topic; books used at the student's school first.
+     * @return list<array<string, mixed>>
+     */
+    public function textbookRefs(int $topicId, ?array $profile): array
+    {
+        return $this->textbooks?->forTopic($topicId, !empty($profile['school_id']) ? (int) $profile['school_id'] : null) ?? [];
     }
 
     /** @return array<string, mixed>|null the student's profile (form, track, school) */

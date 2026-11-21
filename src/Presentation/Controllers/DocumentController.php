@@ -32,8 +32,9 @@ final class DocumentController
 
         // The tutor, or the applicant who has just checked their status, may open the letter.
         $isTutor = $this->context->role() === 'tutor';
-        $isApplicant = $this->session->get('apply_ref') === ($data['reference'] ?? null);
-        if (!$isTutor && !$isApplicant) {
+        $isApplicant = isset($data['reference']) && $this->session->get('apply_ref') === $data['reference'];
+        $isOwner = $doc['subject_type'] === 'user' && (int) $doc['subject_id'] === $this->context->userId();
+        if (!$isTutor && !$isApplicant && !$isOwner) {
             throw new HttpException(404);
         }
 
@@ -41,7 +42,7 @@ final class DocumentController
             'title' => $doc['title'],
             'doc' => $doc,
             'data' => $data,
-            'subjects' => Subjects::names(array_filter(explode(',', (string) ($data['help_subjects'] ?? '')))),
+            'subjects' => Subjects::names(array_filter(explode(',', (string) ($data['help_subjects'] ?? $data['subjects'] ?? '')))),
             'verifyUrl' => rtrim($this->siteUrl, '/') . '/verify/' . $doc['code'],
         ], 'layouts/print'));
     }

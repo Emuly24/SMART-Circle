@@ -54,6 +54,19 @@ $statusButton = static function (string $status, string $label, string $class = 
         </div>
 
         <div class="card">
+            <h2 class="h3">What schools have taught</h2>
+            <?php if ($r['schools'] === []): ?>
+                <p class="muted">No partner school has reported on this topic yet.</p>
+            <?php else: ?>
+                <ul class="letter-list">
+                    <?php foreach ($r['schools'] as $s): ?>
+                        <li><?= e($s['school']) ?>, <?= e($s['district']) ?>: <strong><?= e(['covered' => 'taught', 'covering' => 'teaching now', 'next' => 'next'][$s['status']] ?? $s['status']) ?></strong></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+
+        <div class="card">
             <h2 class="h3">What next</h2>
             <p class="muted">When you publish a lesson linked to this topic, the request becomes “Lesson ready” and every student here is told.</p>
             <div class="decision__buttons">

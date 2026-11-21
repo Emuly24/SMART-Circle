@@ -20,7 +20,7 @@
                 <h1>Genuine</h1>
                 <p>
                     <strong><?= e($doc['title']) ?></strong> for <strong><?= e($doc['data']['full_name'] ?? '') ?></strong>
-                    (Form <?= e($doc['data']['form'] ?? '') ?>), issued by SMART Circle on <?= e(date('j F Y', strtotime((string) $doc['issued_at']))) ?>.
+                    (<?= isset($doc['data']['form']) ? 'Form ' . e($doc['data']['form']) : e($doc['data']['school'] ?? '') ?>), issued by SMART Circle on <?= e(date('j F Y', strtotime((string) $doc['issued_at']))) ?>.
                 </p>
             <?php endif; ?>
             <p><a href="/verify">Check another code</a></p>
