@@ -466,7 +466,9 @@ meter::-moz-meter-bar { background: var(--green); border-radius: 999px; }
     .progress-table__row { grid-template-columns: repeat(4, 1fr); row-gap: 2px; }
     .progress-table__row--head span:first-child { display: none; }
     .progress-table__subject { grid-column: 1 / -1; }
-    .cov-choice { padding: 4px 8px; font-size: .8rem; min-height: 34px; gap: 4px; white-space: nowrap; }
-    .cov-row__choices { gap: 3px; }
-    .cov-row__choices { flex-wrap: nowrap; }
+    .cov-row, .cov-row--sub { padding: 10px 10px; }
+    .cov-row--sub .cov-row__title { padding-left: 12px; }
+    .cov-row__choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; width: 100%; }
+    .cov-choice { justify-content: center; padding: 4px 2px; font-size: .78rem; min-height: 36px; gap: 3px; white-space: nowrap; }
+    .cov-choice input { width: 14px; height: 14px; margin: 0; }
 }
