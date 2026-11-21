@@ -6,6 +6,7 @@
 /storage/logs/*
 /storage/uploads/*
 /storage/cache/*
+/storage/sessions/
 !/storage/**/.gitkeep
 
 # Dev tooling
