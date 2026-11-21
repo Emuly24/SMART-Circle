@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Application\Topics;
 
 use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\TopicRepository;
 use SmartCircle\Data\Repositories\TopicRequestRepository;
@@ -48,19 +49,22 @@ final class RequestService
         private readonly TopicRequestRepository $requests,
         private readonly NotificationService $notifications,
         private readonly ?CoverageRepository $coverage = null,
+        private readonly ?AccessService $access = null,
+        private readonly ?AccessRepository $accessRepo = null,
     ) {
     }
 
     /**
      * Validate a student's request form. Pure: used by request() and by the tests.
-     * @param array<string, mixed> $input struggle_type, details, covered ('yes'|'no'), exception_reason
+     * When the topic is open to the student it is a normal request; when it is locked
+     * (not taught at their school yet) it is an early-access request and needs a reason.
+     * @param array<string, mixed> $input struggle_type, details, exception_reason
      * @return array{errors: array<string, string>, struggle: string, details: string, exception: bool, reason: ?string}
      */
-    public static function validate(array $input, bool $isFirst, ?string $schoolCoverage): array
+    public static function validate(array $input, bool $isFirst, bool $isOpen): array
     {
         $struggle = (string) ($input['struggle_type'] ?? '');
         $details = trim(str_replace("\r\n", "\n", (string) ($input['details'] ?? '')));
-        $covered = (string) ($input['covered'] ?? '');
         $reason = trim((string) ($input['exception_reason'] ?? ''));
         $errors = [];
 
@@ -73,28 +77,16 @@ final class RequestService
         if (mb_strlen($details) > 1000) {
             $errors['details'] = 'Keep it under 1000 characters.';
         }
-
-        // The school's own report wins; otherwise the student tells us.
-        if (in_array($schoolCoverage, ['covered', 'covering'], true)) {
-            $exception = false;
-        } elseif ($covered === 'yes') {
-            $exception = false;
-        } elseif ($covered === 'no') {
-            $exception = true;
-            if (mb_strlen($reason) < 10) {
-                $errors['exception_reason'] = 'Explain why you need it before your school teaches it (at least 10 characters).';
-            }
-        } else {
-            $exception = false;
-            $errors['covered'] = 'Tell us whether your school has taught this topic yet.';
+        if (!$isOpen && mb_strlen($reason) < 10) {
+            $errors['exception_reason'] = 'Explain why you need it before your school teaches it (at least 10 characters).';
         }
 
         return [
             'errors' => $errors,
             'struggle' => $struggle,
             'details' => mb_substr($details, 0, 1000),
-            'exception' => $exception,
-            'reason' => $exception ? mb_substr($reason, 0, 1000) : null,
+            'exception' => !$isOpen,
+            'reason' => $isOpen ? null : mb_substr($reason, 0, 1000),
         ];
     }
 
@@ -113,10 +105,15 @@ final class RequestService
         }
 
         $existing = $this->requests->forTopic($topicId);
-        $coverage = !empty($profile['school_id']) ? $this->topics->coverage((int) $profile['school_id'], $topicId) : null;
-        $v = self::validate($input, $existing === null, $coverage);
+        $isOpen = $this->access === null || $this->access->check($userId, 'student', $topic)['open'];
+        $v = self::validate($input, $existing === null, $isOpen);
         if ($v['errors'] !== []) {
             return ['errors' => $v['errors'], 'outcome' => null];
+        }
+        if ($v['exception']) {
+            $this->accessRepo?->requestException($userId, $topicId, (string) $v['reason']);
+            $this->notifications->notifyTutors('early_access', 'Early access asked: ' . $topic['title'],
+                'A student needs this before their school teaches it.', '/studio/checks');
         }
 
         $title = (string) $topic['title'];
@@ -125,8 +122,8 @@ final class RequestService
         if ($existing === null) {
             $id = $this->requests->create($topicId, $userId, $v['struggle'], $v['details'], $v['exception'], $v['reason']);
             $this->notifications->notifyTutors(
-                $v['exception'] ? 'request_exception' : 'request_new',
-                ($v['exception'] ? 'Exception request: ' : 'New request: ') . $title,
+                'request_new',
+                'New request: ' . $title,
                 'Form ' . $topic['form'] . ' ' . Subjects::NAMES[$topic['subject']] . ' · ' . self::STRUGGLES_SHORT[$v['struggle']],
                 $link . $id
             );
@@ -141,7 +138,7 @@ final class RequestService
         $already = $this->requests->hasJoined($requestId, $userId);
         $this->requests->vote($requestId, $userId, $v['struggle'], $v['details'] === '' ? null : $v['details']);
 
-        // A classmate whose school HAS covered it turns an exception into a normal request.
+        // A student for whom the topic IS taught turns an early-access request into a normal one.
         if ((bool) $existing['is_exception'] && !$v['exception']) {
             $this->requests->clearException($requestId);
         }
@@ -162,9 +159,67 @@ final class RequestService
     {
         $rows = $this->requests->ranked($filter);
         $breakdown = $this->requests->struggleBreakdown();
+        $readiness = $this->access?->readiness() ?? [];
+        $deciders = $this->access?->allDeciders() ?? [];
         foreach ($rows as &$row) {
             $row['struggles'] = self::sortBreakdown($breakdown[(int) $row['id']] ?? []);
+            $row['readiness'] = $readiness[(int) $row['topic_id']] ?? ['ready' => 0, 'eligible' => 0];
+            $taught = 0;
+            foreach ($this->requests->participants((int) $row['id']) as $uid) {
+                $d = isset($deciders[$uid]) ? $deciders[$uid]((int) $row['topic_id']) : null;
+                if ($d !== null && $d['open'] && $d['basis'] !== 'exception') {
+                    $taught++;
+                }
+            }
+            $row['taught_votes'] = $taught;
         }
+        unset($row);
+
+        return self::rank($rows);
+    }
+
+    /**
+     * Topics most students' schools have taught but that have no lesson yet: good to record
+     * before anyone asks. At least half of the students who study it must have it taught.
+     * @param array{form?: int, subject?: string} $filter
+     * @return list<array<string, mixed>>
+     */
+    public function readyToRecord(array $filter, int $limit = 8): array
+    {
+        if ($this->access === null) {
+            return [];
+        }
+        $readiness = $this->access->readiness();
+        $rows = [];
+        foreach ($this->topics->mainTopicsWithoutLessons() as $t) {
+            if ((!empty($filter['form']) && (int) $t['form'] !== (int) $filter['form'])
+                || (!empty($filter['subject']) && $t['subject'] !== $filter['subject'])) {
+                continue;
+            }
+            $r = $readiness[(int) $t['id']] ?? ['ready' => 0, 'eligible' => 0];
+            if ($r['eligible'] > 0 && $r['ready'] * 2 >= $r['eligible']) {
+                $rows[] = $t + ['readiness' => $r];
+            }
+        }
+        usort($rows, static fn (array $a, array $b): int =>
+            [$b['readiness']['ready'] / $b['readiness']['eligible'], $b['readiness']['ready']]
+            <=> [$a['readiness']['ready'] / $a['readiness']['eligible'], $a['readiness']['ready']]);
+
+        return array_slice($rows, 0, $limit);
+    }
+
+    /**
+     * Honest priority: first the students whose school HAS taught the topic, then how many of
+     * all students' schools have taught it (readiness), then all voices, oldest first.
+     * @param list<array<string, mixed>> $rows each with taught_votes, readiness, votes, created_at
+     * @return list<array<string, mixed>>
+     */
+    public static function rank(array $rows): array
+    {
+        $ratio = static fn (array $r): float => $r['readiness']['eligible'] > 0 ? $r['readiness']['ready'] / $r['readiness']['eligible'] : 0.0;
+        usort($rows, static fn (array $a, array $b): int =>
+            [(int) $b['taught_votes'], $ratio($b), (int) $b['votes'], (string) $a['created_at']]
+            <=> [(int) $a['taught_votes'], $ratio($a), (int) $a['votes'], (string) $b['created_at']]);
 
         return $rows;
     }
@@ -191,6 +246,11 @@ final class RequestService
         $request['voices'] = $this->requests->voices($id);
         $request['struggles'] = self::sortBreakdown(array_count_values(array_column($request['voices'], 'struggle_type')));
         $request['schools'] = $this->coverage?->forTopic((int) $request['topic_id']) ?? [];
+        $deciders = $this->access?->allDeciders() ?? [];
+        foreach ($request['voices'] as &$voice) {
+            $voice['access'] = isset($deciders[$voice['user_id']]) ? $deciders[$voice['user_id']]((int) $request['topic_id']) : null;
+        }
+        unset($voice);
 
         return $request;
     }
@@ -215,10 +275,6 @@ final class RequestService
         if ($request === null || !in_array($status, ['open', 'planned', 'closed'], true) || $request['status'] === $status) {
             return false;
         }
-        if ($request['exception_status'] === 'pending' && $status === 'planned') {
-            // Planning an exception is approving it.
-            $this->requests->setException($id, 'approved');
-        }
         $this->requests->setStatus($id, $status);
 
         $link = '/topics/' . $request['topic_id'];
@@ -233,29 +289,6 @@ final class RequestService
         return true;
     }
 
-    /** Tutor: approve or decline an exception (a topic the student's school has not covered). */
-    public function decideException(int $id, bool $approve): bool
-    {
-        $request = $this->requests->find($id);
-        if ($request === null || !(bool) $request['is_exception']) {
-            return false;
-        }
-        $this->requests->setException($id, $approve ? 'approved' : 'declined');
-        if (!$approve) {
-            $this->requests->setStatus($id, 'closed');
-        }
-        $this->notifications->notify(
-            $this->requests->participants($id),
-            'request_exception',
-            ($approve ? 'Exception approved: ' : 'Exception declined: ') . $request['topic_title'],
-            $approve ? 'The tutor will teach this topic before your school reaches it.'
-                : 'Ask again once your school has taught this topic.',
-            '/topics/' . $request['topic_id']
-        );
-
-        return true;
-    }
-
     /**
      * A lesson on a topic was published: every open/planned request on that topic
      * (or its parent/subtopics) becomes "Lesson ready" and its students are told.
@@ -263,10 +296,18 @@ final class RequestService
     public function lessonPublished(int $lessonId, int $topicId, string $lessonTitle): int
     {
         $ids = $this->requests->openForTopicTree($topicId);
+        $deciders = $this->access?->allDeciders() ?? [];
         foreach ($ids as $id) {
             $this->requests->setStatus($id, 'recorded', $lessonId);
-            $this->notifications->notify($this->requests->participants($id), 'request_recorded',
+            $open = $waiting = [];
+            foreach ($this->requests->participants($id) as $uid) {
+                $canWatch = $this->access === null || (isset($deciders[$uid]) && $deciders[$uid]($topicId)['open']);
+                $canWatch ? $open[] = $uid : $waiting[] = $uid;
+            }
+            $this->notifications->notify($open, 'request_recorded',
                 'Lesson ready: ' . $lessonTitle, 'The lesson you asked for is ready to watch.', '/lessons/' . $lessonId);
+            $this->notifications->notify($waiting, 'request_recorded',
+                'Lesson recorded: ' . $lessonTitle, 'It opens for you when your school has taught this topic.', '/topics/' . $topicId);
         }
 
         return count($ids);

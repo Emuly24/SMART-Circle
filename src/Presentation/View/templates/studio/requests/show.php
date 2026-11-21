@@ -22,18 +22,7 @@ $statusButton = static function (string $status, string $label, string $class = 
             <span class="muted"><?= e(count($r['voices'])) ?> <?= count($r['voices']) === 1 ? 'student' : 'students' ?> · first asked <?= e(date('j M Y', strtotime((string) $r['created_at']) ?: time())) ?></span></p>
 
         <?php if ((bool) $r['is_exception']): ?>
-            <div class="card exception-card">
-                <h2 class="h3">Exception: not yet taught at the student’s school</h2>
-                <p><?= nl2br(e($r['exception_reason'] ?? '')) ?></p>
-                <?php if ($r['exception_status'] === 'pending'): ?>
-                    <div class="decision__buttons">
-                        <form method="post" action="/studio/requests/<?= e($id) ?>/exception"><?= $csrf->field() ?><input type="hidden" name="decision" value="approve"><button type="submit" class="btn btn--small btn--green">Approve</button></form>
-                        <form method="post" action="/studio/requests/<?= e($id) ?>/exception"><?= $csrf->field() ?><input type="hidden" name="decision" value="decline"><button type="submit" class="btn btn--small btn--danger">Decline</button></form>
-                    </div>
-                <?php else: ?>
-                    <p class="muted">Decision: <?= e($r['exception_status']) ?></p>
-                <?php endif; ?>
-            </div>
+            <p class="note">Asked for early by a student whose school has not taught it. Early-access decisions are made per student in <a href="/studio/checks">Checks</a>.</p>
         <?php endif; ?>
 
         <div class="card">
@@ -47,6 +36,9 @@ $statusButton = static function (string $status, string $label, string $class = 
                 <?php foreach ($r['voices'] as $v): ?>
                     <li>
                         <strong><?= e($v['full_name']) ?></strong> <span class="muted">· <?= e($struggles[$v['struggle_type']] ?? $v['struggle_type']) ?></span>
+                        <?php if ($v['access'] !== null): ?>
+                            <span class="chip <?= $v['access']['open'] ? ($v['access']['basis'] === 'exception' ? 'chip--planned' : 'chip--lesson') : 'chip--locked' ?>"><?= e(\SmartCircle\Application\Topics\AccessService::TUTOR_STATES[$v['access']['state']] ?? '') ?></span>
+                        <?php endif; ?>
                         <?php if ($v['details']): ?><p><?= nl2br(e($v['details'])) ?></p><?php endif; ?>
                     </li>
                 <?php endforeach; ?>

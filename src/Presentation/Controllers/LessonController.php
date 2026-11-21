@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Lessons\LessonService;
+use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\TopicService;
+use SmartCircle\Support\Subjects;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Csrf;
 use SmartCircle\Presentation\Http\HttpException;
@@ -25,6 +27,7 @@ final class LessonController
         private readonly Session $session,
         private readonly View $view,
         private readonly ?TopicService $topics = null,
+        private readonly ?AccessService $access = null,
     ) {
     }
 
@@ -33,10 +36,25 @@ final class LessonController
     public function index(Request $request): Response
     {
         $isTutor = $this->context->role() === 'tutor';
+        $lessons = $this->lessons->publishedForForm(null);
+        if (!$isTutor) {
+            // Students see their own form and subjects; lessons on topics their school
+            // has not taught yet are shown locked.
+            $profile = $this->topics?->studentProfile((int) $this->context->userId());
+            $decide = $this->access?->forStudent((int) $this->context->userId());
+            $lessons = array_values(array_filter($lessons, static fn (array $l): bool => $profile !== null
+                && (int) $l['form'] === (int) $profile['form']
+                && in_array($l['subject'], Subjects::forTrack((string) $profile['track']), true)));
+            foreach ($lessons as &$l) {
+                $l['access'] = $decide !== null && $l['topic_id'] !== null ? $decide((int) $l['topic_id']) : ['open' => true, 'basis' => 'untagged', 'state' => 'school'];
+            }
+            unset($l);
+        }
 
         return Response::html($this->view->render('lessons/index', [
             'title' => 'Lessons',
-            'lessons' => $this->lessons->publishedForForm(null),
+            'lessons' => $lessons,
+            'states' => AccessService::STATES,
             'subjects' => LessonService::SUBJECTS,
             'isTutor' => $isTutor,
         ]));
@@ -45,6 +63,19 @@ final class LessonController
     public function show(Request $request): Response
     {
         $lesson = $this->watchable($request);
+        $access = $this->accessFor($lesson);
+        if (!$access['open']) {
+            return Response::html($this->view->render('lessons/locked', [
+                'title' => (string) $lesson['title'],
+                'lesson' => $lesson,
+                'access' => $access,
+                'states' => AccessService::STATES,
+                'subjects' => LessonService::SUBJECTS,
+            ]), 403);
+        }
+        if ($this->context->role() === 'student') {
+            $this->access?->recordView((int) $this->context->userId(), (int) $lesson['id'], (string) $access['basis']);
+        }
 
         return Response::html($this->view->render('lessons/show', [
             'title' => (string) $lesson['title'],
@@ -52,12 +83,16 @@ final class LessonController
             'subjects' => LessonService::SUBJECTS,
             'sections' => LessonService::REAL_LIFE_SECTIONS,
             'isTutor' => $this->context->role() === 'tutor',
+            'topic' => !empty($lesson['topic_id']) ? $this->topics?->find((int) $lesson['topic_id']) : null,
         ]));
     }
 
     public function file(Request $request): Response
     {
         $lesson = $this->watchable($request);
+        if (!$this->accessFor($lesson)['open']) {
+            throw new HttpException(403, 'This lesson opens when your school has taught its topic.');
+        }
         $parts = $this->lessons->fileParts((int) $lesson['id']);
         if ($parts === []) {
             throw new HttpException(404, 'This lesson file is missing on the server.');
@@ -157,6 +192,22 @@ final class LessonController
         $id = (int) $request->param('id');
 
         return $this->lessons->find($id) ?? throw new HttpException(404);
+    }
+
+    /**
+     * The honesty rule for one lesson. Lessons published before topics existed have no topic and stay open.
+     * @param array<string, mixed> $lesson
+     * @return array{open: bool, basis: ?string, state: string}
+     */
+    private function accessFor(array $lesson): array
+    {
+        if ($this->access === null || $this->context->role() === 'tutor' || empty($lesson['topic_id'])) {
+            return ['open' => true, 'basis' => 'untagged', 'state' => 'school'];
+        }
+        $topic = $this->topics?->find((int) $lesson['topic_id']);
+
+        return $topic === null ? ['open' => true, 'basis' => 'untagged', 'state' => 'school']
+            : $this->access->check($this->context->userId(), $this->context->role(), $topic);
     }
 
     /** @return array<string, mixed> */

@@ -13,6 +13,8 @@ Admitted students get everything; the public gets free PDF handouts from each le
 - Forms 1–2: all five subjects. Forms 3–4 science track (Physics **and** Chemistry): all five.
   Forms 3–4 humanities track: Mathematics, Biology, English grammar.
 - No live streaming. No attendance or discipline features.
+- **Honesty rule:** a topic, its lessons, requests and (later) exercises open to a student only when
+  their own school has taught it (`AccessService`). Never bypass it; early access is a tutor decision.
 - Brand: logo, colours and typography in `brand/README.md` — use them everywhere.
 
 ## 2. Layout and layers
@@ -72,7 +74,7 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 - Work on a branch (`v2/...`); never commit to `main` directly.
 - Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
   `tools/e2e-lessons.sh`, `tools/e2e-admissions.sh`,
-  `tools/e2e-topics.sh` and `tools/e2e-partners.sh` when a database is available (ideally also against
+  `tools/e2e-topics.sh`, `tools/e2e-partners.sh` and `tools/e2e-honesty.sh` when a database is available (ideally also against
   Apache, which honours the .htaccess files).
 - After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
   (a unit test fails if it is out of date). See `docs/database.md`.

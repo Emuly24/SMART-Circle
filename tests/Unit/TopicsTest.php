@@ -54,34 +54,42 @@ final class TopicsTest extends TestCase
         self::assertFalse(TopicService::mayBrowse(null, 5, 'physics'));
     }
 
-    public function testFirstRequestNeedsDetailsAndCoverageAnswer(): void
+    public function testFirstRequestNeedsDetails(): void
     {
-        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'short'], true, null);
+        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'short'], true, true);
         self::assertArrayHasKey('details', $v['errors']);
-        self::assertArrayHasKey('covered', $v['errors']);
 
-        $v = RequestService::validate(['struggle_type' => 'bogus', 'covered' => 'yes'], false, null);
+        $v = RequestService::validate(['struggle_type' => 'bogus'], false, true);
         self::assertArrayHasKey('struggle_type', $v['errors']);
 
-        $ok = RequestService::validate(['struggle_type' => 'calculations', 'details' => '', 'covered' => 'yes'], false, null);
+        $ok = RequestService::validate(['struggle_type' => 'calculations', 'details' => ''], false, true);
         self::assertSame([], $ok['errors'], 'a "me too" may skip details');
         self::assertFalse($ok['exception']);
     }
 
-    public function testUncoveredTopicIsAnExceptionWithReason(): void
+    public function testLockedTopicNeedsAReasonAndBecomesEarlyAccess(): void
     {
-        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'I get lost at the start', 'covered' => 'no'], true, null);
+        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'I get lost at the start'], true, false);
         self::assertArrayHasKey('exception_reason', $v['errors']);
 
-        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'I get lost at the start', 'covered' => 'no',
-            'exception_reason' => 'No physics teacher this term'], true, null);
+        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'I get lost at the start',
+            'exception_reason' => 'No physics teacher this term'], true, false);
         self::assertSame([], $v['errors']);
         self::assertTrue($v['exception']);
+        self::assertSame('No physics teacher this term', $v['reason']);
+    }
 
-        // The school's own coverage report wins over the student's answer.
-        $v = RequestService::validate(['struggle_type' => 'idea', 'details' => 'I get lost at the start', 'covered' => 'no'], true, 'covered');
-        self::assertSame([], $v['errors']);
-        self::assertFalse($v['exception']);
+    public function testRankingPutsTaughtStudentsFirst(): void
+    {
+        $row = static fn (int $id, int $taught, int $ready, int $eligible, int $votes, string $at = '2026-01-01'): array =>
+            ['id' => $id, 'taught_votes' => $taught, 'readiness' => ['ready' => $ready, 'eligible' => $eligible], 'votes' => $votes, 'created_at' => $at];
+        $ranked = RequestService::rank([
+            $row(1, 0, 1, 6, 5),      // many voices, but nobody's school taught it
+            $row(2, 2, 2, 6, 2),
+            $row(3, 2, 5, 6, 2),      // same taught voices, more schools have taught it
+            $row(4, 1, 6, 6, 1),
+        ]);
+        self::assertSame([3, 2, 4, 1], array_column($ranked, 'id'));
     }
 
     public function testBreakdownMostCommonFirstThenCanonicalOrder(): void

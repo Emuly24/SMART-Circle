@@ -32,19 +32,20 @@ final class CoverageRepository
      * Replace one school's reports for the given topics.
      * @param array<int, string> $statuses topic id => status ('' = not yet, removes the report)
      */
-    public function save(int $schoolId, array $statuses, int $reportedBy): void
+    public function save(int $schoolId, array $statuses, int $reportedBy, string $source = 'partner'): void
     {
-        $this->db->transaction(function (Database $db) use ($schoolId, $statuses, $reportedBy): void {
+        $this->db->transaction(function (Database $db) use ($schoolId, $statuses, $reportedBy, $source): void {
             foreach ($statuses as $topicId => $status) {
                 if ($status === '') {
                     $db->run('DELETE FROM topic_coverage WHERE school_id = ? AND topic_id = ?', [$schoolId, $topicId]);
                     continue;
                 }
                 $db->run(
-                    'INSERT INTO topic_coverage (school_id, topic_id, status, reported_by) VALUES (?, ?, ?, ?)
+                    'INSERT INTO topic_coverage (school_id, topic_id, status, source, reported_by) VALUES (?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE reported_by = IF(status = VALUES(status), reported_by, VALUES(reported_by)),
+                        source = IF(status = VALUES(status), source, VALUES(source)),
                         reported_at = IF(status = VALUES(status), reported_at, NOW()), status = VALUES(status)',
-                    [$schoolId, $topicId, $status, $reportedBy]
+                    [$schoolId, $topicId, $status, $source, $reportedBy]
                 );
             }
         });
@@ -87,5 +88,22 @@ final class CoverageRepository
              GROUP BY s.id, s.name, s.district ORDER BY s.name",
             [$topicId]
         ));
+    }
+
+    public function markChecked(int $schoolId): void
+    {
+        $this->db->run('UPDATE schools SET coverage_checked_at = NOW() WHERE id = ?', [$schoolId]);
+    }
+
+    /** Latest report or "nothing changed" for a school (NULL = never). */
+    public function lastUpdate(int $schoolId): ?string
+    {
+        $v = $this->db->scalar(
+            'SELECT GREATEST(COALESCE((SELECT MAX(reported_at) FROM topic_coverage WHERE school_id = ?), \'1000-01-01\'),
+                             COALESCE(coverage_checked_at, \'1000-01-01\')) FROM schools WHERE id = ?',
+            [$schoolId, $schoolId]
+        );
+
+        return $v === null || str_starts_with((string) $v, '1000-') ? null : (string) $v;
     }
 }

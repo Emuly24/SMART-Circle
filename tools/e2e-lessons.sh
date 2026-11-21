@@ -83,9 +83,11 @@ echo "Publishing rules"
 T=$(token "$TJ" "$BASE/studio/lessons/$LESSON")
 R=$(curl -s -w '\n%{http_code}' -b "$TJ" -c "$TJ" --data-urlencode "_token=$T" --data-urlencode "title=Ohm's law & circuits" --data-urlencode "form=3" --data-urlencode "subject=physics" --data-urlencode "action=publish" "$BASE/studio/lessons/$LESSON")
 check "publish without real-life sections refused" "Not published yet" "$(head -n -1 <<<"$R")"
+TOPIC=$($MYSQL -N -e "SELECT id FROM topics WHERE form=3 AND subject='physics' AND parent_id IS NULL ORDER BY sort_order LIMIT 1")
+check "  topic is required too"          "Topic" "$(head -n -1 <<<"$R")"
 check "  ...and lists what's missing"     "Why it matters" "$(head -n -1 <<<"$R")"
 curl -s -o /dev/null -b "$TJ" -c "$TJ" --data-urlencode "_token=$T" --data-urlencode "title=Ohm's law & circuits" --data-urlencode "form=3" --data-urlencode "subject=physics" \
-  --data-urlencode "why_it_matters=Choosing safe fuses" --data-urlencode "where_in_malawi=ESCOM lines <script>alert(1)</script>" --data-urlencode "careers=Electrician" --data-urlencode "try_at_home=Torch circuit" --data-urlencode "action=publish" "$BASE/studio/lessons/$LESSON"
+  --data-urlencode "topic_id=$TOPIC" --data-urlencode "why_it_matters=Choosing safe fuses" --data-urlencode "where_in_malawi=ESCOM lines <script>alert(1)</script>" --data-urlencode "careers=Electrician" --data-urlencode "try_at_home=Torch circuit" --data-urlencode "action=publish" "$BASE/studio/lessons/$LESSON"
 check "publish with all sections works"  "published" "$($MYSQL -N -e "SELECT status FROM lessons WHERE id=$LESSON")"
 PAGE=$(curl -s -b "$TJ" "$BASE/lessons/$LESSON")
 check "watch page shows real-life cards" "Where you see it in Malawi" "$PAGE"
@@ -96,6 +98,11 @@ echo "Who can watch"
 check "guest is sent to login"           "303" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/lessons/$LESSON/file")"
 HASH=$(php -r 'echo password_hash("student-pass-1", PASSWORD_DEFAULT);')
 $MYSQL -e "INSERT INTO users (role, full_name, phone, password_hash) VALUES ('student', 'Stu Dent', '+265888777666', '$HASH')"
+# A Form 3 science student whose school has taught the lesson's topic.
+$MYSQL -e "DELETE FROM schools WHERE name='E2E Lessons School'; INSERT INTO schools (name, district) VALUES ('E2E Lessons School', 'Blantyre')"
+$MYSQL -e "INSERT INTO student_profiles (user_id, form, track, school_id, agreement_accepted_at, guardian_confirmed_at)
+  SELECT u.id, 3, 'science', s.id, NOW(), NOW() FROM users u, schools s WHERE u.phone='+265888777666' AND s.name='E2E Lessons School'"
+$MYSQL -e "INSERT INTO topic_coverage (school_id, topic_id, status, source) SELECT id, $TOPIC, 'covered', 'tutor' FROM schools WHERE name='E2E Lessons School'"
 login "$SJ" 0888777666 student-pass-1
 check "student sees published lesson"    "Ohm&#039;s law &amp; circuits" "$(curl -s -b "$SJ" "$BASE/lessons")"
 check "student downloads the file"       "$SHA" "$(curl -s -b "$SJ" "$BASE/lessons/$LESSON/file" | sha256sum | cut -d' ' -f1)"

@@ -38,7 +38,8 @@ final class SchoolRepository
                     (SELECT COUNT(*) FROM partner_profiles pp JOIN users u ON u.id = pp.user_id
                       WHERE pp.school_id = s.id AND u.status = 'active') AS partners,
                     (SELECT COUNT(*) FROM topic_coverage c WHERE c.school_id = s.id) AS coverage_rows,
-                    (SELECT MAX(c.reported_at) FROM topic_coverage c WHERE c.school_id = s.id) AS coverage_updated
+                    NULLIF(GREATEST(COALESCE((SELECT MAX(c.reported_at) FROM topic_coverage c WHERE c.school_id = s.id), '1000-01-01'),
+                                    COALESCE(s.coverage_checked_at, '1000-01-01')), '1000-01-01 00:00:00') AS coverage_updated
              FROM schools s ORDER BY s.name"
         );
     }

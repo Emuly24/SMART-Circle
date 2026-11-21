@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Partners;
 
+use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\SchoolRepository;
@@ -23,11 +24,15 @@ final class SchoolService
         'next' => 'Next',
     ];
 
+    /** A school's report is out of date after 4 weeks without an update or "nothing changed". */
+    public const STALE_DAYS = 28;
+
     public function __construct(
         private readonly SchoolRepository $schools,
         private readonly CoverageRepository $coverage,
         private readonly TextbookRepository $textbooks,
         private readonly TopicService $topics,
+        private readonly ?AccessService $access = null,
     ) {
     }
 
@@ -66,7 +71,7 @@ final class SchoolService
      * @param array<string, mixed> $posted topic id => status
      * @return int topics marked taught / teaching / next
      */
-    public function saveCoverage(int $schoolId, int $form, string $subject, array $posted, int $reportedBy): int
+    public function saveCoverage(int $schoolId, int $form, string $subject, array $posted, int $reportedBy, string $source = 'partner'): int
     {
         $allowed = [];
         foreach ($this->topics->tree($form, $subject) as $t) {
@@ -76,7 +81,11 @@ final class SchoolService
             }
         }
         $clean = self::cleanCoverage($posted, $allowed);
-        $this->coverage->save($schoolId, $clean, $reportedBy);
+        $before = $this->access?->openSet($schoolId, array_keys($clean)) ?? [];
+        $this->coverage->save($schoolId, $clean, $reportedBy, $source);
+        if ($this->access !== null) {
+            $this->access->notifyUnlocked($before, $this->access->openSet($schoolId, array_keys($clean)), 'Your school has covered');
+        }
 
         return count(array_filter($clean, static fn (string $s): bool => $s !== ''));
     }
@@ -98,6 +107,28 @@ final class SchoolService
         }
 
         return $clean;
+    }
+
+    public function markChecked(int $schoolId): void
+    {
+        $this->coverage->markChecked($schoolId);
+    }
+
+    /** @return array{last: ?string, days: ?int, stale: bool} */
+    public function freshness(int $schoolId): array
+    {
+        return self::freshnessOf($this->coverage->lastUpdate($schoolId));
+    }
+
+    /** @return array{last: ?string, days: ?int, stale: bool} */
+    public static function freshnessOf(?string $last, ?int $now = null): array
+    {
+        if ($last === null || str_starts_with($last, '1000-')) {
+            return ['last' => null, 'days' => null, 'stale' => true];
+        }
+        $days = intdiv(($now ?? time()) - (int) strtotime($last), 86400);
+
+        return ['last' => $last, 'days' => $days, 'stale' => $days >= self::STALE_DAYS];
     }
 
     /** @return array<string, array{covered: int, total: int}> */

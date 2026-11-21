@@ -38,6 +38,7 @@ final class StudioTopicController
         return Response::html($this->view->render('studio/requests/index', [
             'title' => 'Topic requests',
             'rows' => $this->requests->ranked(array_merge($filter, ['status' => $filter['status'] === 'all' ? '' : $filter['status']])),
+            'ready' => $this->requests->readyToRecord($filter),
             'filter' => $filter,
             'names' => Subjects::NAMES,
             'short' => RequestService::STRUGGLES_SHORT,
@@ -69,17 +70,6 @@ final class StudioTopicController
                 'closed' => 'Request closed.',
                 default => 'Request reopened.',
             });
-        }
-
-        return Response::redirect('/studio/requests/' . $id);
-    }
-
-    public function exception(Request $request): Response
-    {
-        $id = (int) $request->param('id');
-        $approve = $request->input('decision') === 'approve';
-        if ($this->requests->decideException($id, $approve)) {
-            $this->session->flash('success', $approve ? 'Exception approved.' : 'Exception declined and the request closed.');
         }
 
         return Response::redirect('/studio/requests/' . $id);

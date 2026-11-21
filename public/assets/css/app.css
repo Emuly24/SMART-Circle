@@ -472,3 +472,30 @@ meter::-moz-meter-bar { background: var(--green); border-radius: 999px; }
     .cov-choice { justify-content: center; padding: 4px 2px; font-size: .78rem; min-height: 36px; gap: 3px; white-space: nowrap; }
     .cov-choice input { width: 14px; height: 14px; margin: 0; }
 }
+
+/* ---------- Honesty: locks, checks, readiness ---------- */
+.chip--locked { background: var(--mist); color: var(--slate); border: 1px dashed #C4CDD9; }
+.access-card { margin: 20px 0; border-left: 6px solid var(--slate); }
+.access-card--open { border-left-color: var(--green); }
+.access-card__state { font: 700 1.1rem var(--font-display); margin: 0 0 6px; }
+.access-card--open .access-card__state { color: var(--green-text); }
+.access-card p:last-child { margin-bottom: 0; }
+.access-card__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.locked-card { text-align: center; }
+.locked-card__icon { font-size: 2.4rem; margin: 0; }
+.lesson-card--locked { background: var(--mist); box-shadow: none; }
+.lesson-card--locked .lesson-card__title { color: var(--slate); }
+.lesson-for { margin-top: 4px; }
+.readiness { font-size: .78rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--green-tint); color: var(--green-text); white-space: nowrap; }
+.request-row--untaught .request-row__votes { background: var(--mist); color: var(--slate); }
+.request-row__all { font-size: .7rem; opacity: .8; }
+.ready-card { margin-bottom: 18px; border-left: 6px solid var(--green); }
+.ready-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ready-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.check-list { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 12px; }
+.check p { margin: 0 0 8px; }
+.check blockquote { margin: 0 0 12px; padding: 8px 12px; border-left: 4px solid var(--amber); background: var(--amber-tint); border-radius: var(--radius-small); }
+.check--contradiction { border-left: 6px solid var(--amber); }
+.check .decision__buttons form { margin: 0; }
+.honesty-figure { font-size: 1.1rem; }
+.honesty-figure strong { font: 700 2rem var(--font-display); color: var(--green-text); }

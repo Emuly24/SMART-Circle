@@ -22,13 +22,15 @@ post() { local jar=$1 page=$2 action=$3 T; shift 3; T=$(token "$jar" "$BASE$page
 
 sql "DELETE FROM login_attempts"
 sql "DELETE FROM users WHERE phone LIKE '+26599200000%'"
-sql "DELETE FROM topic_requests; DELETE FROM notifications; DELETE FROM topics WHERE title LIKE 'E2E %'; DELETE FROM lessons WHERE title LIKE 'E2E %'"
+sql "DELETE FROM topic_requests; DELETE FROM notifications; DELETE FROM topics WHERE title LIKE 'E2E %'; DELETE FROM lessons WHERE title LIKE 'E2E %'; DELETE FROM schools WHERE name = 'E2E Topics Secondary'"
+sql "INSERT INTO schools (name, district) VALUES ('E2E Topics Secondary', 'Zomba')"
+SCHOOL=$(sql "SELECT id FROM schools WHERE name='E2E Topics Secondary'")
 HASH=$(php -r 'echo password_hash("student-pass-1", PASSWORD_DEFAULT);')
 student() { # phone name gender form track
     local id
     sql "INSERT INTO users (role, full_name, phone, gender, password_hash) VALUES ('student', '$2', '$1', '$3', '$HASH')"
     id=$(sql "SELECT id FROM users WHERE phone='$1'")
-    sql "INSERT INTO student_profiles (user_id, form, track, agreement_accepted_at, guardian_confirmed_at) VALUES ($id, $4, '$5', NOW(), NOW())"
+    sql "INSERT INTO student_profiles (user_id, form, track, school_id, agreement_accepted_at, guardian_confirmed_at) VALUES ($id, $4, '$5', $SCHOOL, NOW(), NOW())"
 }
 student +265992000001 "Alinafe Science" female 3 science
 student +265992000002 "Blessings Science" male 3 science
@@ -41,6 +43,8 @@ PTOPIC=$(sql "SELECT id FROM topics WHERE form=3 AND subject='physics' AND paren
 PSUB=$(sql "SELECT id FROM topics WHERE parent_id=$PTOPIC ORDER BY sort_order LIMIT 1")
 BTOPIC=$(sql "SELECT id FROM topics WHERE form=3 AND subject='biology' AND parent_id IS NULL ORDER BY sort_order LIMIT 1")
 F4TOPIC=$(sql "SELECT id FROM topics WHERE form=4 AND subject='biology' LIMIT 1")
+# The school (via the tutor) reports the first Physics unit as taught; Biology is not taught yet.
+sql "INSERT INTO topic_coverage (school_id, topic_id, status, source) VALUES ($SCHOOL, $PTOPIC, 'covered', 'tutor')"
 
 echo "Catalogue"
 check "seeded catalogue has 200+ topics"   "2" "$(sql "SELECT LEFT(COUNT(*), 1) FROM topics WHERE parent_id IS NULL")"
@@ -61,30 +65,31 @@ check "missing CSRF refused"               "403" "$(code -b "$A" --data-urlencod
 R=$(post "$A" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=idea --data-urlencode details=short)
 check "incomplete request -> 422"          "422" "$R"
 check "  explains what is missing"         "Say where exactly you get lost" "$(cat "$WORK/last.html")"
-check "  asks about school coverage"       "whether your school has taught" "$(cat "$WORK/last.html")"
 R=$(post "$A" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=calculations \
-    --data-urlencode "details=I get lost when the units change halfway" --data-urlencode covered=yes)
+    --data-urlencode "details=I get lost when the units change halfway")
 check "valid request -> back to topic"     "303 $BASE/topics/$PSUB" "$R"
 check "  stored as a normal request"       "open 0" "$(sql "SELECT status, is_exception FROM topic_requests WHERE topic_id=$PSUB")"
 check "  tutor notified"                   "New request" "$(sql "SELECT title FROM notifications n JOIN users u ON u.id=n.user_id WHERE u.role='tutor' ORDER BY n.id DESC LIMIT 1")"
 check "  page shows the request state"     "1 student has asked" "$(curl -s -b "$A" "$BASE/topics/$PSUB")"
-check "asking twice is harmless"           "already asked" "$(post "$A" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=idea --data-urlencode covered=yes >/dev/null; curl -s -b "$A" "$BASE/topics/$PSUB")"
+check "asking twice is harmless"           "already asked" "$(post "$A" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=idea >/dev/null; curl -s -b "$A" "$BASE/topics/$PSUB")"
 check "classmate sees Me too"              "Add my voice" "$(curl -s -b "$B" "$BASE/topics/$PSUB")"
-R=$(post "$B" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=exam --data-urlencode covered=yes)
+R=$(post "$B" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=exam)
 check "me too without details -> ok"       "303 $BASE/topics/$PSUB" "$R"
 check "  vote stored"                      "1" "$(sql "SELECT COUNT(*) FROM topic_request_votes")"
 check "  list shows 2 voices"              "2 voices" "$(curl -s -b "$A" "$BASE/topics?subject=physics")"
-check "humanities student cannot ask physics" "404" "$(post "$C" "/topics/$BTOPIC" "/topics/$PSUB/request" --data-urlencode struggle_type=idea --data-urlencode covered=yes)"
+check "humanities student cannot ask physics" "404" "$(post "$C" "/topics/$BTOPIC" "/topics/$PSUB/request" --data-urlencode struggle_type=idea)"
 
-echo "Exceptions"
+echo "Early access (topic not taught at the school yet)"
+check "untaught topic is locked"           "Not taught at your school yet" "$(curl -s -b "$C" "$BASE/topics/$BTOPIC")"
 R=$(post "$C" "/topics/$BTOPIC" "/topics/$BTOPIC/request" --data-urlencode struggle_type=idea \
-    --data-urlencode "details=I do not understand any of it yet" --data-urlencode covered=no)
-check "not covered needs a reason"         "Explain why you need it" "$(cat "$WORK/last.html")"
+    --data-urlencode "details=I do not understand any of it yet")
+check "early access needs a reason"        "Explain why you need it" "$(cat "$WORK/last.html")"
 post "$C" "/topics/$BTOPIC" "/topics/$BTOPIC/request" --data-urlencode struggle_type=idea \
-    --data-urlencode "details=I do not understand any of it yet" --data-urlencode covered=no \
+    --data-urlencode "details=I do not understand any of it yet" \
     --data-urlencode "exception_reason=Our biology teacher left this term" >/dev/null
-check "exception stored as pending"        "1 pending" "$(sql "SELECT is_exception, exception_status FROM topic_requests WHERE topic_id=$BTOPIC")"
-check "student sees waiting for approval"  "Waiting for the tutor to approve" "$(curl -s -b "$C" "$BASE/topics/$BTOPIC")"
+check "request marked as early"            "1" "$(sql "SELECT is_exception FROM topic_requests WHERE topic_id=$BTOPIC")"
+check "early access pending for student"   "pending" "$(sql "SELECT status FROM topic_exceptions WHERE topic_id=$BTOPIC")"
+check "student sees it is pending"         "Early access requested" "$(curl -s -b "$C" "$BASE/topics/$BTOPIC")"
 
 echo "Tutor: ranked list"
 check "students cannot open the list"      "403" "$(code -b "$A" "$BASE/studio/requests")"
@@ -92,7 +97,8 @@ L=$(curl -s -b "$TJ" "$BASE/studio/requests" | tr -d '\n')
 check "list loads"                         "Topic requests" "$L"
 FIRST=$(grep -oE 'href="/studio/requests/[0-9]+"' <<<"$L" | head -1 | grep -oE '[0-9]+')
 EXC=$(sql "SELECT id FROM topic_requests WHERE topic_id=$BTOPIC"); REQ=$(sql "SELECT id FROM topic_requests WHERE topic_id=$PSUB")
-check "pending exception ranked first"     "$EXC" "$FIRST"
+check "taught request ranked above early"  "$REQ" "$FIRST"
+check "  shows taught voices and readiness" "Readiness" "$L"
 check "struggle breakdown shown"           "Working <b>1</b>" "$L"
 check "filter by subject"                  "Exam questions" "$(curl -s -b "$TJ" "$BASE/studio/requests?subject=physics")"
 refute "  biology filtered out"            "/studio/requests/$EXC\"" "$(curl -s -b "$TJ" "$BASE/studio/requests?subject=physics")"
@@ -106,9 +112,12 @@ check "bell shows unread count"            'bell__count">1<' "$(curl -s -b "$A" 
 check "notifications page lists it"        "Lesson planned" "$(curl -s -b "$A" "$BASE/notifications")"
 post "$A" "/notifications" "/notifications/read" >/dev/null
 refute "mark all read clears the bell"     "bell__count" "$(curl -s -b "$A" "$BASE/dashboard")"
-check "approve exception"                  "303" "$(post "$TJ" "/studio/requests/$EXC" "/studio/requests/$EXC/exception" --data-urlencode decision=approve)"
-check "  approved"                         "approved" "$(sql "SELECT exception_status FROM topic_requests WHERE id=$EXC")"
-check "  student told"                     "Exception approved" "$(curl -s -b "$C" "$BASE/notifications")"
+CID=$(sql "SELECT id FROM users WHERE phone='+265992000003'")
+check "checks page lists early access"     "Our biology teacher left" "$(curl -s -b "$TJ" "$BASE/studio/checks")"
+check "approve early access"               "303" "$(post "$TJ" /studio/checks /studio/checks/exception --data-urlencode "user_id=$CID" --data-urlencode "topic_id=$BTOPIC" --data-urlencode decision=approve)"
+check "  approved"                         "approved" "$(sql "SELECT status FROM topic_exceptions WHERE topic_id=$BTOPIC")"
+check "  topic open for the student"       "Opened early by the tutor" "$(curl -s -b "$C" "$BASE/topics/$BTOPIC")"
+check "  student told"                     "Opened early for you" "$(curl -s -b "$C" "$BASE/notifications")"
 
 echo "Publishing a linked lesson answers the request"
 TID=$(sql "SELECT id FROM users WHERE phone='+265999123456'")
@@ -129,7 +138,7 @@ check "  topic page lists the lesson"      "E2E Units lesson" "$(curl -s -b "$A"
 check "  parent topic lists it too"        "E2E Units lesson" "$(curl -s -b "$A" "$BASE/topics/$PTOPIC")"
 check "  catalogue shows 1 lesson"         "1 lesson" "$(curl -s -b "$A" "$BASE/topics?subject=physics")"
 student +265992000004 "Dalitso Science" male 3 science; D4="$WORK/d.txt"; login "$D4" 0992000004 student-pass-1
-post "$D4" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=practical --data-urlencode covered=yes >/dev/null
+post "$D4" "/topics/$PSUB" "/topics/$PSUB/request" --data-urlencode struggle_type=practical >/dev/null
 check "still stuck after lesson reopens"   "open" "$(sql "SELECT status FROM topic_requests WHERE id=$REQ")"
 
 echo "Tutor: topic catalogue"

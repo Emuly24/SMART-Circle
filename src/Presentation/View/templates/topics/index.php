@@ -10,14 +10,14 @@
  */
 $chip = static function (array $t) use ($statuses): string {
     $html = '';
+    if (isset($t['access']) && !$t['access']['open']) {
+        $html .= '<span class="chip chip--locked">🔒 Not yet</span>';
+    }
     if ((int) $t['lesson_count'] > 0) {
         $html .= '<span class="chip chip--lesson">' . e((int) $t['lesson_count'] === 1 ? '1 lesson' : $t['lesson_count'] . ' lessons') . '</span>';
     }
     if ($t['request_id'] !== null) {
         $label = $statuses[$t['request_status']] ?? $t['request_status'];
-        if ($t['exception_status'] === 'pending') {
-            $label = 'Waiting for approval';
-        }
         $n = (int) $t['request_count'];
         $html .= '<span class="chip chip--' . e($t['request_status']) . '">' . e($label) . ' · ' . e($n) . ' ' . ($n === 1 ? 'voice' : 'voices') . '</span>';
     }
@@ -28,7 +28,7 @@ $chip = static function (array $t) use ($statuses): string {
 <section class="section section--tight">
     <div class="container">
         <h1>Topics</h1>
-        <p class="lead">The Form <?= e($form) ?> syllabus. Stuck on a topic your school has taught? Tap it and tell the tutor where you get lost.</p>
+        <p class="lead">The Form <?= e($form) ?> syllabus. Topics open once your school has taught them. Stuck on one? Tap it and tell the tutor where you get lost.</p>
 
         <?php if ($isTutor): ?>
             <nav class="tabs tabs--small" aria-label="Form">

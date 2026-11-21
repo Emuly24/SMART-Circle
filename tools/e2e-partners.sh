@@ -106,13 +106,12 @@ SJ="$WORK/s.txt"; login "$SJ" 0993000005 student-pass-1 >/dev/null
 S=$(curl -s -b "$SJ" "$BASE/topics/$T1SUB")
 check "topic page: textbook pages"         "pages 14-19" "$S"
 check "  marked as used at their school"   "Used at your school" "$S"
-check "  school coverage replaces question" "Your school has told us it has taught" "$S"
-refute "  no coverage question"            "Has your school taught this topic yet" "$S"
+check "  open: taught at their school"      "Taught at your school" "$S"
 check "parent topic lists subtopic pages"  "(for: $(sql "SELECT title FROM topics WHERE id=$T1SUB"))" "$(curl -s -b "$SJ" "$BASE/topics/$T1")"
-check "uncovered topic still asks"         "Has your school taught this topic yet" "$(curl -s -b "$SJ" "$BASE/topics/$T3")"
-R=$(post "$SJ" "/topics/$T1SUB" "/topics/$T1SUB/request" --data-urlencode struggle_type=idea --data-urlencode "details=I mix up base and derived units" --data-urlencode covered=no)
+check "untaught topic is locked"           "Not taught at your school yet" "$(curl -s -b "$SJ" "$BASE/topics/$T3")"
+R=$(post "$SJ" "/topics/$T1SUB" "/topics/$T1SUB/request" --data-urlencode struggle_type=idea --data-urlencode "details=I mix up base and derived units")
 check "request on covered topic"           "303" "$R"
-check "  never an exception (school said)" "0" "$(sql "SELECT is_exception FROM topic_requests WHERE topic_id=$T1SUB")"
+check "  a normal request (school said)"   "0" "$(sql "SELECT is_exception FROM topic_requests WHERE topic_id=$T1SUB")"
 refute "partner never sees students' words" "I mix up" "$(curl -s -b "$PJ" "$BASE/dashboard")"
 check "  topic listed without names"       "$(sql "SELECT title FROM topics WHERE id=$T1SUB")" "$(curl -s -b "$PJ" "$BASE/dashboard")"
 refute "  no student names"                "Kondwani" "$(curl -s -b "$PJ" "$BASE/dashboard")"

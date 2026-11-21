@@ -107,4 +107,32 @@ final class TopicRepository
 
         return $status === null || $status === false ? null : (string) $status;
     }
+
+    /** @return list<array{id: int|string, form: int|string, subject: string}> */
+    public function allActive(): array
+    {
+        return $this->db->all('SELECT id, form, subject FROM topics WHERE is_active = 1');
+    }
+
+    /** @return array<int, string> topic id => subject */
+    public function subjectMap(): array
+    {
+        $out = [];
+        foreach ($this->db->all('SELECT id, subject FROM topics') as $r) {
+            $out[(int) $r['id']] = (string) $r['subject'];
+        }
+
+        return $out;
+    }
+
+    /** @return list<array<string, mixed>> active main topics with no published lesson on them or their subtopics */
+    public function mainTopicsWithoutLessons(): array
+    {
+        return $this->db->all(
+            "SELECT t.id, t.form, t.subject, t.unit, t.title FROM topics t
+             WHERE t.parent_id IS NULL AND t.is_active = 1
+               AND NOT EXISTS (SELECT 1 FROM lessons l JOIN topics x ON x.id = l.topic_id
+                               WHERE l.status = 'published' AND (x.id = t.id OR x.parent_id = t.id))"
+        );
+    }
 }

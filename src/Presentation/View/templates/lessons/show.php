@@ -5,6 +5,7 @@
  * @var array<string, string> $subjects
  * @var array<string, string> $sections
  * @var bool $isTutor
+ * @var array<string, mixed>|null $topic
  * @var callable $asset
  */
 $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => '👩🏾‍⚕️', 'try_at_home' => '🏠'];
@@ -18,6 +19,9 @@ $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => 
             <?php if ($lesson['form']): ?><span>Form <?= e($lesson['form']) ?></span><?php endif; ?>
             <?php if ($lesson['status'] !== 'published'): ?><span class="tag">Draft: only you can see this</span><?php endif; ?>
         </p>
+        <?php if ($topic !== null): ?>
+            <p class="note lesson-for">Topic: <a href="/topics/<?= e($topic['id']) ?>"><?= e($topic['title']) ?></a>. For students whose school has taught this topic.</p>
+        <?php endif; ?>
 
         <div class="watch" id="watch" data-src="/lessons/<?= e($lesson['id']) ?>/file" data-size="<?= e($lesson['size_bytes']) ?>">
             <div class="watch__stage">

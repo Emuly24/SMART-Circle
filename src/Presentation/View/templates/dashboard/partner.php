@@ -24,6 +24,7 @@ $user = $ctx->user() ?? [];
                 'progress' => $summary['progress'],
                 'top' => $summary['top'],
                 'bookCount' => $summary['books'],
+                'fresh' => $summary['fresh'],
                 'names' => \SmartCircle\Support\Subjects::NAMES,
             ]) ?>
             <?php if ($summary['letters'] !== []): ?>

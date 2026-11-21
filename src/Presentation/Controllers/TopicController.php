@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\RequestService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Presentation\Http\Context;
@@ -23,6 +24,7 @@ final class TopicController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?AccessService $access = null,
     ) {
     }
 
@@ -36,13 +38,26 @@ final class TopicController
             $subject = $subjects[0];
         }
 
+        $tree = $this->topics->tree($form, $subject);
+        $decide = $profile !== null ? $this->access?->forStudent((int) $this->context->userId()) : null;
+        if ($decide !== null) {
+            foreach ($tree as &$t) {
+                $t['access'] = $decide((int) $t['id']);
+                foreach ($t['children'] as &$c) {
+                    $c['access'] = $decide((int) $c['id']);
+                }
+                unset($c);
+            }
+            unset($t);
+        }
+
         return Response::html($this->view->render('topics/index', [
             'title' => 'Topics',
             'form' => $form,
             'subject' => $subject,
             'subjects' => $subjects,
             'names' => Subjects::NAMES,
-            'tree' => $this->topics->tree($form, $subject),
+            'tree' => $tree,
             'isTutor' => $profile === null,
             'statuses' => RequestService::STATUSES,
         ]));
@@ -63,7 +78,6 @@ final class TopicController
         $input = [
             'struggle_type' => $request->input('struggle_type'),
             'details' => $request->input('details'),
-            'covered' => $request->input('covered'),
             'exception_reason' => $request->input('exception_reason'),
         ];
         $result = $this->requests->request((int) $topic['id'], (int) $this->context->userId(), $profile, $input);
@@ -81,12 +95,38 @@ final class TopicController
         return Response::redirect('/topics/' . $topic['id']);
     }
 
+    /** "My class has covered it" / "my class has not reached it" / undo. */
+    public function report(Request $request): Response
+    {
+        $topic = $this->topicOr404($request);
+        $profile = $this->profile();
+        if ($profile === null || $this->access === null) {
+            throw new HttpException(403, 'Only students report on their class.');
+        }
+        $status = $request->input('status');
+        $error = $this->access->report((int) $this->context->userId(), $profile, (int) $topic['id'], $status);
+        if ($error !== '') {
+            $this->session->flash('error', $error);
+        } else {
+            $state = $this->access->check($this->context->userId(), 'student', $topic)['state'];
+            $this->session->flash('success', match (true) {
+                $status === 'not_yet' => 'Noted. This topic stays closed for you until your class reaches it.',
+                $status === 'clear' => 'Your answer was removed.',
+                $state === 'awaiting_check' => 'Thank you. Your school’s teacher has not reported this yet, so the tutor will check before it opens.',
+                default => 'Thank you. The topic is open for you. The tutor will check with your school.',
+            });
+        }
+
+        return Response::redirect('/topics/' . $topic['id']);
+    }
+
     /** @param array<string, string> $errors @param array<string, string> $old */
     private function showPage(array $topic, array $errors, array $old, int $status = 200): Response
     {
         $id = (int) $topic['id'];
         $parent = $topic['parent_id'] !== null ? $this->topics->find((int) $topic['parent_id']) : null;
         $profile = $this->profile();
+        $access = $this->access?->check($this->context->userId(), $this->context->role(), $topic) ?? ['open' => true, 'basis' => 'school', 'state' => 'school'];
 
         return Response::html($this->view->render('topics/show', [
             'title' => (string) $topic['title'],
@@ -95,7 +135,8 @@ final class TopicController
             'children' => $this->topics->children($id),
             'lessons' => $this->topics->lessons($id),
             'books' => $this->topics->textbookRefs($id, $profile),
-            'schoolCoverage' => $this->topics->schoolCoverage($profile, $id),
+            'access' => $access,
+            'states' => AccessService::STATES,
             'request' => $this->requests->forTopic($id, (int) $this->context->userId()),
             'isStudent' => $this->context->role() === 'student',
             'names' => Subjects::NAMES,

@@ -16,6 +16,7 @@ use SmartCircle\Application\Lessons\UploadService;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Application\Partners\PartnerService;
 use SmartCircle\Application\Partners\SchoolService;
+use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\RequestService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\Database;
@@ -23,6 +24,7 @@ use SmartCircle\Data\DatabaseSessionHandler;
 use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Migrator;
 use SmartCircle\Data\Repositories\ApplicationRepository;
+use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
@@ -43,6 +45,7 @@ use SmartCircle\Presentation\Controllers\ApplyController;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
+use SmartCircle\Presentation\Controllers\HonestyController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\NotificationController;
@@ -194,7 +197,8 @@ final class App
         $lessonRepo = new LessonRepository($db);
         $lessonStorage = new LessonStorage($this->storage(''));
         $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db), new TextbookRepository($db));
-        $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db), new CoverageRepository($db));
+        $accessService = new AccessService(new AccessRepository($db), new TopicRepository($db), new CoverageRepository($db), $this->notifications($db));
+        $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db), new CoverageRepository($db), $accessService, new AccessRepository($db));
         $lessonService = new LessonService($lessonRepo, $lessonStorage, $topicService, $requestService);
         $uploadService = new UploadService(
             new LessonUploadRepository($db),
@@ -202,8 +206,8 @@ final class App
             $lessonStorage,
             $this->config->int('lessons.max_bytes', 150 * 1024 * 1024),
         );
-        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService);
-        $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view);
+        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService);
+        $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view, $accessService);
         $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view);
         $notificationsCtl = new NotificationController($this->notifications($db), $this->context, $this->session, $this->view);
         $uploads = new UploadController($uploadService, $this->context);
@@ -228,7 +232,8 @@ final class App
         $onboarded = new RequireOnboarded($this->context);
         $student = new RequireRole($this->context, $this->session, ['student']);
         $partnerService = new PartnerService($db, $users, new PartnerRepository($db), new SchoolRepository($db), new StudentRepository($db), $documentService, $audit);
-        $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService);
+        $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService);
+        $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
         $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
         $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
         $partner = new RequireRole($this->context, $this->session, ['partner']);
@@ -246,6 +251,7 @@ final class App
                 'top' => $schoolService->topRequests($schoolId, $p['subject_list']),
                 'books' => count($schoolService->textbooks($schoolId)),
                 'letters' => $partnerService->letters($userId),
+                'fresh' => $schoolService->freshness($schoolId),
             ];
         });
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
@@ -293,6 +299,7 @@ final class App
         $r->get('/topics', $topicsCtl->index(...), [$member, $onboarded]);
         $r->get('/topics/{id}', $topicsCtl->show(...), [$member, $onboarded]);
         $r->post('/topics/{id}/request', $topicsCtl->ask(...), [$csrf, $student, $onboarded]);
+        $r->post('/topics/{id}/report', $topicsCtl->report(...), [$csrf, $student, $onboarded]);
 
         // Notifications (the bell)
         $r->get('/notifications', $notificationsCtl->index(...), [$member]);
@@ -302,7 +309,10 @@ final class App
         $r->get('/studio/requests', $studioTopics->requests(...), [$tutor]);
         $r->get('/studio/requests/{id}', $studioTopics->request(...), [$tutor]);
         $r->post('/studio/requests/{id}/status', $studioTopics->setStatus(...), [$csrf, $tutor]);
-        $r->post('/studio/requests/{id}/exception', $studioTopics->exception(...), [$csrf, $tutor]);
+        $r->get('/studio/checks', $honesty->checks(...), [$tutor]);
+        $r->post('/studio/checks/exception', $honesty->decideException(...), [$csrf, $tutor]);
+        $r->post('/studio/checks/report', $honesty->reviewReport(...), [$csrf, $tutor]);
+        $r->get('/studio/honesty', $honesty->report(...), [$tutor]);
         $r->get('/studio/topics', $studioTopics->topics(...), [$tutor]);
         $r->post('/studio/topics', $studioTopics->addTopic(...), [$csrf, $tutor]);
         $r->post('/studio/topics/import', $studioTopics->importTopics(...), [$csrf, $tutor]);
@@ -312,6 +322,7 @@ final class App
         // School partners: their own school's coverage and textbooks
         $r->get('/partner/coverage', $schoolsCtl->coverage(...), [$partner]);
         $r->post('/partner/coverage', $schoolsCtl->saveCoverage(...), [$csrf, $partner]);
+        $r->post('/partner/coverage/checked', $schoolsCtl->markChecked(...), [$csrf, $partner]);
         $r->get('/partner/textbooks', $schoolsCtl->textbooks(...), [$partner]);
         $r->post('/partner/textbooks', $schoolsCtl->addTextbook(...), [$csrf, $partner]);
         $r->get('/partner/textbooks/{book}', $schoolsCtl->refs(...), [$partner]);
@@ -328,6 +339,7 @@ final class App
         $r->get('/studio/schools/{school}', $schoolsCtl->summary(...), [$tutor]);
         $r->get('/studio/schools/{school}/coverage', $schoolsCtl->coverage(...), [$tutor]);
         $r->post('/studio/schools/{school}/coverage', $schoolsCtl->saveCoverage(...), [$csrf, $tutor]);
+        $r->post('/studio/schools/{school}/coverage/checked', $schoolsCtl->markChecked(...), [$csrf, $tutor]);
         $r->get('/studio/schools/{school}/textbooks', $schoolsCtl->textbooks(...), [$tutor]);
         $r->post('/studio/schools/{school}/textbooks', $schoolsCtl->addTextbook(...), [$csrf, $tutor]);
         $r->get('/studio/schools/{school}/textbooks/{book}', $schoolsCtl->refs(...), [$tutor]);

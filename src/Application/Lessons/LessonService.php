@@ -119,6 +119,10 @@ final class LessonService
         if (empty($lesson['subject'])) {
             $missing[] = 'Subject';
         }
+        if ($this->topics !== null && empty($lesson['topic_id'])) {
+            // Every lesson belongs to a topic, so it opens only for students whose school taught it.
+            $missing[] = 'Topic';
+        }
         foreach (self::REAL_LIFE_SECTIONS as $field => $label) {
             if (trim((string) ($lesson[$field] ?? '')) === '') {
                 $missing[] = $label;

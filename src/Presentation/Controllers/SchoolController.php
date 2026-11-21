@@ -41,6 +41,7 @@ final class SchoolController
             'students' => $this->schools->studentsByForm($s['id']),
             'top' => $this->schools->topRequests($s['id'], $s['subjects']),
             'books' => $this->schools->textbooks($s['id']),
+            'fresh' => $this->schools->freshness($s['id']),
             'names' => Subjects::NAMES,
         ]));
     }
@@ -66,10 +67,20 @@ final class SchoolController
         $s = $this->scope($request);
         [$form, $subject] = $this->formSubject($request->input('form'), $request->input('subject'), $s['subjects']);
         $posted = $request->allInput()['status'] ?? [];
-        $n = $this->schools->saveCoverage($s['id'], $form, $subject, is_array($posted) ? $posted : [], (int) $this->context->userId());
+        $n = $this->schools->saveCoverage($s['id'], $form, $subject, is_array($posted) ? $posted : [], (int) $this->context->userId(), $s['isTutor'] ? 'tutor' : 'partner');
         $this->session->flash('success', "Saved. Thank you: $n topics marked for Form $form " . Subjects::NAMES[$subject] . '.');
 
         return Response::redirect($s['base'] . '/coverage?form=' . $form . '&subject=' . $subject);
+    }
+
+    /** "Nothing has changed since my last report" (keeps the report fresh). */
+    public function markChecked(Request $request): Response
+    {
+        $s = $this->scope($request);
+        $this->schools->markChecked($s['id']);
+        $this->session->flash('success', 'Thank you. Your report is up to date.');
+
+        return Response::redirect($s['isTutor'] ? $s['base'] : '/dashboard');
     }
 
     public function textbooks(Request $request): Response

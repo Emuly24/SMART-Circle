@@ -24,6 +24,8 @@ $user = $ctx->user() ?? [];
 
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/requests"><h2>Topic requests</h2><p>Ranked by form and subject, with where students struggle.</p><span class="tag tag--ready">See the ranking</span></a>
+            <a class="tile tile--link" href="/studio/checks"><h2>Checks</h2><p>Early-access requests and students’ “my class has covered it” reports.</p><span class="tag tag--ready">Review</span></a>
+            <a class="tile tile--link" href="/studio/honesty"><h2>Honesty report</h2><p>Proof that lessons follow what each school has taught.</p><span class="tag tag--ready">Open the report</span></a>
             <a class="tile tile--link" href="/studio/topics"><h2>Topic catalogue</h2><p>The preloaded syllabus: correct, reorder, hide or add topics.</p><span class="tag tag--ready">Edit topics</span></a>
             <a class="tile tile--link" href="/studio/lab"><h2>Recording studio</h2><p>Teach on your iPad board, then upload the lesson from the Replay tab.</p><span class="tag tag--ready">Open the board</span></a>
             <a class="tile tile--link" href="/studio/lessons"><h2>My lessons</h2><p>Add the real-life sections, publish to students, or unpublish.</p><span class="tag tag--ready">Manage lessons</span></a>

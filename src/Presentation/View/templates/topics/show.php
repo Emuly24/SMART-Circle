@@ -6,7 +6,8 @@
  * @var list<array<string, mixed>> $lessons
  * @var array<string, mixed>|null $request
  * @var list<array<string, mixed>> $books
- * @var string|null $schoolCoverage
+ * @var array{open: bool, basis: ?string, state: string} $access
+ * @var array<string, string> $states
  * @var bool $isStudent
  * @var array<string, string> $names
  * @var array<string, string> $struggles
@@ -70,19 +71,49 @@ $mine = $request !== null && !empty($request['joined']);
         <?php if ($request !== null): ?>
             <div class="card request-state request-state--<?= e($request['status']) ?>">
                 <p class="request-state__label">
-                    <?= e($request['exception_status'] === 'pending' ? 'Waiting for the tutor to approve' : ($statuses[$request['status']] ?? $request['status'])) ?>
+                    <?= e($statuses[$request['status']] ?? $request['status']) ?>
                 </p>
                 <p><?= e($request['voice_count']) ?> <?= (int) $request['voice_count'] === 1 ? 'student has' : 'students have' ?> asked for this topic<?= $mine ? ', including you' : '' ?>.</p>
-                <?php if ($request['exception_status'] === 'declined'): ?>
-                    <p class="muted">The tutor will teach this once schools have covered it. If your school has now taught it, ask again below.</p>
-                <?php endif; ?>
             </div>
         <?php endif; ?>
 
-        <?php if ($isStudent): ?>
+        <?php if ($isStudent):
+            $state = $access['state'];
+            $reportForm = static fn (string $status, string $label, string $class) => '<form method="post" action="/topics/' . e($topic['id']) . '/report" class="inline-form">'
+                . $csrf->field() . '<input type="hidden" name="status" value="' . e($status) . '"><button type="submit" class="' . e($class) . '">' . e($label) . '</button></form>'; ?>
+            <div class="card access-card access-card--<?= $access['open'] ? 'open' : 'locked' ?>">
+                <p class="access-card__state"><?= $access['open'] ? '✓' : '🔒' ?> <?= e($states[$state] ?? '') ?></p>
+                <?php if ($state === 'school'): ?>
+                    <p>Your school has reported this topic as taught, so its lessons are open to you.</p>
+                    <p class="access-card__actions"><?= $reportForm('not_yet', 'My class hasn’t reached it yet', 'btn btn--small btn--ghost') ?></p>
+                <?php elseif ($state === 'self_unverified' || $state === 'self_confirmed'): ?>
+                    <p>You told us your class has covered this topic.<?= $state === 'self_unverified' ? ' The tutor will check with your school.' : '' ?></p>
+                    <?php if ($state === 'self_unverified'): ?><p class="access-card__actions"><?= $reportForm('clear', 'Undo: we haven’t covered it', 'btn btn--small btn--ghost') ?></p><?php endif; ?>
+                <?php elseif ($state === 'exception'): ?>
+                    <p>The tutor opened this topic early for you.</p>
+                <?php elseif ($state === 'class_not_yet'): ?>
+                    <p>You told us your class hasn’t reached this topic. It stays closed for you until it does.</p>
+                    <p class="access-card__actions"><?= $reportForm('clear', 'My class has now covered it', 'btn btn--small') ?></p>
+                <?php elseif ($state === 'awaiting_check'): ?>
+                    <p>You said your class has covered it, but your school’s teacher hasn’t reported it yet. The tutor will check and it will open if confirmed.</p>
+                    <p class="access-card__actions"><?= $reportForm('clear', 'Undo my answer', 'btn btn--small btn--ghost') ?></p>
+                <?php elseif ($state === 'exception_pending'): ?>
+                    <p>You asked to open this topic early. The tutor will decide soon.</p>
+                <?php else: ?>
+                    <p>SMART Circle goes over what your own school has already taught. This topic opens when your school reports it, and you will be notified.</p>
+                    <p class="access-card__actions"><?= $reportForm('covered', 'My class has already covered it', 'btn btn--small') ?></p>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($access['open'] || in_array($state, ['not_taught', 'unknown', 'class_not_yet'], true)): ?>
             <form method="post" action="/topics/<?= e($topic['id']) ?>/request" class="form card ask-form" id="ask">
                 <?= $csrf->field() ?>
-                <h2 class="h3"><?= $first ? 'I’m stuck on this topic' : ($mine ? 'Change how you are stuck' : 'Me too: I’m stuck on this') ?></h2>
+                <?php if ($access['open']): ?>
+                    <h2 class="h3"><?= $first ? 'I’m stuck on this topic' : ($mine ? 'Change how you are stuck' : 'Me too: I’m stuck on this') ?></h2>
+                <?php else: ?>
+                    <h2 class="h3">Need it before your school teaches it?</h2>
+                    <p class="muted">For real reasons only, for example no teacher for this subject this term. The tutor decides.</p>
+                <?php endif; ?>
                 <?= $err('topic') ?>
                 <fieldset class="field">
                     <legend class="field__label">What is hard about it?</legend>
@@ -98,30 +129,18 @@ $mine = $request !== null && !empty($request['joined']);
                     <textarea name="details" rows="3" maxlength="1000" placeholder="e.g. I can balance simple equations but get lost when there are brackets."><?= e($old['details'] ?? '') ?></textarea>
                     <?= $err('details') ?>
                 </label>
-                <?php if (in_array($schoolCoverage, ['covered', 'covering'], true)): ?>
-                    <p class="note">Your school has told us it <?= $schoolCoverage === 'covered' ? 'has taught' : 'is teaching' ?> this topic.</p>
-                    <input type="hidden" name="covered" value="yes">
-                <?php else: ?>
-                <fieldset class="field">
-                    <legend class="field__label">Has your school taught this topic yet?</legend>
-                    <div class="choice-row">
-                        <label class="choice"><input type="radio" name="covered" value="yes" <?= ($old['covered'] ?? '') === 'yes' ? 'checked' : '' ?> required> Yes, we have covered it</label>
-                        <label class="choice"><input type="radio" name="covered" value="no" class="js-not-covered" <?= ($old['covered'] ?? '') === 'no' ? 'checked' : '' ?>> Not yet</label>
-                    </div>
-                    <?= $err('covered') ?>
-                </fieldset>
-                <label class="field js-exception-reason">
-                    <span class="field__label">If not yet: why do you need it now?</span>
-                    <textarea name="exception_reason" rows="2" maxlength="1000" placeholder="e.g. Our school has no Chemistry teacher this term."><?= e($old['exception_reason'] ?? '') ?></textarea>
-                    <span class="muted field__hint">SMART Circle follows your school. Topics not yet taught need the tutor’s approval.</span>
-                    <?= $err('exception_reason') ?>
-                </label>
+                <?php if (!$access['open']): ?>
+                    <label class="field">
+                        <span class="field__label">Why do you need it now?</span>
+                        <textarea name="exception_reason" rows="2" maxlength="1000" placeholder="e.g. Our school has no Chemistry teacher this term." required><?= e($old['exception_reason'] ?? '') ?></textarea>
+                        <?= $err('exception_reason') ?>
+                    </label>
                 <?php endif; ?>
                 <div class="form-actions">
-                    <button type="submit" class="btn"><?= $first ? 'Ask for this topic' : 'Add my voice' ?></button>
+                    <button type="submit" class="btn"><?= !$access['open'] ? 'Ask to open early' : ($first ? 'Ask for this topic' : 'Add my voice') ?></button>
                 </div>
             </form>
-            <script src="<?= e($asset('js/ask.js')) ?>" defer></script>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </section>
