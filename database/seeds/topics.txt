@@ -1,0 +1,264 @@
+# SMART Circle — starting topic catalogue.
+#
+# Format: a "## form subject" heading, then one topic per line:
+#   Unit 6: Gas Laws (Boyle's Law, Charles' Law, Pressure Law)
+# A final bracket with commas lists subtopics students can pick.
+#
+# SOURCES
+#   Forms 3-4 Mathematics, Physics, Chemistry, Biology: the tutor's own list from the old site.
+#   Forms 1-2 (all subjects) and English grammar (all forms): DRAFTS written for SMART Circle.
+#   Every list must be checked against the official syllabus (Malawi Institute of Education)
+#   and with partner teachers. Edit topics any time in Studio > Topics.
+#
+# Regenerate the migration after editing: php tools/generate-topic-seed.php
+
+## 3 physics
+Unit 1: Measurements II (Fundamental quantities, Prefixes)
+Unit 2: Scientific Investigations (Design, Data analysis, Lab report)
+Unit 3: The kinetic theory of matter
+Unit 4: Thermometry (Temperature scales, Thermometers)
+Unit 5: Pressure (Definition, Archimedes' principle, Flotation)
+Unit 6: Gas Laws (Boyle's Law, Charles' Law, Pressure Law, Combined Gas Law)
+Unit 7: Scalars and Vectors (Addition, Subtraction, Resolution)
+Unit 8: Linear Motion (Speed, Velocity, Acceleration, Motion graphs)
+Unit 9: Work and Energy (Work done, Mechanical energy, Conservation of energy, Machines)
+Unit 10: Machines (Types of simple machines, Mechanical advantage, Velocity ratio)
+Unit 11: Electric Current and Potential Difference (Basic circuit symbols)
+Unit 12: Electrical Resistance (Ohm's Law)
+Unit 13: Electric Circuit, Energy and Power (Cost of electricity, Domestic wiring)
+Unit 14: Oscillations and Waves (Characteristics of waves)
+Unit 15: Sound (Production, Properties, Propagation)
+
+## 4 physics
+Unit 1: Thermal expansion (Solids, Liquids, Gases)
+Unit 2: Newton's laws of motion (Inertia, Momentum, Conservation of momentum, Collisions)
+Unit 3: Frictional force (Coefficient of friction, Viscosity, Free fall)
+Unit 4: Hooke's law (Stretching of materials, Combination of springs)
+Unit 5: Uniform circular motion (Angular velocity, Centripetal force)
+Unit 6: Moments of forces (Principle of moments, Couple, Centre of mass)
+Unit 7: Magnetism (Magnetisation, Demagnetisation, Domain theory)
+Unit 8: Electromagnetism (Magnetic field of a current-carrying conductor, Solenoid)
+Unit 9: Electromagnetic induction (Faraday's law, Transformers, Power transmission)
+Unit 10: Introduction to digital electronics (Semiconductors, Doping, Logic gates)
+Unit 11: Electromagnetic Spectrum (Properties, Detection, Applications)
+Unit 12: Light and lenses (Lens formula, Magnification, Image formation)
+Unit 13: Isotopes (Structure of the atom, Radioactivity)
+Unit 14: Radioactivity (Half-life, Nuclear fission, Nuclear fusion, Hazards)
+
+## 3 biology
+Unit 1: Problem solving
+Unit 2: Investigative skills and techniques (Glassware, Microscope)
+Unit 3: Photosynthesis (Leaf structure, Pigments, Plant products)
+Unit 4: Transport in plants (Xylem, Phloem, Transpiration)
+Unit 5: Human Digestive System (Nutrients, Enzymes, Absorption, Liver functions)
+Unit 6: Human circulatory system (Blood cells, Blood clotting, Heart structure, Lymphatic system)
+Unit 7: Human respiratory system (Gas exchange, Smoking effects, Respiration in fish and insects)
+Unit 8: Locomotion (Skeleton types, Bone structure, Locomotion in fish and birds)
+Unit 9: Reproduction (Mitosis, Meiosis, Human reproductive systems, Menstrual cycle, Contraception)
+Unit 10: Human diseases (Bacterial, Viral, Fungal, Protozoal, Parasitic worms)
+Unit 11: Human Population (Population growth, Factors affecting growth, Rapid growth problems)
+
+## 4 biology
+Unit 1: Problem Solving (Process, Report writing)
+Unit 2: Investigative Techniques and Skills
+Unit 3: Tropisms (Plant hormones and tropisms)
+Unit 4: Excretion (Kidney, ADH osmoregulation, Dialysis machine)
+Unit 5: Genetics (Mendelian genetics, ABO blood groups, Sex determination, Mutations, Breeding)
+Unit 6: Ecosystems (Components, Ecological methods: quadrat, Transect, Mark-recapture)
+Unit 7: Co-ordination (Neurones, Central nervous system, Reflex action, Effects of alcohol)
+Unit 8: Human Diseases (First line defences, Immunity, Organ transplant factors)
+Unit 9: Cancer (Causes, Prevention and control)
+Unit 10: Evolution (Darwin's theory, Evidence for evolution, Natural selection, Speciation)
+
+## 3 chemistry
+Topic 1: Experimental techniques (Laboratory wastes, Chromatography, Tests for ions)
+Topic 2: Nitrogen, Sulphur and Phosphorus (Sources, Properties, Compounds, Uses)
+Topic 3: Chemical bonding and properties of matter (Ionic and covalent bonds, Allotropy)
+Topic 4: Stoichiometry (Mole concept, Empirical and molecular formula, Titration)
+Topic 5: Chemical Reactions (Exothermic and endothermic reactions, Bond energies)
+Topic 6: Alkanols (Preparation, Properties, Oxidation)
+Topic 7: Alkanals and Alkanones (Sources, Properties, Oxidation, Uses)
+Topic 8: Alkanoic Acids (Sources, Properties, Uses)
+Topic 9: Alkanoates (Esters) (Fats and oils, Saponification, Uses)
+Topic 10: Identification of unknown organic compounds (Flow diagrams)
+
+## 4 chemistry
+Preliminary Unit: Rates of Chemical Reactions (Factors affecting rate, Reversible reactions)
+Unit 1: Acids and Bases (Conjugate acid-base pairs, pH regulation, Salts)
+Unit 2: Oxidation-Reduction Reactions (Oxidation numbers, Electrochemical cell, Corrosion)
+Unit 3: Electrolysis (Electrolytic cell, Purification of copper, Electroplating)
+Unit 4: Isomerism (Structural isomers, Stereoisomers, Effects of branching)
+Unit 5: Polymerisation (Types of polymers, Plastics, Waste management)
+Unit 6: Water (Water cycle, Hardness, Water pollution)
+Unit 7: Greenhouse Gases and the Ozone Layer
+Unit 8: Waste Management (Disposal methods, Recycling)
+
+## 3 mathematics
+Unit 1: Quadratic Equations
+Unit 2: Irrational Numbers
+Unit 3: Circle Geometry (Chord Properties)
+Unit 4: Algebraic Fractions
+Unit 5: Sets
+Unit 6: Mapping and Functions
+Unit 7: Circle Geometry (Angle Properties)
+Unit 8: Transformation (Reflection, Rotation, Translation, Enlargement)
+Unit 9: Change of Subject of a Formula
+Unit 10: Exponential and Logarithmic Equations
+Unit 11: Trigonometry (Sine and Cosine graphs)
+Unit 12: Similarity
+Unit 13: Coordinate Geometry (Midpoint Formula)
+Unit 14: Variations (Direct proportion, Inverse proportion)
+Unit 15: Graphs of Quadratic Functions
+Unit 16: Inequalities
+Unit 17: Statistics
+
+## 4 mathematics
+Unit 1: Matrices (Operations, Determinant, Inverse)
+Unit 2: Tangents to the circle
+Unit 3: Simultaneous Linear and Quadratic Equations
+Unit 4: Progressions (Arithmetic, Geometric)
+Unit 5: Travel Graphs
+Unit 6: Advanced Trigonometry
+Unit 7: Polynomials
+Unit 8: Probability
+Unit 9: Vectors (Addition, Scalar multiplication)
+Unit 10: Linear Programming
+Unit 11: Mensuration (Area, Volume, Surface area)
+Unit 12: Graphs of Cubic Functions
+
+## 3 english
+Parts of speech (Nouns, Pronouns, Verbs, Adjectives, Adverbs, Prepositions, Conjunctions)
+Tenses and conditionals (Present and past tenses, Perfect tenses, First conditional, Second conditional, Third conditional)
+Concord: subject-verb agreement (Collective nouns, Either...or and neither...nor, Indefinite pronouns)
+Question tags
+Prepositions (Prepositions of time and place, Verbs with fixed prepositions)
+Phrasal verbs
+Comparative structures (Comparatives and superlatives, Prefer...to, As...as)
+Order of adjectives
+Phrases and clauses (Noun phrases, Noun clauses, Adjective clauses, Adverbial clauses)
+Vocabulary and word choice
+Direct and reported speech
+Active and passive voice
+Punctuation (Commas, Apostrophes, Colons and semicolons, Quotation marks)
+
+## 4 english
+Tenses and conditionals (Perfect tenses, Mixed conditionals, Wish and if only)
+Concord: subject-verb agreement
+Question tags
+Prepositions (Verbs with fixed prepositions, Adjectives with prepositions)
+Phrasal verbs
+Comparative structures
+Order of adjectives
+Phrases and clauses (Noun clauses, Relative clauses, Adverbial clauses)
+Sentence transformation (Combining sentences, Too...to and so...that, Unless and if)
+Direct and reported speech (Statements, Questions, Commands)
+Active and passive voice
+Vocabulary and word choice (Synonyms and antonyms, Confusing words, Idioms)
+Punctuation
+
+## 1 mathematics
+Numbers and place value (Whole numbers, Rounding, Standard form)
+Fractions, decimals and percentages
+Ratio, rate and proportion
+Directed numbers
+Algebraic expressions (Simplifying, Substitution, Expanding brackets)
+Linear equations
+Angles and lines (Types of angles, Parallel lines)
+Triangles and polygons
+Perimeter and area
+Collecting and presenting data
+Coordinates and graphs
+
+## 2 mathematics
+Indices (Laws of indices, Zero and negative indices)
+Factorisation
+Simultaneous linear equations
+Pythagoras' theorem
+Circles: circumference and area
+Volume and surface area of solids
+Bearings and scale drawing
+Basic trigonometry (Sine, Cosine, Tangent)
+Linear graphs and gradient
+Linear inequalities
+Statistics (Mean, Median, Mode)
+Consumer arithmetic (Profit and loss, Simple interest)
+
+## 1 physics
+Introduction to physics and laboratory safety
+Measurements I (Length, Mass, Time, Volume)
+Density
+Forces (Types of forces, Weight and mass)
+States of matter
+Heat transfer (Conduction, Convection, Radiation)
+Light (Rectilinear propagation, Reflection)
+Simple electric circuits
+Magnets
+
+## 2 physics
+Motion (Distance, Speed, Time)
+Energy (Forms of energy, Energy transformations, Energy sources in Malawi)
+Refraction of light
+Static electricity
+Current electricity (Series circuits, Parallel circuits)
+Pressure in liquids and gases
+Simple machines
+
+## 1 chemistry
+Introduction to chemistry and laboratory safety
+Laboratory apparatus
+Matter and its states
+Elements, compounds and mixtures
+Separation of mixtures (Filtration, Evaporation, Distillation, Chromatography)
+Physical and chemical changes
+Air and burning
+Water (Properties, Purification)
+
+## 2 chemistry
+Atomic structure
+The periodic table (First 20 elements, Groups, Periods)
+Chemical formulae and equations
+Acids, bases and indicators
+Hydrogen and oxygen
+Metals and non-metals
+Carbon and its compounds
+
+## 1 biology
+Introduction to biology
+Characteristics of living things
+Cells (Plant and animal cells, Cell organelles)
+Using a microscope
+Classification of living things
+Nutrition in plants
+Organisation of the human body
+Health and hygiene
+
+## 2 biology
+Human nutrition (Food groups, Balanced diet, Deficiency diseases)
+Respiration (Aerobic respiration, Anaerobic respiration)
+Transport in humans
+Reproduction in plants (Flower structure, Pollination, Seed dispersal)
+Ecology (Food chains, Food webs, Conservation)
+Common diseases in Malawi (Malaria, Cholera, HIV and AIDS)
+Excretion
+
+## 1 english
+Parts of speech (Nouns, Pronouns, Verbs, Adjectives, Adverbs)
+Nouns: countable and uncountable
+Pronouns
+Simple tenses (Present, Past, Future)
+Concord: subject-verb agreement
+Adjectives and adverbs
+Prepositions
+Capital letters and punctuation
+Sentence types (Statements, Questions, Commands, Exclamations)
+
+## 2 english
+Continuous and perfect tenses
+Concord: subject-verb agreement
+Articles (A, An, The)
+Conjunctions
+Question tags
+Simple, compound and complex sentences
+Direct and reported speech
+Active and passive voice
+Punctuation (Commas, Apostrophes, Quotation marks)

@@ -65,4 +65,10 @@ final class UserRepository
     {
         return (int) $this->db->scalar('SELECT COUNT(*) FROM users WHERE role = ?', [$role]);
     }
+
+    /** @return list<int> active users with a role (e.g. every tutor, for notifications) */
+    public function idsByRole(string $role): array
+    {
+        return array_map('intval', array_column($this->db->all("SELECT id FROM users WHERE role = ? AND status = 'active'", [$role]), 'id'));
+    }
 }

@@ -8,7 +8,7 @@ use SmartCircle\Data\Database;
 
 final class LessonRepository
 {
-    public const DETAIL_FIELDS = ['title', 'form', 'subject', 'summary', 'why_it_matters', 'where_in_malawi', 'careers', 'try_at_home'];
+    public const DETAIL_FIELDS = ['title', 'form', 'subject', 'topic_id', 'summary', 'why_it_matters', 'where_in_malawi', 'careers', 'try_at_home'];
 
     public function __construct(private readonly Database $db)
     {

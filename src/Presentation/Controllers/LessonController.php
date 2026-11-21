@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Lessons\LessonService;
+use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Csrf;
 use SmartCircle\Presentation\Http\HttpException;
@@ -23,6 +24,7 @@ final class LessonController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?TopicService $topics = null,
     ) {
     }
 
@@ -92,7 +94,7 @@ final class LessonController
     {
         $lesson = $this->lessonOr404($request);
         $input = [];
-        foreach (['title', 'form', 'subject', 'summary', ...array_keys(LessonService::REAL_LIFE_SECTIONS)] as $field) {
+        foreach (['title', 'form', 'subject', 'topic_id', 'summary', ...array_keys(LessonService::REAL_LIFE_SECTIONS)] as $field) {
             $input[$field] = $request->input($field);
         }
 
@@ -145,6 +147,7 @@ final class LessonController
             'missing' => $missing,
             'subjects' => LessonService::SUBJECTS,
             'sections' => LessonService::REAL_LIFE_SECTIONS,
+            'topicOptions' => $this->topics?->options() ?? [],
         ]), $status);
     }
 

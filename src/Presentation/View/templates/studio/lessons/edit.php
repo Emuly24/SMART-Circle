@@ -5,6 +5,7 @@
  * @var list<string> $missing
  * @var array<string, string> $subjects
  * @var array<string, string> $sections
+ * @var list<array{id: int, form: int, subject: string, label: string}> $topicOptions
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
  */
 $id = (int) $lesson['id'];
@@ -62,6 +63,16 @@ $hints = [
                 </label>
             </div>
             <label class="field">
+                <span class="field__label">Topic <span class="muted">(links the lesson to students’ requests)</span></span>
+                <select name="topic_id" class="js-topic-select">
+                    <option value="0">No topic</option>
+                    <?php foreach ($topicOptions as $opt): ?>
+                        <option value="<?= e($opt['id']) ?>" data-form="<?= e($opt['form']) ?>" data-subject="<?= e($opt['subject']) ?>" <?= (int) ($lesson['topic_id'] ?? 0) === $opt['id'] ? 'selected' : '' ?>>Form <?= e($opt['form']) ?> · <?= e($opt['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $err('topic_id') ?>
+            </label>
+            <label class="field">
                 <span class="field__label">Short summary <span class="muted">(optional)</span></span>
                 <textarea name="summary" rows="2"><?= e($lesson['summary'] ?? '') ?></textarea>
             </label>
@@ -101,3 +112,4 @@ $hints = [
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>
+<script src="<?= e($asset('js/lesson-topic.js')) ?>" defer></script>

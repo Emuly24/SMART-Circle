@@ -10,6 +10,7 @@
  * @var callable $asset
  * @var callable $flashes
  * @var string $path
+ * @var callable|null $unreadCount
  */
 $user = $ctx->user();
 ?>
@@ -39,7 +40,13 @@ $user = $ctx->user();
             <?php if ($user === null): ?>
                 <a class="btn btn--small" href="/login">Log in</a>
             <?php else: ?>
-                <a href="/dashboard">Dashboard</a>
+                <a href="/dashboard" <?= ($path ?? '') === '/dashboard' ? 'aria-current="page"' : '' ?>>Dashboard</a>
+                <a href="/topics" <?= str_starts_with($path ?? '', '/topics') ? 'aria-current="page"' : '' ?>>Topics</a>
+                <?php $unread = isset($unreadCount) ? $unreadCount() : 0; ?>
+                <a href="/notifications" class="bell" aria-label="Notifications<?= $unread > 0 ? ', ' . e($unread) . ' unread' : '' ?>">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+                    <?php if ($unread > 0): ?><span class="bell__count"><?= e($unread > 99 ? '99+' : $unread) ?></span><?php endif; ?>
+                </a>
                 <form method="post" action="/logout" class="inline-form">
                     <?= $csrf->field() ?>
                     <button type="submit" class="btn btn--small btn--ghost">Log out</button>

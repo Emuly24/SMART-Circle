@@ -13,6 +13,9 @@ use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
+use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Application\Topics\RequestService;
+use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\Database;
 use SmartCircle\Data\DatabaseSessionHandler;
 use SmartCircle\Data\LessonStorage;
@@ -25,6 +28,9 @@ use SmartCircle\Data\Repositories\StudentRepository;
 use SmartCircle\Data\Repositories\LessonRepository;
 use SmartCircle\Data\Repositories\LessonUploadRepository;
 use SmartCircle\Data\Repositories\LoginAttemptRepository;
+use SmartCircle\Data\Repositories\NotificationRepository;
+use SmartCircle\Data\Repositories\TopicRepository;
+use SmartCircle\Data\Repositories\TopicRequestRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Presentation\Controllers\AdmissionsController;
 use SmartCircle\Presentation\Controllers\ApplyController;
@@ -33,6 +39,9 @@ use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LessonController;
+use SmartCircle\Presentation\Controllers\NotificationController;
+use SmartCircle\Presentation\Controllers\StudioTopicController;
+use SmartCircle\Presentation\Controllers\TopicController;
 use SmartCircle\Presentation\Controllers\PageController;
 use SmartCircle\Presentation\Controllers\StudioController;
 use SmartCircle\Presentation\Controllers\UploadController;
@@ -150,6 +159,12 @@ final class App
             return Response::redirect('/install');
         }
 
+        $this->view->share('unreadCount', function () use ($db): int {
+            $userId = $this->context->userId();
+
+            return $userId === null ? 0 : $this->notifications($db)->unreadCount($userId);
+        });
+
         $router = $this->routes($auth, $installer, $db);
 
         return $router->dispatch($request);
@@ -171,14 +186,19 @@ final class App
 
         $lessonRepo = new LessonRepository($db);
         $lessonStorage = new LessonStorage($this->storage(''));
-        $lessonService = new LessonService($lessonRepo, $lessonStorage);
+        $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db));
+        $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db));
+        $lessonService = new LessonService($lessonRepo, $lessonStorage, $topicService, $requestService);
         $uploadService = new UploadService(
             new LessonUploadRepository($db),
             $lessonRepo,
             $lessonStorage,
             $this->config->int('lessons.max_bytes', 150 * 1024 * 1024),
         );
-        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view);
+        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService);
+        $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view);
+        $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view);
+        $notificationsCtl = new NotificationController($this->notifications($db), $this->context, $this->session, $this->view);
         $uploads = new UploadController($uploadService, $this->context);
 
         $users = new UserRepository($db);
@@ -241,6 +261,26 @@ final class App
         $r->get('/lessons/{id}', $lessons->show(...), [$member, $onboarded]);
         $r->get('/lessons/{id}/file', $lessons->file(...), [$member, $onboarded]);
 
+        // Topics: the syllabus, and asking for help on a topic
+        $r->get('/topics', $topicsCtl->index(...), [$member, $onboarded]);
+        $r->get('/topics/{id}', $topicsCtl->show(...), [$member, $onboarded]);
+        $r->post('/topics/{id}/request', $topicsCtl->ask(...), [$csrf, $student, $onboarded]);
+
+        // Notifications (the bell)
+        $r->get('/notifications', $notificationsCtl->index(...), [$member]);
+        $r->post('/notifications/read', $notificationsCtl->markRead(...), [$csrf, $member]);
+
+        // Tutor: ranked topic requests and the topic catalogue
+        $r->get('/studio/requests', $studioTopics->requests(...), [$tutor]);
+        $r->get('/studio/requests/{id}', $studioTopics->request(...), [$tutor]);
+        $r->post('/studio/requests/{id}/status', $studioTopics->setStatus(...), [$csrf, $tutor]);
+        $r->post('/studio/requests/{id}/exception', $studioTopics->exception(...), [$csrf, $tutor]);
+        $r->get('/studio/topics', $studioTopics->topics(...), [$tutor]);
+        $r->post('/studio/topics', $studioTopics->addTopic(...), [$csrf, $tutor]);
+        $r->post('/studio/topics/import', $studioTopics->importTopics(...), [$csrf, $tutor]);
+        $r->get('/studio/topics/{id}', $studioTopics->editTopic(...), [$tutor]);
+        $r->post('/studio/topics/{id}', $studioTopics->updateTopic(...), [$csrf, $tutor]);
+
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [$tutor]);
         $r->get('/studio/lessons', $lessons->manage(...), [$tutor]);
@@ -269,6 +309,13 @@ final class App
         $r->post('/install', $installCtl->run(...), [$csrf]);
 
         return $r;
+    }
+
+    private ?NotificationService $notifications = null;
+
+    private function notifications(Database $db): NotificationService
+    {
+        return $this->notifications ??= new NotificationService(new NotificationRepository($db), new UserRepository($db));
     }
 
     private ?AccountSetupService $accountSetup = null;

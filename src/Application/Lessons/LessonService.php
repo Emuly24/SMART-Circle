@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Lessons;
 
+use SmartCircle\Application\Topics\RequestService;
+use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Repositories\LessonRepository;
 
@@ -31,6 +33,8 @@ final class LessonService
     public function __construct(
         private readonly LessonRepository $lessons,
         private readonly LessonStorage $storage,
+        private readonly ?TopicService $topics = null,
+        private readonly ?RequestService $requests = null,
     ) {
     }
 
@@ -72,6 +76,13 @@ final class LessonService
         if ($subject !== '' && !isset(self::SUBJECTS[$subject])) {
             $errors['subject'] = 'Choose a subject.';
         }
+        $topicId = (int) ($input['topic_id'] ?? 0);
+        if ($topicId !== 0 && $this->topics !== null) {
+            $topic = $this->topics->find($topicId);
+            if ($topic === null || (int) $topic['form'] !== $form || $topic['subject'] !== $subject) {
+                $errors['topic_id'] = 'Choose a topic from the same form and subject (or leave it empty).';
+            }
+        }
         if ($errors !== []) {
             return $errors;
         }
@@ -80,12 +91,20 @@ final class LessonService
             'title' => $title,
             'form' => $form === 0 ? null : $form,
             'subject' => $subject === '' ? null : $subject,
+            'topic_id' => $topicId === 0 ? null : $topicId,
             'summary' => self::clean($input['summary'] ?? ''),
         ];
         foreach (array_keys(self::REAL_LIFE_SECTIONS) as $field) {
             $details[$field] = self::clean($input[$field] ?? '');
         }
+        $before = $this->lessons->find($id);
         $this->lessons->updateDetails($id, $details);
+
+        // Linking an already published lesson to a topic also answers that topic's requests.
+        if ($this->requests !== null && $before !== null && $before['status'] === 'published'
+            && $topicId !== 0 && (int) ($before['topic_id'] ?? 0) !== $topicId) {
+            $this->requests->lessonPublished($id, $topicId, $title);
+        }
 
         return [];
     }
@@ -119,6 +138,9 @@ final class LessonService
         $missing = $this->missingForPublish($lesson);
         if ($missing === []) {
             $this->lessons->setStatus($id, 'published');
+            if ($this->requests !== null && !empty($lesson['topic_id'])) {
+                $this->requests->lessonPublished($id, (int) $lesson['topic_id'], (string) $lesson['title']);
+            }
         }
 
         return $missing;
