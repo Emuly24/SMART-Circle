@@ -9,6 +9,8 @@ use SmartCircle\Application\Admissions\AccountSetupService;
 use SmartCircle\Application\Admissions\ApplicationService;
 use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
+use SmartCircle\Application\Assessments\AssessmentService;
+use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
@@ -24,6 +26,9 @@ use SmartCircle\Data\DatabaseSessionHandler;
 use SmartCircle\Data\LessonStorage;
 use SmartCircle\Data\Migrator;
 use SmartCircle\Data\Repositories\ApplicationRepository;
+use SmartCircle\Data\Repositories\AssessmentRepository;
+use SmartCircle\Data\Repositories\QuestionRepository;
+use SmartCircle\Data\Repositories\SubmissionRepository;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
@@ -42,6 +47,8 @@ use SmartCircle\Data\Repositories\TopicRequestRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Presentation\Controllers\AdmissionsController;
 use SmartCircle\Presentation\Controllers\ApplyController;
+use SmartCircle\Presentation\Controllers\AssessmentController;
+use SmartCircle\Presentation\Controllers\StudioAssessmentController;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
@@ -233,6 +240,10 @@ final class App
         $student = new RequireRole($this->context, $this->session, ['student']);
         $partnerService = new PartnerService($db, $users, new PartnerRepository($db), new SchoolRepository($db), new StudentRepository($db), $documentService, $audit);
         $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService);
+        $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
+        $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService);
+        $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view);
+        $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view);
         $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
         $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
         $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
@@ -345,6 +356,34 @@ final class App
         $r->get('/studio/schools/{school}/textbooks/{book}', $schoolsCtl->refs(...), [$tutor]);
         $r->post('/studio/schools/{school}/textbooks/{book}', $schoolsCtl->saveRefs(...), [$csrf, $tutor]);
         $r->post('/studio/schools/{school}/textbooks/{book}/remove', $schoolsCtl->removeTextbook(...), [$csrf, $tutor]);
+
+        // Exams, assignments and exercises: students
+        $r->get('/assessments', $assessCtl->index(...), [$student, $onboarded]);
+        $r->get('/assessments/{id}', $assessCtl->show(...), [$student, $onboarded]);
+        $r->post('/assessments/{id}/start', $assessCtl->start(...), [$csrf, $student, $onboarded]);
+        $r->get('/assessments/{id}/take', $assessCtl->take(...), [$student, $onboarded]);
+        $r->post('/assessments/{id}/save', $assessCtl->save(...), [$csrf, $student, $onboarded]);
+        $r->get('/assessments/{id}/result', $assessCtl->result(...), [$student, $onboarded]);
+
+        // Tutor: question bank, assessment builder, marking
+        $r->get('/studio/questions', $studioAssess->bank(...), [$tutor]);
+        $r->get('/studio/questions/new', $studioAssess->newQuestion(...), [$tutor]);
+        $r->post('/studio/questions', $studioAssess->saveQuestion(...), [$csrf, $tutor]);
+        $r->get('/studio/questions/{id}', $studioAssess->editQuestion(...), [$tutor]);
+        $r->post('/studio/questions/{id}', $studioAssess->saveQuestion(...), [$csrf, $tutor]);
+        $r->post('/studio/questions/{id}/delete', $studioAssess->deleteQuestion(...), [$csrf, $tutor]);
+        $r->get('/studio/assessments', $studioAssess->index(...), [$tutor]);
+        $r->get('/studio/assessments/new', $studioAssess->create(...), [$tutor]);
+        $r->post('/studio/assessments', $studioAssess->create(...), [$csrf, $tutor]);
+        $r->get('/studio/assessments/{id}', $studioAssess->show(...), [$tutor]);
+        $r->post('/studio/assessments/{id}', $studioAssess->update(...), [$csrf, $tutor]);
+        $r->post('/studio/assessments/{id}/questions', $studioAssess->addQuestion(...), [$csrf, $tutor]);
+        $r->post('/studio/assessments/{id}/questions/{question}/remove', $studioAssess->removeQuestion(...), [$csrf, $tutor]);
+        $r->post('/studio/assessments/{id}/questions/{question}/move', $studioAssess->moveQuestion(...), [$csrf, $tutor]);
+        $r->get('/studio/assessments/{id}/submissions', $studioAssess->submissions(...), [$tutor]);
+        $r->post('/studio/assessments/{id}/{action}', $studioAssess->action(...), [$csrf, $tutor]);
+        $r->get('/studio/submissions/{id}', $studioAssess->markForm(...), [$tutor]);
+        $r->post('/studio/submissions/{id}', $studioAssess->mark(...), [$csrf, $tutor]);
 
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [$tutor]);

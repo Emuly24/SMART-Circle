@@ -125,6 +125,12 @@ final class AccessService
         return $students === [] ? null : $this->deciders($students)[$userId];
     }
 
+    /** @return list<array<string, mixed>> active students (form, track, school) */
+    public function allStudents(): array
+    {
+        return $this->access->students();
+    }
+
     /** @return array<int, \Closure(int): array{open: bool, basis: ?string, state: string}> every active student */
     public function allDeciders(): array
     {

@@ -46,6 +46,9 @@ $user = $ctx->user();
                     <a href="/partner/textbooks" <?= str_starts_with($path ?? '', '/partner/textbooks') ? 'aria-current="page"' : '' ?>>Textbooks</a>
                 <?php else: ?>
                     <a href="/topics" <?= str_starts_with($path ?? '', '/topics') ? 'aria-current="page"' : '' ?>>Topics</a>
+                    <?php if ($user['role'] === 'student'): ?>
+                        <a href="/assessments" <?= str_starts_with($path ?? '', '/assessments') ? 'aria-current="page"' : '' ?>>Exams</a>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <?php $unread = isset($unreadCount) ? $unreadCount() : 0; ?>
                 <a href="/notifications" class="bell" aria-label="Notifications<?= $unread > 0 ? ', ' . e($unread) . ' unread' : '' ?>">
