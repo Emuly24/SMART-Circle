@@ -7,7 +7,7 @@
  * @var array<string, string> $old
  */
 $err = static fn (string $f): string => isset($errors[$f]) ? '<span class="field__error">' . e($errors[$f]) . '</span>' : '';
-$roles = ['student' => 'Students', 'partner' => 'Partner teachers', 'tutor' => 'Tutors'];
+$roles = ['student' => 'Students', 'alumni' => 'Alumni', 'partner' => 'Partner teachers', 'tutor' => 'Tutors'];
 ?>
 <section class="section section--tight">
     <div class="container narrow-wide">

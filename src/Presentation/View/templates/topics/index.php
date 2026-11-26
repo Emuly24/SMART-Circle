@@ -1,6 +1,8 @@
 <?php
 /**
  * @var int $form
+ * @var list<int> $forms forms this viewer may browse
+ * @var array<string, mixed>|null $revision
  * @var string $subject
  * @var list<string> $subjects
  * @var array<string, string> $names
@@ -30,16 +32,19 @@ $chip = static function (array $t) use ($statuses): string {
         <h1>Topics</h1>
         <p class="lead">The Form <?= e($form) ?> syllabus. Topics open once your school has taught them. Stuck on one? Tap it and tell the tutor where you get lost.</p>
 
-        <?php if ($isTutor): ?>
+        <?php if ($revision !== null): ?>
+            <div class="alert alert--info revision-note"><strong>MANEB revision is open.</strong> Every Form <?= e(implode(' and Form ', $revision['forms'])) ?> topic is open to you until the exam ends. <a href="/revision">Your revision plan</a></div>
+        <?php endif; ?>
+        <?php if (count($forms) > 1): ?>
             <nav class="tabs tabs--small" aria-label="Form">
-                <?php for ($f = 1; $f <= 4; $f++): ?>
-                    <a href="/topics?form=<?= $f ?>&amp;subject=<?= e($subject) ?>" <?= $f === $form ? 'aria-current="page"' : '' ?>>Form <?= $f ?></a>
-                <?php endfor; ?>
+                <?php foreach ($forms as $f): ?>
+                    <a href="/topics?form=<?= e($f) ?>&amp;subject=<?= e($subject) ?>" <?= $f === $form ? 'aria-current="page"' : '' ?>>Form <?= e($f) ?></a>
+                <?php endforeach; ?>
             </nav>
         <?php endif; ?>
         <nav class="tabs" aria-label="Subject">
             <?php foreach ($subjects as $s): ?>
-                <a class="tabs__subject tabs__subject--<?= e($s) ?>" href="/topics?subject=<?= e($s) ?><?= $isTutor ? '&amp;form=' . e($form) : '' ?>" <?= $s === $subject ? 'aria-current="page"' : '' ?>><?= e($names[$s]) ?></a>
+                <a class="tabs__subject tabs__subject--<?= e($s) ?>" href="/topics?subject=<?= e($s) ?><?= count($forms) > 1 ? '&amp;form=' . e($form) : '' ?>" <?= $s === $subject ? 'aria-current="page"' : '' ?>><?= e($names[$s]) ?></a>
             <?php endforeach; ?>
         </nav>
 

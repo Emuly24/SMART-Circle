@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Topics;
 
+use SmartCircle\Application\Calendar\RevisionMode;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
@@ -18,6 +19,8 @@ use SmartCircle\Support\Subjects;
  *     subject for their school yet (open at once, checked by the tutor)    -> basis "self"
  *     ... or the tutor confirmed their report                              -> basis "self"
  *   - the tutor approved an early-access request                           -> basis "exception"
+ *   - MANEB revision: 3 weeks before a Form 2/4 exam, the exam syllabus
+ *     opens (RevisionMode)                                                 -> basis "revision"
  * "My class has not reached it" always wins over the school's report (only ever locks).
  * Parent topics count for their subtopics.
  */
@@ -28,6 +31,7 @@ final class AccessService
         'self_confirmed' => 'Your class has covered it (confirmed)',
         'self_unverified' => 'Your class has covered it (you told us)',
         'exception' => 'Opened early by the tutor',
+        'revision' => 'Open for MANEB revision',
         'class_not_yet' => 'Your class has not reached it yet',
         'awaiting_check' => 'Waiting for the tutor to check',
         'exception_pending' => 'Early access requested',
@@ -41,6 +45,7 @@ final class AccessService
         'self_confirmed' => 'Class covered (confirmed)',
         'self_unverified' => 'Class covered (unchecked)',
         'exception' => 'Opened early',
+        'revision' => 'MANEB revision',
         'class_not_yet' => 'Class not there yet',
         'awaiting_check' => 'Needs your check',
         'exception_pending' => 'Asked early',
@@ -56,6 +61,7 @@ final class AccessService
         private readonly TopicRepository $topics,
         private readonly CoverageRepository $coverage,
         private readonly NotificationService $notifications,
+        private readonly RevisionMode $revision = new RevisionMode(),
     ) {
     }
 
@@ -115,6 +121,21 @@ final class AccessService
     }
 
     /**
+     * During MANEB revision a topic of the exam syllabus that is still locked opens with basis "revision". Pure.
+     * @param array{open: bool, basis: ?string, state: string} $decision
+     * @param list<int> $revisionForms empty when the student is not in a revision window
+     * @return array{open: bool, basis: ?string, state: string}
+     */
+    public static function withRevisionFor(array $decision, ?int $topicForm, array $revisionForms): array
+    {
+        if ($decision['open'] || $topicForm === null || !in_array($topicForm, $revisionForms, true)) {
+            return $decision;
+        }
+
+        return ['open' => true, 'basis' => 'revision', 'state' => 'revision'];
+    }
+
+    /**
      * One student's view of the catalogue.
      * @return \Closure(int): array{open: bool, basis: ?string, state: string}|null  topic id => decision; null if not a student
      */
@@ -123,6 +144,28 @@ final class AccessService
         $students = $this->access->students($userId);
 
         return $students === [] ? null : $this->deciders($students)[$userId];
+    }
+
+    /** The MANEB revision window for a form, if it is open now. @return array<string, mixed>|null */
+    public function revision(int $form): ?array
+    {
+        return $this->revision->for($form);
+    }
+
+    /**
+     * A student profile with 'forms' (forms they may browse) and 'revision' added.
+     * @param array<string, mixed>|null $profile
+     * @return array<string, mixed>|null
+     */
+    public function withRevision(?array $profile): ?array
+    {
+        return $this->revision->apply($profile);
+    }
+
+    /** Bases that count as "taught" (exceptions and revision do not). */
+    public static function taught(array $decision): bool
+    {
+        return $decision['open'] && in_array($decision['basis'], ['school', 'self'], true);
     }
 
     /** @return list<array<string, mixed>> active students (form, track, school) */
@@ -171,7 +214,7 @@ final class AccessService
                 }
                 $eligible++;
                 $d = $deciders[(int) $s['user_id']]($id);
-                if ($d['open'] && $d['basis'] !== 'exception') {
+                if (self::taught($d)) {
                     $ready++;
                 }
             }
@@ -347,6 +390,7 @@ final class AccessService
         $reports = $this->access->reports($userIds);
         $exceptions = $this->access->exceptions($userIds);
         $subjects = $this->topics->subjectMap();
+        $forms = $this->topics->formMap();
 
         $out = [];
         foreach ($students as $s) {
@@ -356,14 +400,15 @@ final class AccessService
             $rep = $reports[$uid] ?? [];
             $exc = $exceptions[$uid] ?? [];
             $subj = $reported[$school] ?? [];
-            $out[$uid] = static fn (int $topicId): array => self::decide(
+            $revisionForms = $this->revision->for((int) $s['form'])['forms'] ?? [];
+            $out[$uid] = static fn (int $topicId): array => self::withRevisionFor(self::decide(
                 $topicId,
                 $parents[$topicId] ?? null,
                 $cov,
                 $rep,
                 $exc,
                 in_array($subjects[$topicId] ?? '', $subj, true)
-            );
+            ), $forms[$topicId] ?? null, $revisionForms);
         }
 
         return $out;

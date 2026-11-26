@@ -283,13 +283,17 @@ final class NoteService
      */
     public function listFor(int $userId): array
     {
-        $profile = $this->students->profile($userId);
+        $profile = $this->access->withRevision($this->students->profile($userId));
         $decide = $this->access->forStudent($userId);
         if ($profile === null || $decide === null) {
             return [];
         }
         $out = [];
-        foreach ($this->notes->publishedForForm((int) $profile['form']) as $n) {
+        $notes = [];
+        foreach ($profile['forms'] as $form) {
+            array_push($notes, ...$this->notes->publishedForForm((int) $form));
+        }
+        foreach ($notes as $n) {
             if (!in_array($n['subject'], Subjects::forTrack((string) $profile['track']), true)) {
                 continue;
             }

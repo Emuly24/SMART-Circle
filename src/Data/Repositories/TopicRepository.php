@@ -115,6 +115,17 @@ final class TopicRepository
     }
 
     /** @return array<int, string> topic id => subject */
+    /** @return array<int, int> topic id => form */
+    public function formMap(): array
+    {
+        $out = [];
+        foreach ($this->db->all('SELECT id, form FROM topics') as $r) {
+            $out[(int) $r['id']] = (int) $r['form'];
+        }
+
+        return $out;
+    }
+
     public function subjectMap(): array
     {
         $out = [];

@@ -32,7 +32,10 @@ final class TopicController
     {
         $profile = $this->profile();
         $subjects = TopicService::subjectsFor($profile);
-        $form = $profile !== null ? (int) $profile['form'] : max(1, min(4, (int) $request->query('form', '1')));
+        $form = max(1, min(4, (int) $request->query('form', $profile !== null ? (string) $profile['form'] : '1')));
+        if ($profile !== null && !in_array($form, $profile['forms'] ?? [(int) $profile['form']], true)) {
+            $form = (int) $profile['form'];
+        }
         $subject = $request->query('subject', $subjects[0]);
         if (!in_array($subject, $subjects, true)) {
             $subject = $subjects[0];
@@ -60,6 +63,8 @@ final class TopicController
             'tree' => $tree,
             'isTutor' => $profile === null,
             'statuses' => RequestService::STATUSES,
+            'forms' => $profile === null ? [1, 2, 3, 4] : ($profile['forms'] ?? [(int) $profile['form']]),
+            'revision' => $profile['revision'] ?? null,
         ]));
     }
 

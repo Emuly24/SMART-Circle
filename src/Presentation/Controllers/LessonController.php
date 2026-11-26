@@ -43,7 +43,7 @@ final class LessonController
             $profile = $this->topics?->studentProfile((int) $this->context->userId());
             $decide = $this->access?->forStudent((int) $this->context->userId());
             $lessons = array_values(array_filter($lessons, static fn (array $l): bool => $profile !== null
-                && (int) $l['form'] === (int) $profile['form']
+                && in_array((int) $l['form'], $profile['forms'] ?? [(int) $profile['form']], true)
                 && in_array($l['subject'], Subjects::forTrack((string) $profile['track']), true)));
             foreach ($lessons as &$l) {
                 $l['access'] = $decide !== null && $l['topic_id'] !== null ? $decide((int) $l['topic_id']) : ['open' => true, 'basis' => 'untagged', 'state' => 'school'];

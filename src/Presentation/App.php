@@ -9,12 +9,15 @@ use SmartCircle\Application\Admissions\AccountSetupService;
 use SmartCircle\Application\Admissions\ApplicationService;
 use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
+use SmartCircle\Application\Alumni\AlumniService;
+use SmartCircle\Application\Alumni\YearEndService;
 use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Calendar\CalendarService;
+use SmartCircle\Application\Calendar\RevisionMode;
 use SmartCircle\Application\Grades\GradeService;
 use SmartCircle\Application\Messages\MessageService;
 use SmartCircle\Application\Messages\SupportService;
@@ -22,7 +25,9 @@ use SmartCircle\Application\Students\StudentOverviewService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
+use SmartCircle\Application\Maneb\ManebService;
 use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Application\OfficeHours\OfficeHoursService;
 use SmartCircle\Application\Partners\PartnerService;
 use SmartCircle\Application\Partners\SchoolService;
 use SmartCircle\Application\Topics\AccessService;
@@ -38,6 +43,10 @@ use SmartCircle\Data\Repositories\QuestionRepository;
 use SmartCircle\Data\Repositories\SubmissionRepository;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\AlumniRepository;
+use SmartCircle\Data\Repositories\CommunityRepository;
+use SmartCircle\Data\Repositories\ManebRepository;
+use SmartCircle\Data\Repositories\OfficeHoursRepository;
 use SmartCircle\Data\Repositories\CalendarRepository;
 use SmartCircle\Data\Repositories\GradeRepository;
 use SmartCircle\Data\Repositories\MessageRepository;
@@ -60,6 +69,9 @@ use SmartCircle\Data\Repositories\TopicRepository;
 use SmartCircle\Data\Repositories\TopicRequestRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Presentation\Controllers\AdmissionsController;
+use SmartCircle\Presentation\Controllers\AlumniController;
+use SmartCircle\Presentation\Controllers\ManebController;
+use SmartCircle\Presentation\Controllers\OfficeHoursController;
 use SmartCircle\Presentation\Controllers\ApplyController;
 use SmartCircle\Presentation\Controllers\AssessmentController;
 use SmartCircle\Presentation\Controllers\StudioAssessmentController;
@@ -226,6 +238,9 @@ final class App
         $guest = new RequireGuest($this->context);
         $member = new RequireRole($this->context, $this->session);
         $tutor = new RequireRole($this->context, $this->session, ['tutor']);
+        $learner = new RequireRole($this->context, $this->session, ['tutor', 'student', 'partner']);
+        $alumnus = new RequireRole($this->context, $this->session, ['alumni']);
+        $booker = new RequireRole($this->context, $this->session, ['student', 'alumni']);
 
         $pages = new PageController($this->view);
         $authCtl = new AuthController($auth, $this->session, $this->context, $this->view);
@@ -234,8 +249,9 @@ final class App
 
         $lessonRepo = new LessonRepository($db);
         $lessonStorage = new LessonStorage($this->storage(''));
-        $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db), new TextbookRepository($db));
-        $accessService = new AccessService(new AccessRepository($db), new TopicRepository($db), new CoverageRepository($db), $this->notifications($db));
+        $revisionMode = new RevisionMode(new CalendarRepository($db));
+        $topicService = new TopicService(new TopicRepository($db), new StudentRepository($db), new TextbookRepository($db), $revisionMode);
+        $accessService = new AccessService(new AccessRepository($db), new TopicRepository($db), new CoverageRepository($db), $this->notifications($db), $revisionMode);
         $requestService = new RequestService(new TopicRepository($db), new TopicRequestRepository($db), $this->notifications($db), new CoverageRepository($db), $accessService, new AccessRepository($db));
         $lessonService = new LessonService($lessonRepo, $lessonStorage, $topicService, $requestService);
         $uploadService = new UploadService(
@@ -280,6 +296,28 @@ final class App
         $messagesCtl = new MessageController($messageService, $this->context, $this->session, $this->view);
         $supportCtl = new SupportController($supportService, $overviewService, $this->context, $this->session, $this->view);
         $studentsCtl = new StudentsController($overviewService, $this->context, $this->session, $this->view);
+        $studentRepo = new StudentRepository($db);
+        $studentForm = static function (int $userId) use ($studentRepo): ?int {
+            $p = $studentRepo->profile($userId);
+
+            return $p !== null && $p['status'] === 'active' ? (int) $p['form'] : null;
+        };
+        $manebCtl = new ManebController(new ManebService(new ManebRepository($db), $studentRepo, $accessService, $this->notifications($db)),
+            $studentRepo->profile(...), $this->context, $this->session, $this->view);
+        $alumniService = new AlumniService(new AlumniRepository($db), new CommunityRepository($db), $this->notifications($db));
+        $alumniCtl = new AlumniController($alumniService, new YearEndService(new AlumniRepository($db), $this->notifications($db), $audit),
+            $studentForm, $this->context, $this->session, $this->view);
+        $officeIds = static function (string $audience) use ($accessService, $messageService): array {
+            if ($audience === 'alumni') {
+                return array_map(static fn (array $p): int => (int) $p['id'], $messageService->alumni());
+            }
+            $form = str_starts_with($audience, 'form:') ? (int) substr($audience, 5) : null;
+
+            return array_values(array_map(static fn (array $s): int => (int) $s['user_id'],
+                array_filter($accessService->allStudents(), static fn (array $s): bool => $form === null || (int) $s['form'] === $form)));
+        };
+        $officeCtl = new OfficeHoursController(new OfficeHoursService(new OfficeHoursRepository($db), $this->notifications($db), $officeIds),
+            $studentForm, $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
@@ -312,10 +350,12 @@ final class App
             ];
         }, fn (int $userId): ?array => $this->accountSetup($db, $users, $audit)->latestPledge($userId),
             static fn (int $userId): array => $examService->recentResults($userId),
-            static function (int $userId, string $role) use ($calendarService, $gradeService): array {
+            static function (int $userId, string $role) use ($calendarService, $gradeService, $accessService): array {
                 $student = $role === 'student' ? $gradeService->student($userId) : null;
 
-                return ['today' => $calendarService->today(), 'maneb' => $student !== null ? $calendarService->maneb((int) $student['form']) : []];
+                return ['today' => $calendarService->today(), 'maneb' => $student !== null ? $calendarService->maneb((int) $student['form']) : [],
+                    'form' => $student !== null ? (int) $student['form'] : null,
+                    'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null];
             });
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
@@ -355,13 +395,13 @@ final class App
         $r->post('/dashboard/database-update', $dashboard->updateDatabase(...), [$csrf, $tutor]);
 
         // Lessons: watching (students see published lessons; tutor sees all)
-        $r->get('/lessons', $lessons->index(...), [$member, $onboarded]);
-        $r->get('/lessons/{id}', $lessons->show(...), [$member, $onboarded]);
-        $r->get('/lessons/{id}/file', $lessons->file(...), [$member, $onboarded]);
+        $r->get('/lessons', $lessons->index(...), [$learner, $onboarded]);
+        $r->get('/lessons/{id}', $lessons->show(...), [$learner, $onboarded]);
+        $r->get('/lessons/{id}/file', $lessons->file(...), [$learner, $onboarded]);
 
         // Topics: the syllabus, and asking for help on a topic
-        $r->get('/topics', $topicsCtl->index(...), [$member, $onboarded]);
-        $r->get('/topics/{id}', $topicsCtl->show(...), [$member, $onboarded]);
+        $r->get('/topics', $topicsCtl->index(...), [$learner, $onboarded]);
+        $r->get('/topics/{id}', $topicsCtl->show(...), [$learner, $onboarded]);
         $r->post('/topics/{id}/request', $topicsCtl->ask(...), [$csrf, $student, $onboarded]);
         $r->post('/topics/{id}/report', $topicsCtl->report(...), [$csrf, $student, $onboarded]);
 
@@ -458,6 +498,32 @@ final class App
         $r->get('/studio/students/{id}', $studentsCtl->show(...), [$tutor]);
         $r->post('/studio/students/{id}/contact', $studentsCtl->logContact(...), [$csrf, $tutor]);
         $r->post('/studio/students/{id}/invite', $supportCtl->invite(...), [$csrf, $tutor]);
+
+        // MANEB, alumni and office hours
+        $r->get('/results', $manebCtl->public(...));
+        $r->get('/revision', $manebCtl->revision(...), [$student, $onboarded]);
+        $r->get('/results/mine', $manebCtl->results(...), [$booker, $onboarded]);
+        $r->post('/results/mine', $manebCtl->saveResults(...), [$csrf, $booker, $onboarded]);
+        $r->get('/studio/results', $manebCtl->studio(...), [$tutor]);
+        $r->post('/studio/results/{id}/verify', $manebCtl->verify(...), [$csrf, $tutor]);
+        $r->get('/alumni', $alumniCtl->home(...), [$alumnus]);
+        $r->post('/alumni', $alumniCtl->saveProfile(...), [$csrf, $alumnus]);
+        $r->get('/alumni/community', $alumniCtl->community(...), [$member, $onboarded]);
+        $r->post('/alumni/community', $alumniCtl->createPost(...), [$csrf, $member, $onboarded]);
+        $r->get('/alumni/community/{id}', $alumniCtl->post(...), [$member, $onboarded]);
+        $r->post('/alumni/community/{id}/reply', $alumniCtl->reply(...), [$csrf, $member, $onboarded]);
+        $r->post('/alumni/community/{id}/moderate', $alumniCtl->moderate(...), [$csrf, $tutor]);
+        $r->get('/studio/alumni', $alumniCtl->studio(...), [$tutor]);
+        $r->get('/studio/year-end', $alumniCtl->yearEnd(...), [$tutor]);
+        $r->post('/studio/year-end', $alumniCtl->applyYearEnd(...), [$csrf, $tutor]);
+        $r->get('/office-hours', $officeCtl->index(...), [$booker, $onboarded]);
+        $r->post('/office-hours/{id}/book', $officeCtl->book(...), [$csrf, $booker, $onboarded]);
+        $r->post('/office-hours/{id}/cancel', $officeCtl->cancel(...), [$csrf, $booker, $onboarded]);
+        $r->get('/studio/office-hours', $officeCtl->studio(...), [$tutor]);
+        $r->post('/studio/office-hours', $officeCtl->create(...), [$csrf, $tutor]);
+        $r->get('/studio/office-hours/{id}', $officeCtl->slot(...), [$tutor]);
+        $r->post('/studio/office-hours/{id}/cancel', $officeCtl->cancelSlot(...), [$csrf, $tutor]);
+        $r->post('/studio/office-hours/bookings/{id}', $officeCtl->markBooking(...), [$csrf, $tutor]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);

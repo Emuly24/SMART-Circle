@@ -901,3 +901,23 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .timeline { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
 .timeline li { overflow-wrap: anywhere; }
 .filters a[aria-current="page"] { font-weight: 700; color: var(--ink); text-decoration: none; }
+
+/* MANEB revision, results, alumni and office hours (Phase E) */
+.revision-banner { display: block; border-left: 4px solid var(--amber); background: var(--amber-tint); color: var(--ink); text-decoration: none; }
+.revision-banner:hover { border-color: var(--link); }
+.revision-hero__days { font-size: 1.15rem; margin: 4px 0; }
+.revision-hero__days strong { font: 700 2.4rem var(--font-display); color: var(--link); margin-right: 4px; }
+.revision-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.revision-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.revision-row > span { min-width: 0; }
+.revision-row .btn { margin-left: auto; }
+.revision-note a { font-weight: 600; }
+.grade-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.grade-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.results-table { width: 100%; border-collapse: collapse; }
+.results-table th, .results-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.quote { margin: 10px 0; padding: 10px 14px; border-left: 4px solid var(--green); background: var(--green-tint); border-radius: var(--radius-small); }
+.quote p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.quote footer { font-size: .9rem; color: var(--slate); }
+.slot--mine { border-left: 4px solid var(--green); }
+.choice-grid .choice { min-width: 0; }

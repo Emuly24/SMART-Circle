@@ -167,7 +167,7 @@ final class RequestService
             $taught = 0;
             foreach ($this->requests->participants((int) $row['id']) as $uid) {
                 $d = isset($deciders[$uid]) ? $deciders[$uid]((int) $row['topic_id']) : null;
-                if ($d !== null && $d['open'] && $d['basis'] !== 'exception') {
+                if ($d !== null && AccessService::taught($d)) {
                     $taught++;
                 }
             }
