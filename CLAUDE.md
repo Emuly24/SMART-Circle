@@ -56,6 +56,10 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 - **Errors:** never show stack traces to users; `Logger` writes to `storage/logs`.
 - **Secrets:** only in `/secrets.php` on the server (template: `secrets.example.php`). Never committed.
 - **Assets:** self-hosted only (no CDNs, no external APIs). Link with `$asset('path')` for cache-busting.
+- **Screens and themes:** every page must work from 320 px phones to wide desktops with no sideways scrolling,
+  and in all themes (Light, Eye comfort, Dark, Auto). Use the colour roles in `app.css` (`--surface`, `--ink`,
+  `--link`, `--on-brand`, `--btn-blue`, …), never raw hex colours in components. Lesson boards and printed
+  letters stay light (`data-theme-fixed`).
 - Phone numbers are stored as `+265XXXXXXXXX` (`PhoneNumber::normalize`).
 
 ## 4. InfinityFree constraints

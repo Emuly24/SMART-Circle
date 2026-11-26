@@ -20,9 +20,11 @@
 |---|---|
 | `logo-horizontal.svg` | Site header, letterheads, email headers |
 | `logo-horizontal-reversed.svg` | On dark-blue backgrounds |
+| `logo-horizontal-dark.svg` | Same artwork without the blue panel: the website header in Dark theme |
 | `logo-stacked.svg` | Posters, certificates, admission letters |
 | `logo-mark.svg` | Symbol alone (profile pictures, stamps, small spaces) |
 | `logo-mark-reversed.svg` | Symbol on blue (app icon) |
+| `logo-mark-dark.svg` | Symbol for dark backgrounds (website Dark theme): light strokes, brighter blue |
 | `favicon.svg` | Browser tab (simplified: ring + spark, readable at 16 px) |
 | `png/icon-192.png`, `png/icon-512.png` | Phone home-screen icon (installable site) |
 | `png/apple-touch-icon-180.png` | iPhone/iPad home-screen icon |

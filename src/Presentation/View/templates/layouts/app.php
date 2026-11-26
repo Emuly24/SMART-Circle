@@ -25,6 +25,7 @@ $user = $ctx->user();
     <link rel="icon" href="<?= e($asset('brand/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="icon" href="<?= e($asset('brand/favicon-32.png')) ?>" sizes="32x32" type="image/png">
     <link rel="apple-touch-icon" href="<?= e($asset('brand/apple-touch-icon-180.png')) ?>">
+    <script src="<?= e($asset('js/theme.js')) ?>"></script>
     <link rel="stylesheet" href="<?= e($asset('css/app.css')) ?>">
 </head>
 <body>
@@ -32,9 +33,13 @@ $user = $ctx->user();
 <header class="site-header">
     <div class="container site-header__inner">
         <a class="brand" href="/" aria-label="<?= e($appName) ?> home">
-            <img src="<?= e($asset('brand/logo-horizontal.svg')) ?>" alt="<?= e($appName) ?>" width="220" height="56">
+            <img class="brand__logo brand__logo--light" src="<?= e($asset('brand/logo-horizontal.svg')) ?>" alt="<?= e($appName) ?>" width="220" height="56">
+            <img class="brand__logo brand__logo--dark" src="<?= e($asset('brand/logo-horizontal-dark.svg')) ?>" alt="" width="220" height="56">
         </a>
-        <nav class="site-nav" aria-label="Main">
+        <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav">
+            <span class="nav-toggle__bars" aria-hidden="true"></span><span class="nav-toggle__label">Menu</span>
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Main">
             <a href="/" <?= ($path ?? '') === '/' ? 'aria-current="page"' : '' ?>>Home</a>
             <a href="/about" <?= ($path ?? '') === '/about' ? 'aria-current="page"' : '' ?>>About</a>
             <?php if ($user === null): ?>
@@ -60,6 +65,16 @@ $user = $ctx->user();
                     <button type="submit" class="btn btn--small btn--ghost">Log out</button>
                 </form>
             <?php endif; ?>
+            <details class="theme-menu">
+                <summary aria-label="Display theme"><svg class="theme-menu__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></svg><span class="theme-menu__label">Theme</span></summary>
+                <div class="theme-menu__panel" role="group" aria-label="Display theme">
+                    <button type="button" data-theme-choice="light" aria-pressed="false"><span aria-hidden="true">☀</span> Light</button>
+                    <button type="button" data-theme-choice="comfort" aria-pressed="false"><span aria-hidden="true">📖</span> Eye comfort</button>
+                    <button type="button" data-theme-choice="dark" aria-pressed="false"><span aria-hidden="true">🌙</span> Dark</button>
+                    <button type="button" data-theme-choice="auto" aria-pressed="false"><span aria-hidden="true">⚙</span> Same as my device</button>
+                    <p class="theme-menu__hint">Eye comfort uses warm, softer colours for long reading.</p>
+                </div>
+            </details>
         </nav>
     </div>
 </header>
@@ -75,11 +90,12 @@ $user = $ctx->user();
 
 <footer class="site-footer">
     <div class="container site-footer__inner">
-        <img src="<?= e($asset('brand/logo-horizontal-reversed.svg')) ?>" alt="" width="180" height="46">
+        <img src="<?= e($asset('brand/logo-horizontal-dark.svg')) ?>" alt="" width="180" height="46">
         <p><?= e($tagline) ?> Free support for Form 1–4 students in Malawi.</p>
         <p class="site-footer__links"><a href="/about">About &amp; our story</a> · <a href="/safeguarding">Safeguarding &amp; privacy</a> · <a href="/verify">Verify a document</a></p>
         <p class="site-footer__small">&copy; <?= e(date('Y')) ?> <?= e($appName) ?> · Free, always. No favours of any kind.</p>
     </div>
 </footer>
+<script src="<?= e($asset('js/site.js')) ?>" defer></script>
 </body>
 </html>
