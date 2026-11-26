@@ -125,6 +125,9 @@ final class ApplicationForm
         if (($in['guardian_consent'] ?? '') !== '1') {
             $errors['guardian_consent'] = 'Your parent or guardian must agree before you apply.';
         }
+        [$qErrors, $data['answers']] = Questionnaire::validate($in);
+        $errors += $qErrors;
+
         if (($in['truthful'] ?? '') !== '1') {
             $errors['truthful'] = 'Please confirm that your answers are true.';
         }

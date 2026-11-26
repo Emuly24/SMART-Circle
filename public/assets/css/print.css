@@ -40,3 +40,5 @@
     .print-body { background: none; }
     .letter { box-shadow: none; margin: 0; width: 210mm; min-height: 297mm; }
 }
+.letter__vows { padding-left: 1.3em; display: grid; gap: 4px; }
+.letter__motto { text-align: center; color: var(--blue); margin-top: 14px; }

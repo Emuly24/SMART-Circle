@@ -33,6 +33,7 @@ use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
+use SmartCircle\Data\Repositories\PledgeRepository;
 use SmartCircle\Data\Repositories\SchoolRepository;
 use SmartCircle\Data\Repositories\TextbookRepository;
 use SmartCircle\Data\Repositories\DocumentRepository;
@@ -268,12 +269,13 @@ final class App
                 'letters' => $partnerService->letters($userId),
                 'fresh' => $schoolService->freshness($schoolId),
             ];
-        });
+        }, fn (int $userId): ?array => $this->accountSetup($db, $users, $audit)->latestPledge($userId));
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
         // Public
         $r->get('/', $pages->home(...));
         $r->get('/about', $pages->about(...));
+        $r->get('/safeguarding', $pages->safeguarding(...));
 
         // Accounts
         $r->get('/login', $authCtl->showLogin(...), [$guest]);
@@ -430,7 +432,13 @@ final class App
 
     private function accountSetup(Database $db, UserRepository $users, AuditLogRepository $audit): AccountSetupService
     {
-        return $this->accountSetup ??= new AccountSetupService($users, new StudentRepository($db), $audit);
+        return $this->accountSetup ??= new AccountSetupService(
+            $users,
+            new StudentRepository($db),
+            $audit,
+            new PledgeRepository($db),
+            new DocumentService(new DocumentRepository($db)),
+        );
     }
 
     private function isInstalled(InstallService $installer): bool

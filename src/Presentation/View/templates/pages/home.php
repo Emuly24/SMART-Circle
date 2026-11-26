@@ -77,13 +77,27 @@
     </div>
 </section>
 
+<section class="section section--vision">
+    <div class="container narrow-wide">
+        <p class="eyebrow">Our vision</p>
+        <p class="vision-quote"><?= e(\SmartCircle\Support\Identity::VISION) ?></p>
+        <ul class="values values--compact">
+            <?php foreach (array_slice(\SmartCircle\Support\Identity::VALUES, 0, 6, true) as $key => [$value, $meaning]): ?>
+                <li class="value value--<?= e($key) ?>"><strong><?= e($value) ?></strong><span><?= e($meaning) ?></span></li>
+            <?php endforeach; ?>
+        </ul>
+        <p><a href="/about">Read our story and all our values</a></p>
+    </div>
+</section>
+
 <section class="section">
     <div class="container two-col">
         <div>
             <h2>A small, serious class</h2>
             <p>
-                24 places: six per form, three girls and three boys, from different schools.
-                It's free, and it's for students who take their schoolwork seriously.
+                24 places: six per form, three girls and three boys, from different schools. Day scholars,
+                boarders, self-boarders and evening-class students are all welcome.
+                It costs no money: students pay with discipline.
             </p>
             <?= $view->partial('seat_chart', ['chart' => $chart]) ?>
             <p>

@@ -21,6 +21,8 @@ final class DashboardController
         private readonly Session $session,
         /** @var (\Closure(int): array<string, mixed>)|null builds the partner's school summary */
         private readonly ?\Closure $partnerSummary = null,
+        /** @var (\Closure(int): ?array<string, mixed>)|null the student's latest pledge */
+        private readonly ?\Closure $studentPledge = null,
     ) {
     }
 
@@ -37,6 +39,7 @@ final class DashboardController
             'title' => 'Dashboard',
             'pendingUpdates' => $role === 'tutor' ? $this->installer->pendingUpdates() : [],
             'summary' => $role === 'partner' && $this->partnerSummary !== null ? ($this->partnerSummary)((int) $this->context->userId()) : null,
+            'pledge' => $role === 'student' && $this->studentPledge !== null ? ($this->studentPledge)((int) $this->context->userId()) : null,
         ]));
     }
 

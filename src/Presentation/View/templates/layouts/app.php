@@ -77,7 +77,8 @@ $user = $ctx->user();
     <div class="container site-footer__inner">
         <img src="<?= e($asset('brand/logo-horizontal-reversed.svg')) ?>" alt="" width="180" height="46">
         <p><?= e($tagline) ?> Free support for Form 1–4 students in Malawi.</p>
-        <p class="site-footer__small">&copy; <?= e(date('Y')) ?> <?= e($appName) ?></p>
+        <p class="site-footer__links"><a href="/about">About &amp; our story</a> · <a href="/safeguarding">Safeguarding &amp; privacy</a> · <a href="/verify">Verify a document</a></p>
+        <p class="site-footer__small">&copy; <?= e(date('Y')) ?> <?= e($appName) ?> · Free, always. No favours of any kind.</p>
     </div>
 </footer>
 </body>

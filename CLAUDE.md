@@ -12,6 +12,7 @@ Admitted students get everything; the public gets free PDF handouts from each le
 
 - Forms 1–2: all five subjects. Forms 3–4 science track (Physics **and** Chemistry): all five.
   Forms 3–4 humanities track: Mathematics, Biology, English grammar.
+- Day scholars, boarders, self-boarders and evening-class students are all welcome.
 - No live streaming. No attendance or discipline features.
 - **Honesty rule:** a topic, its lessons, requests and (later) exercises open to a student only when
   their own school has taught it (`AccessService`). Never bypass it; early access is a tutor decision.

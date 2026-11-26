@@ -42,6 +42,11 @@ final class PageController
         return Response::html($this->view->render('pages/about', ['title' => 'About SMART Circle']));
     }
 
+    public function safeguarding(Request $request): Response
+    {
+        return Response::html($this->view->render('pages/safeguarding', ['title' => 'Safeguarding and privacy']));
+    }
+
     /** @return list<array{key: string, name: string, blurb: string}> */
     public static function subjects(): array
     {

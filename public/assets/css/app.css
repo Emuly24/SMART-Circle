@@ -535,3 +535,52 @@ meter::-moz-meter-bar { background: var(--green); border-radius: 999px; }
 .result-q--part { border-left-color: var(--amber); }
 .result-q--wrong { border-left-color: var(--red); }
 .result-q__feedback { background: var(--blue-tint); padding: 8px 12px; border-radius: var(--radius-small); }
+
+/* ---------- Identity: questionnaire, pledge, about ---------- */
+.other-input { margin-top: 6px; min-height: 42px; padding: 8px 12px; border: 1.5px solid #C4CDD9; border-radius: var(--radius-small); font: inherit; }
+.other-input[hidden] { display: none; }
+.signal-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.signal { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.signal--growth { background: var(--green-tint); color: var(--green-text); }
+.signal--neutral { background: var(--mist); color: var(--slate); }
+.signal--concern { background: var(--amber-tint); color: #7A5200; }
+.survey { display: grid; gap: 4px 0; margin: 12px 0 0; }
+.survey dt { font-weight: 600; color: var(--slate); font-size: .92rem; margin-top: 8px; }
+.survey dd { margin: 0; padding-left: 12px; border-left: 4px solid var(--line); }
+.survey__answer--growth { border-left-color: var(--green) !important; }
+.survey__answer--concern { border-left-color: var(--amber) !important; }
+.onboarding { display: grid; gap: 16px; }
+.onboarding fieldset.card { border: 1px solid var(--line); display: grid; gap: 14px; margin: 0; }
+.onboarding legend { font: 700 1.1rem var(--font-display); padding: 0 6px; }
+.pledge { border-top: 5px solid var(--amber) !important; }
+.pledge__vows { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; counter-reset: vow; }
+.pledge__vow span { display: block; }
+.pledge__vow .muted { font-size: .9rem; margin-top: 2px; }
+.pledge__signature { font: 600 1.2rem var(--font-display); letter-spacing: .02em; }
+.field.js-travel[hidden] { display: none; }
+.hero--about { padding-bottom: 24px; }
+.identity-grid { display: grid; gap: 16px; }
+.identity-card h2 { font-size: 1.2rem; }
+.identity-card p { font-size: 1.08rem; margin: 0; }
+.identity-card--vision { border-top: 5px solid var(--green); }
+.identity-card--mission { border-top: 5px solid var(--blue); }
+.values { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.value { background: var(--white); border: 1px solid var(--line); border-left: 5px solid var(--amber); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 4px; }
+.value strong { font: 700 1.05rem var(--font-display); }
+.value span { color: var(--slate); font-size: .95rem; }
+.value--understand, .value--honesty, .value--courage { border-left-color: var(--blue); }
+.value--apply, .value--respect, .value--big_picture { border-left-color: var(--green); }
+.values--compact { margin: 18px 0 10px; }
+.section--vision { background: linear-gradient(180deg, var(--white), var(--mist)); }
+.vision-quote { font: 600 clamp(1.2rem, 3vw, 1.5rem)/1.4 var(--font-display); color: var(--ink); margin: 0; }
+.story { display: grid; gap: 24px; align-items: start; }
+.story__photo { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--green)); display: grid; place-items: center; border: 4px solid var(--amber); }
+.story__photo span { font: 700 2.6rem var(--font-display); color: var(--white); letter-spacing: .04em; }
+.story__signature { border-top: 1px solid var(--line); padding-top: 12px; }
+.goals { padding-left: 1.3em; display: grid; gap: 8px; max-width: 760px; }
+.site-footer__links a { color: inherit; }
+@media (min-width: 760px) {
+    .identity-grid { grid-template-columns: 1fr 1fr; }
+    .story { grid-template-columns: 180px 1fr; }
+    .story__photo { width: 170px; height: 170px; }
+}

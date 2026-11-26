@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Application\Admissions;
 
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\PledgeRepository;
 use SmartCircle\Data\Repositories\StudentRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Support\Codes;
@@ -24,6 +25,8 @@ final class AccountSetupService
         private readonly UserRepository $users,
         private readonly StudentRepository $students,
         private readonly AuditLogRepository $audit,
+        private readonly ?PledgeRepository $pledges = null,
+        private readonly ?DocumentService $documents = null,
     ) {
     }
 
@@ -71,9 +74,51 @@ final class AccountSetupService
         return $profile !== null && ($profile['agreement_accepted_at'] === null || $profile['guardian_confirmed_at'] === null);
     }
 
-    public function completeOnboarding(int $userId): void
+    /**
+     * Sign-up details plus the SMART Circle Pledge. On success a verifiable pledge certificate is issued.
+     * @param array<string, mixed> $input study_mode, school_area, travel_time, home_study, vows[], signed_name, guardian
+     * @return array<string, string> errors (empty = done)
+     */
+    public function completeOnboarding(int $userId, array $input, string $ip): array
     {
+        $user = $this->users->findById($userId);
+        $profile = $this->students->profile($userId);
+        if ($user === null || $profile === null) {
+            return ['form' => 'Your student profile was not found. Please contact the tutor.'];
+        }
+        [$errors, $details] = SignupForm::validate($input);
+        $errors += Pledge::validate($input, (string) $user['full_name']);
+        if ($errors !== []) {
+            return $errors;
+        }
+
+        $this->students->saveSignup($userId, $details);
         $this->students->completeOnboarding($userId);
+        if ($this->pledges !== null) {
+            $vows = array_map(static fn (array $v): string => $v[0], Pledge::VOWS);
+            $guardian = $profile['guardian_name'] !== null ? (string) $profile['guardian_name'] : null;
+            $pledgeId = $this->pledges->create($userId, Pledge::VERSION, $vows, trim((string) $input['signed_name']), $guardian, $ip);
+            if ($this->documents !== null) {
+                $code = $this->documents->issue('pledge_certificate', 'user', $userId, [
+                    'full_name' => $user['full_name'],
+                    'form' => (int) $profile['form'],
+                    'school' => $profile['school_name'] ?? '',
+                    'guardian_name' => $guardian,
+                    'vows' => array_values($vows),
+                    'version' => Pledge::VERSION,
+                ], null);
+                $this->pledges->setDocument($pledgeId, $code);
+            }
+        }
+        $this->audit->record($userId, 'pledge_signed', Pledge::VERSION, $ip);
+
+        return [];
+    }
+
+    /** @return array<string, mixed>|null the student's latest signed pledge */
+    public function latestPledge(int $userId): ?array
+    {
+        return $this->pledges?->latest($userId);
     }
 
     /** @return array<string, mixed>|null */
