@@ -30,7 +30,12 @@ apply() {
         --form-string "motivation=I want to understand science deeply and use it to help my community grow." \
         --form-string "device=own_phone" --form-string "data_access=weekly" --form-string "guardian_name=Mary Phiri" \
         --form-string "guardian_phone=0888111222" --form-string "guardian_relationship=Parent" --form-string "guardian_consent=1" \
-        --form-string "truthful=1" "${args[@]}" "$@" "$BASE/apply"
+        --form-string "truthful=1" --form-string schooling_reason=understand --form-string career_interest=engineering \
+        --form-string heard_from=teacher --form-string study_hours=1_2 --form-string seriousness=5 --form-string setback=review \
+        --form-string discipline=stay --form-string confidence=ask_class \
+        --form-string "benefit=I will understand science properly and use it at home." \
+        --form-string "helpful_teacher=My physics teacher stayed after class to explain circuits." \
+        "${args[@]}" "$@" "$BASE/apply"
 }
 ref_of() { sql "SELECT reference FROM applications WHERE phone='$1'"; }
 id_of() { sql "SELECT id FROM applications WHERE phone='$1'"; }
@@ -98,7 +103,7 @@ CODE=$(grep -oE 'class="reference">[A-Z0-9 ]+<' <<<"$PAGE" | sed -E 's/.*>([A-Z0
 check "admit shows an 8-char setup code"   "8" "${#CODE}"
 check "WhatsApp link to the student"       "wa.me/265991000002" "$PAGE"
 check "student account created"            "student" "$(sql "SELECT role FROM users WHERE phone='+265991000002'")"
-check "profile has the track"              "science" "$(sql "SELECT track FROM student_profiles sp JOIN users u ON u.id=sp.user_id WHERE u.phone='+265991000002'")"
+check "profile has the track"              "science" "$(sql "SELECT track FROM student_profiles sp JOIN users u ON u.id=sp.user_id WHERE u.phone='+265991000002'" | tr '\t' ' ')"
 LETTER=$(sql "SELECT code FROM issued_documents WHERE subject_type='application' AND subject_id=$ID AND type='admission_letter'")
 check "admission letter issued"            "L" "$LETTER"
 LTXT=$(curl -s -b "$TJ" "$BASE/letters/$LETTER")
@@ -125,10 +130,26 @@ T=$(token "$W" "$BASE/welcome/password")
 check "password set -> onboarding"         "303 $BASE/welcome/onboarding" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -b "$W" -c "$W" --data-urlencode "_token=$T" --data-urlencode "password=my-new-pass-1" --data-urlencode "password_confirm=my-new-pass-1" "$BASE/welcome/password")"
 check "dashboard waits for onboarding"     "303 $BASE/welcome/onboarding" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -b "$W" "$BASE/dashboard")"
 check "lessons wait for onboarding"        "303 $BASE/welcome/onboarding" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -b "$W" "$BASE/lessons")"
+check "onboarding asks how they attend"     "Evening classes" "$(curl -s -b "$W" "$BASE/welcome/onboarding")"
+check "  and shows the pledge"             "I will share my MANEB results" "$(curl -s -b "$W" "$BASE/welcome/onboarding")"
+VOWS=(); for k in serious hard_work respect_teachers respect_students ask challenge honest maneb safe discipline_fee; do VOWS+=(--data-urlencode "vows[]=$k"); done
 T=$(token "$W" "$BASE/welcome/onboarding")
-check "both boxes required"                "tick both boxes" "$(curl -s -b "$W" -c "$W" --data-urlencode "_token=$T" --data-urlencode "agreement=1" "$BASE/welcome/onboarding")"
+R=$(curl -s -w '\n%{http_code}' -b "$W" -c "$W" --data-urlencode "_token=$T" --data-urlencode study_mode=day --data-urlencode "school_area=Likuni" \
+    --data-urlencode home_study=evening "${VOWS[@]:0:18}" --data-urlencode "signed_name=Someone Else" --data-urlencode guardian=1 "$BASE/welcome/onboarding")
+check "incomplete pledge refused (422)"    "422" "$(tail -n1 <<<"$R")"
+check "  every vow must be ticked"         "tick every promise" "$R"
+check "  signature must match"             "Type your full name exactly" "$R"
+check "  day scholars give travel time"    "how long it takes you" "$R"
 T=$(token "$W" "$BASE/welcome/onboarding")
-curl -s -o /dev/null -b "$W" -c "$W" --data-urlencode "_token=$T" --data-urlencode "agreement=1" --data-urlencode "guardian=1" "$BASE/welcome/onboarding"
+curl -s -o /dev/null -b "$W" -c "$W" --data-urlencode "_token=$T" --data-urlencode study_mode=evening --data-urlencode "school_area=Likuni" --data-urlencode travel_time=15_30 \
+    --data-urlencode home_study=evening "${VOWS[@]}" --data-urlencode "signed_name=chikondi banda" --data-urlencode guardian=1 "$BASE/welcome/onboarding"
+check "evening-class sign-up saved"        "evening Likuni 15_30 evening" "$(sql "SELECT study_mode, school_area, travel_time, home_study FROM student_profiles sp JOIN users u ON u.id=sp.user_id WHERE u.phone='+265991000002'" | tr '\t' ' ')"
+check "pledge recorded"                    "2026-1 chikondi banda" "$(sql "SELECT version, signed_name FROM pledges p JOIN users u ON u.id=p.user_id WHERE u.phone='+265991000002'" | tr '\t' ' ')"
+PCODE=$(sql "SELECT document_code FROM pledges p JOIN users u ON u.id=p.user_id WHERE u.phone='+265991000002'")
+check "dashboard links the certificate"    "/letters/$PCODE" "$(curl -s -b "$W" "$BASE/dashboard")"
+check "certificate lists the vows"         "I will challenge the tutor constructively." "$(curl -s -b "$W" "$BASE/letters/$PCODE")"
+check "certificate is verifiable"          "Genuine" "$(curl -s "$BASE/verify/$PCODE")"
+check "tutor sees goals and habits"        "growth-minded" "$(curl -s -b "$TJ" "$BASE/studio/admissions/$ID")"
 check "student dashboard after onboarding" "Hello, Chikondi" "$(curl -s -b "$W" "$BASE/dashboard")"
 check "code cannot be reused"              "do not match" "$(W2="$WORK/w2.txt"; T=$(token "$W2" "$BASE/welcome"); curl -s -b "$W2" -c "$W2" --data-urlencode "_token=$T" --data-urlencode "phone=0991000002" --data-urlencode "code=$CODE" "$BASE/welcome")"
 L2="$WORK/l2.txt"; T=$(token "$L2" "$BASE/login")

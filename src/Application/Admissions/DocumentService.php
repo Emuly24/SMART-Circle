@@ -17,6 +17,7 @@ final class DocumentService
         'waitlist_letter' => 'Waiting list letter',
         'decline_letter' => 'Application outcome',
         'partner_invite' => 'Invitation to partner with SMART Circle',
+        'pledge_certificate' => 'The SMART Circle Pledge',
     ];
 
     public function __construct(private readonly DocumentRepository $documents)

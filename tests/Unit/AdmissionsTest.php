@@ -36,6 +36,10 @@ final class AdmissionsTest extends TestCase
             'guardian_relationship' => 'Parent',
             'guardian_consent' => '1',
             'truthful' => '1',
+            'schooling_reason' => 'understand', 'career_interest' => 'engineering', 'heard_from' => 'teacher',
+            'study_hours' => '1_2', 'seriousness' => '5', 'setback' => 'review', 'discipline' => 'stay', 'confidence' => 'ask_class',
+            'benefit' => 'I will understand physics and use it on our farm.',
+            'helpful_teacher' => 'My maths teacher explained fractions after class until I understood.',
         ], $overrides);
     }
 

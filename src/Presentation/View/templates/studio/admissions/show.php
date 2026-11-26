@@ -71,6 +71,25 @@ $waText = "Hello $first, congratulations on your admission to SMART Circle! To s
             </div>
         </div>
 
+        <?php $survey = \SmartCircle\Application\Admissions\Questionnaire::summary(json_decode((string) ($app['answers'] ?? ''), true) ?: []); ?>
+        <?php if ($survey['rows'] !== []): ?>
+            <div class="card">
+                <h2>Goals and habits</h2>
+                <p class="signal-summary">
+                    <span class="signal signal--growth"><?= e($survey['counts']['growth']) ?> growth-minded</span>
+                    <span class="signal signal--neutral"><?= e($survey['counts']['neutral']) ?> neutral</span>
+                    <span class="signal signal--concern"><?= e($survey['counts']['concern']) ?> worth a conversation</span>
+                </p>
+                <p class="note">Signals help you choose follow-up questions. They never decide an application on their own.</p>
+                <dl class="survey">
+                    <?php foreach ($survey['rows'] as $row): ?>
+                        <dt><?= e($row['label']) ?></dt>
+                        <dd class="survey__answer survey__answer--<?= e($row['signal']) ?>"><?= nl2br(e($row['answer'])) ?></dd>
+                    <?php endforeach; ?>
+                </dl>
+            </div>
+        <?php endif; ?>
+
         <div class="card">
             <h2>Why they want to join</h2>
             <p><?= nl2br(e($app['motivation'])) ?></p>

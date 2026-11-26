@@ -34,7 +34,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <h1 class="letter__title"><?= e($doc['title']) ?></h1>
 
-    <p>Dear <?= e($first) ?>,</p>
+    <?php if ($doc['type'] !== 'pledge_certificate'): ?><p>Dear <?= e($first) ?>,</p><?php endif; ?>
 
     <?php if ($doc['type'] === 'admission_letter'): ?>
         <p>
@@ -71,6 +71,16 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <p><strong>To start:</strong> open the SMART Circle website, choose <strong>Log in</strong> and then <strong>set up your account</strong>,
             and enter your phone number with the setup code the tutor gives you.</p>
         <p>Thank you for supporting your students.</p>
+    <?php elseif ($doc['type'] === 'pledge_certificate'): ?>
+        <p>
+            On <?= e($date) ?>, <strong><?= e($data['full_name'] ?? '') ?></strong> joined SMART Circle and made the following
+            pledge. SMART Circle is free of money; its students pay for their place with discipline.
+        </p>
+        <ol class="letter__vows">
+            <?php foreach ((array) ($data['vows'] ?? []) as $vow): ?><li><?= e($vow) ?></li><?php endforeach; ?>
+        </ol>
+        <p>Signed by the student, with the knowledge of <?= e($data['guardian_name'] ?? 'their parent or guardian') ?>.</p>
+        <p class="letter__motto"><strong>Understand it. Apply it.</strong></p>
     <?php elseif ($doc['type'] === 'waitlist_letter'): ?>
         <p>
             Thank you for applying to <strong>SMART Circle</strong>. Your application was strong, but all the seats for
@@ -89,7 +99,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         </p>
     <?php endif; ?>
 
-    <?php if (isset($data['guardian_name'])): ?><p>Parent/guardian: <?= e($data['guardian_name']) ?></p><?php endif; ?>
+    <?php if (isset($data['guardian_name']) && $doc['type'] !== 'pledge_certificate'): ?><p>Parent/guardian: <?= e($data['guardian_name']) ?></p><?php endif; ?>
 
     <div class="letter__sign">
         <p>Yours sincerely,</p>

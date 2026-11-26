@@ -20,7 +20,8 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="field
     <div class="container narrow-wide">
         <p class="eyebrow">Free · Forms 1–4</p>
         <h1>Apply to SMART Circle</h1>
-        <p class="lead">It takes about 10 minutes, then a short entry quiz (20 minutes). Have your parent or guardian with you.</p>
+        <p class="lead">It takes about 15 minutes, then a short entry quiz (20 minutes). Have your parent or guardian with you.</p>
+        <p class="note">Day scholars, boarders, self-boarders and evening-class students are all welcome.</p>
         <?php if ($isTutor): ?>
             <div class="alert alert--info">You are logged in as the tutor: this application will be saved as a <strong>paper application</strong>.</div>
         <?php endif; ?>
@@ -130,6 +131,33 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="field
                     <span class="note" id="report-note">Photos are made smaller on your phone before uploading, to save data.</span>
                     <?= $err('report') ?>
                 </label>
+            </fieldset>
+
+            <fieldset class="card">
+                <legend>Your goals and habits</legend>
+                <p class="muted">There are no wrong answers. Be honest: it helps us support you well.</p>
+                <?php foreach (\SmartCircle\Application\Admissions\Questionnaire::CHOICES as $key => $question): ?>
+                    <label class="field">
+                        <span class="field__label"><?= e($question['label']) ?></span>
+                        <select name="<?= e($key) ?>" required<?= in_array($key, ['schooling_reason', 'career_interest'], true) ? ' class="js-other" data-other="' . e($key) . '_other"' : '' ?>>
+                            <option value="">Choose…</option>
+                            <?php foreach ($question['options'] as $value => [$text]): ?>
+                                <option value="<?= e($value) ?>" <?= $v($key) === (string) $value ? 'selected' : '' ?>><?= e($text) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (in_array($key, ['schooling_reason', 'career_interest'], true)): ?>
+                            <input type="text" name="<?= e($key) ?>_other" value="<?= e($v($key . '_other')) ?>" maxlength="150" placeholder="If another: tell us in a few words" class="other-input" id="<?= e($key) ?>_other">
+                        <?php endif; ?>
+                        <?= $err($key) ?>
+                    </label>
+                <?php endforeach; ?>
+                <?php foreach (\SmartCircle\Application\Admissions\Questionnaire::TEXTS as $key => [$label, $placeholder]): ?>
+                    <label class="field">
+                        <span class="field__label"><?= e($label) ?></span>
+                        <textarea name="<?= e($key) ?>" rows="3" maxlength="1000" placeholder="<?= e($placeholder) ?>" required><?= e($v($key)) ?></textarea>
+                        <?= $err($key) ?>
+                    </label>
+                <?php endforeach; ?>
             </fieldset>
 
             <fieldset class="card">

@@ -26,7 +26,19 @@ final class StudentRepository
     /** @return array<string, mixed>|null */
     public function profile(int $userId): ?array
     {
-        return $this->db->one('SELECT * FROM student_profiles WHERE user_id = ?', [$userId]);
+        return $this->db->one(
+            'SELECT sp.*, s.name AS school_name, s.district FROM student_profiles sp LEFT JOIN schools s ON s.id = sp.school_id WHERE sp.user_id = ?',
+            [$userId]
+        );
+    }
+
+    /** @param array<string, ?string> $d study_mode, school_area, travel_time, home_study */
+    public function saveSignup(int $userId, array $d): void
+    {
+        $this->db->run(
+            'UPDATE student_profiles SET study_mode = ?, school_area = ?, travel_time = ?, home_study = ? WHERE user_id = ?',
+            [$d['study_mode'], $d['school_area'], $d['travel_time'], $d['home_study'], $userId]
+        );
     }
 
     public function completeOnboarding(int $userId): void

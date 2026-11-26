@@ -3,6 +3,14 @@
     const form = document.getElementById('apply-form');
     if (!form) return;
 
+    // "Another reason / Something else": show the text box only when that choice is picked.
+    form.querySelectorAll('select.js-other').forEach((select) => {
+        const box = document.getElementById(select.dataset.other);
+        const sync = () => { if (box) box.hidden = select.value !== 'other'; };
+        select.addEventListener('change', sync);
+        sync();
+    });
+
     const formSelect = document.getElementById('form-select');
     const taken = () => Array.from(form.querySelectorAll('input[name="subjects_taken[]"]:checked')).map((i) => i.value);
     const note = document.getElementById('track-note');

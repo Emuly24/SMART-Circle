@@ -6,6 +6,8 @@ namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Admissions\AccountSetupService;
 use SmartCircle\Application\Admissions\AdmissionException;
+use SmartCircle\Application\Admissions\Pledge;
+use SmartCircle\Application\Admissions\SignupForm;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
@@ -72,24 +74,39 @@ final class WelcomeController
 
     public function onboardingForm(Request $request): Response
     {
-        $profile = $this->setup->profile((int) $this->context->userId());
-
-        return Response::html($this->view->render('welcome/onboarding', ['title' => 'Welcome to SMART Circle', 'profile' => $profile, 'error' => '']));
+        return $this->onboardingPage([], []);
     }
 
     public function completeOnboarding(Request $request): Response
     {
-        if ($request->input('agreement') !== '1' || $request->input('guardian') !== '1') {
-            return Response::html($this->view->render('welcome/onboarding', [
-                'title' => 'Welcome to SMART Circle',
-                'profile' => $this->setup->profile((int) $this->context->userId()),
-                'error' => 'Please tick both boxes to continue.',
-            ]), 422);
+        $input = [];
+        foreach (['study_mode', 'school_area', 'travel_time', 'home_study', 'signed_name', 'guardian'] as $f) {
+            $input[$f] = $request->input($f);
         }
-        $this->setup->completeOnboarding((int) $this->context->userId());
-        $this->session->flash('success', 'You are all set. Welcome to SMART Circle!');
+        $input['vows'] = $request->inputList('vows');
+        $errors = $this->setup->completeOnboarding((int) $this->context->userId(), $input, $request->ip());
+        if ($errors !== []) {
+            return $this->onboardingPage($errors, $input, 422);
+        }
+        $this->session->flash('success', 'Pledge signed. Welcome to SMART Circle! Your pledge certificate is on your dashboard.');
 
         return Response::redirect('/dashboard');
+    }
+
+    /** @param array<string, string> $errors @param array<string, mixed> $old */
+    private function onboardingPage(array $errors, array $old, int $status = 200): Response
+    {
+        return Response::html($this->view->render('welcome/onboarding', [
+            'title' => 'Welcome to SMART Circle',
+            'profile' => $this->setup->profile((int) $this->context->userId()),
+            'user' => $this->context->user(),
+            'errors' => $errors,
+            'old' => $old,
+            'modes' => SignupForm::STUDY_MODES,
+            'travel' => SignupForm::TRAVEL,
+            'homeStudy' => SignupForm::HOME_STUDY,
+            'vows' => Pledge::VOWS,
+        ]), $status);
     }
 
     /** @return array{user_id: int, code_id: int}|null valid for 15 minutes after the code check */

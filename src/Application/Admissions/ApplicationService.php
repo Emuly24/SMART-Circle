@@ -102,6 +102,7 @@ final class ApplicationService
             'help_subjects' => implode(',', $data['help_subjects']),
             'struggling_topics' => $data['struggling_topics'],
             'motivation' => $data['motivation'],
+            'answers' => json_encode($data['answers'], JSON_UNESCAPED_UNICODE),
             'device' => $data['device'],
             'data_access' => $data['data_access'],
             'guardian_name' => $data['guardian_name'],
