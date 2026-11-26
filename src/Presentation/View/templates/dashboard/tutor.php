@@ -25,6 +25,9 @@ $user = $ctx->user() ?? [];
 
         <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today']]) ?><?php endif; ?>
         <div class="tile-grid">
+            <a class="tile tile--link" href="/studio/students"><h2>Students</h2><p>Activity, gentle early-warning flags, and one-tap call, WhatsApp, SMS or email.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/messages"><h2>Messages</h2><p>Write to students and partner teachers, or send an announcement.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/support"><h2>Private rooms</h2><p>Kept, private conversations about things affecting a student’s studies.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/requests"><h2>Topic requests</h2><p>Ranked by form and subject, with where students struggle.</p><span class="tag tag--ready">See the ranking</span></a>
             <a class="tile tile--link" href="/studio/checks"><h2>Checks</h2><p>Early-access requests and students’ “my class has covered it” reports.</p><span class="tag tag--ready">Review</span></a>
             <a class="tile tile--link" href="/studio/honesty"><h2>Honesty report</h2><p>Proof that lessons follow what each school has taught.</p><span class="tag tag--ready">Open the report</span></a>

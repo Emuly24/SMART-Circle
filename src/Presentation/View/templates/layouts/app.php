@@ -11,6 +11,7 @@
  * @var callable $flashes
  * @var string $path
  * @var callable|null $unreadCount
+ * @var callable|null $messageCount
  */
 $user = $ctx->user();
 ?>
@@ -57,6 +58,8 @@ $user = $ctx->user();
                         <a href="/assessments" <?= str_starts_with($path ?? '', '/assessments') ? 'aria-current="page"' : '' ?>>Exams</a>
                     <?php endif; ?>
                 <?php endif; ?>
+                <?php $msgs = isset($messageCount) ? $messageCount() : 0; ?>
+                <a href="/messages" <?= str_starts_with($path ?? '', '/messages') ? 'aria-current="page"' : '' ?>>Messages<?php if ($msgs > 0): ?> <span class="nav-count" aria-label="<?= e($msgs) ?> unread"><?= e($msgs > 99 ? '99+' : $msgs) ?></span><?php endif; ?></a>
                 <?php $unread = isset($unreadCount) ? $unreadCount() : 0; ?>
                 <a href="/notifications" class="bell" aria-label="Notifications<?= $unread > 0 ? ', ' . e($unread) . ' unread' : '' ?>">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
