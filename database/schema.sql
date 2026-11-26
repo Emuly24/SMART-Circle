@@ -1330,11 +1330,23 @@ CREATE TABLE topic_exceptions (
 ALTER TABLE lesson_views
     ADD COLUMN access_basis VARCHAR(20) NULL COMMENT 'school | self | exception: why the student could watch' AFTER completed_at;
 
+-- ---------------------------------------------------------------------
+-- Migration 0007_assessments
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: exams and assignments.
+-- Server-side exam timer and when students may see their marks.
+
+ALTER TABLE assessments
+    ADD COLUMN results_at DATETIME NULL COMMENT 'When the tutor released marks to students (NULL = not yet)' AFTER status;
+
+ALTER TABLE submissions
+    ADD COLUMN deadline_at DATETIME NULL COMMENT 'Timed exams: started_at + duration; answers after this (plus grace) are refused' AFTER started_at;
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments');
 
 SET FOREIGN_KEY_CHECKS = 1;
