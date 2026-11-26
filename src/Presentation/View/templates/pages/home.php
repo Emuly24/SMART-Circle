@@ -27,7 +27,8 @@
             </div>
             <p class="hero__links"><a href="/apply/status">Check my application</a> · <a href="/welcome">Admitted? Set up my account</a></p>
         </div>
-        <img class="hero__mark" src="<?= e($asset('brand/logo-mark.svg')) ?>" alt="" width="260" height="260">
+        <img class="hero__mark brand__logo--light" src="<?= e($asset('brand/logo-mark.svg')) ?>" alt="" width="260" height="260">
+        <img class="hero__mark brand__logo--dark" src="<?= e($asset('brand/logo-mark-dark.svg')) ?>" alt="" width="260" height="260">
     </div>
 </section>
 

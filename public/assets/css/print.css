@@ -17,7 +17,7 @@
     line-height: 1.55;
     color: var(--ink);
 }
-.letter__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 10px; border-bottom: 3px solid var(--blue); margin-bottom: 20px; }
+.letter__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 8px 16px; padding-bottom: 10px; border-bottom: 3px solid var(--blue); margin-bottom: 20px; }
 .letter__logo { width: 62mm; height: auto; }
 .letter__meta { text-align: right; font-size: 10pt; color: var(--slate); }
 .letter__meta p { margin: 0; }
