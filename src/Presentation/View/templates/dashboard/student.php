@@ -2,6 +2,7 @@
 /**
  * @var \SmartCircle\Presentation\Http\Context $ctx
  * @var array<string, mixed>|null $pledge
+ * @var list<array<string, mixed>> $feedback
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -9,12 +10,24 @@ $user = $ctx->user() ?? [];
     <div class="container">
         <h1>Hello, <?= e(explode(' ', (string) ($user['full_name'] ?? ''))[0]) ?></h1>
         <p class="lead">Your lessons, topic requests, exams and assignments.</p>
+        <?php if ($feedback !== []): ?>
+            <div class="card section-card recent-feedback">
+                <h2 class="h3">Your latest feedback</h2>
+                <ul>
+                    <?php foreach ($feedback as $f): $fs = \SmartCircle\Application\Assessments\Feedback::status((float) $f['score'], (float) $f['max_score']); [$sym] = \SmartCircle\Application\Assessments\Feedback::STATUSES[$fs]; ?>
+                        <li><a href="/assessments/<?= e($f['assessment_id']) ?>/result"><span class="fb fb--<?= e($fs) ?>" title="<?= e(\SmartCircle\Application\Assessments\Feedback::STATUSES[$fs][1]) ?>"><?= \SmartCircle\Presentation\View\Icons::feedback($fs) ?></span>
+                            <?= e($f['assessment_title']) ?></a> <span class="muted"><?= e(\SmartCircle\Application\Assessments\AssessmentService::fmt((float) $f['score'])) ?> / <?= e(\SmartCircle\Application\Assessments\AssessmentService::fmt((float) $f['max_score'])) ?></span></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
         <?php if (!empty($pledge['document_code'])): ?>
             <p class="note">Your pledge, signed <?= e(date('j M Y', (int) strtotime((string) $pledge['accepted_at']))) ?>: <a href="/letters/<?= e($pledge['document_code']) ?>">open and print your certificate</a>.</p>
         <?php endif; ?>
         <div class="tile-grid">
             <a class="tile tile--link" href="/lessons"><h2>Lessons</h2><p>Replay recorded lessons as many times as you need.</p><span class="tag tag--ready">Watch</span></a>
             <a class="tile tile--link" href="/topics"><h2>Topics</h2><p>Stuck on a topic your school has taught? Ask for a lesson on it.</p><span class="tag tag--ready">Ask for help</span></a>
+            <a class="tile tile--link" href="/notes"><h2>Notes &amp; slides</h2><p>Read at your own pace; each exercise opens the next part.</p><span class="tag tag--ready">Read</span></a>
             <a class="tile tile--link" href="/assessments"><h2>Exams &amp; assignments</h2><p>Tests on topics your school has taught, with marks and comments.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/notifications"><h2>Notifications</h2><p>Find out when a lesson you asked for is planned or ready.</p><span class="tag tag--ready">Open</span></a>
         </div>

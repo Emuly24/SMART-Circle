@@ -30,6 +30,8 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/studio/lab"><h2>Recording studio</h2><p>Teach on your iPad board, then upload the lesson from the Replay tab.</p><span class="tag tag--ready">Open the board</span></a>
             <a class="tile tile--link" href="/studio/lessons"><h2>My lessons</h2><p>Add the real-life sections, publish to students, or unpublish.</p><span class="tag tag--ready">Manage lessons</span></a>
             <a class="tile tile--link" href="/studio/admissions"><h2>Admissions</h2><p>Seat chart, applications, entry quizzes, decisions and letters.</p><span class="tag tag--ready">Review applications</span></a>
+            <a class="tile tile--link" href="/studio/notes"><h2>Notes &amp; slides</h2><p>Write notes or build slides with checkpoint exercises inside.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/marking"><h2>Marking</h2><p>Everything waiting for your marks, and students’ re-check requests.</p><span class="tag tag--ready">Mark</span></a>
             <a class="tile tile--link" href="/studio/assessments"><h2>Exams &amp; assignments</h2><p>Question bank, timed exams, automatic marking, your marking and results.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/partners"><h2>School partners</h2><p>Invite teachers, see topics covered and textbook pages.</p><span class="tag tag--ready">Partners &amp; schools</span></a>
             <div class="tile"><h2>Mail &amp; templates</h2><p>Branded letters, invitations and the Zoho email queue.</p><span class="tag">Planned</span></div>

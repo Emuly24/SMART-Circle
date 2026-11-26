@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Assessments;
 
+use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Data\Repositories\AssessmentRepository;
 use SmartCircle\Data\Repositories\StudentRepository;
@@ -28,6 +29,7 @@ final class ExamService
         private readonly SubmissionRepository $submissions,
         private readonly StudentRepository $students,
         private readonly AccessService $access,
+        private readonly ?NotificationService $notifications = null,
     ) {
     }
 
@@ -68,7 +70,7 @@ final class ExamService
     /** @param array<string, mixed> $a */
     public static function resultsVisible(array $a): bool
     {
-        return $a['kind'] === 'weekly_check' || $a['results_at'] !== null;
+        return in_array($a['kind'], ['weekly_check', 'note_check'], true) || $a['results_at'] !== null;
     }
 
     /**
@@ -110,7 +112,28 @@ final class ExamService
             }
         }
 
-        return null;
+        return $this->noteCheckpoint($id, $userId);
+    }
+
+    /**
+     * A checkpoint inside notes: same rules, but it opens with the notes' topic
+     * (the honesty rule) and it is never listed with exams.
+     * @return array{assessment: array<string, mixed>, state: string, submission: ?array<string, mixed>}|null
+     */
+    private function noteCheckpoint(int $id, int $userId): ?array
+    {
+        $a = $this->assessments->find($id);
+        $profile = $this->students->profile($userId);
+        if ($a === null || $a['kind'] !== 'note_check' || $a['status'] !== 'published' || $profile === null
+            || (int) $a['form'] !== (int) $profile['form'] || !in_array($a['subject'], Subjects::forTrack((string) $profile['track']), true)) {
+            return null;
+        }
+        $decide = $this->access->forStudent($userId);
+        $open = $decide !== null && $a['note_topic_id'] !== null && $decide((int) $a['note_topic_id'])['open'];
+        $submission = $this->submissions->forStudent($id, $userId);
+        $state = self::state($a, $submission, $open, date('Y-m-d H:i:s'));
+
+        return ['assessment' => $a, 'state' => $state, 'submission' => $submission];
     }
 
     /** @return string error ('' when started or already in progress) */
@@ -203,7 +226,11 @@ final class ExamService
             $s === null ? $complete = false : $score += $s;
         }
         $this->submissions->submit($subId, $scores, round($score, 2), $max, $complete);
-        $state = $complete && $v['assessment']['kind'] === 'weekly_check' ? 'results' : ($complete ? 'marked' : 'submitted');
+        if (!$complete) {
+            $this->notifications?->notifyTutors('to_mark', 'To mark: ' . $v['assessment']['title'],
+                'A student is waiting for your marks on their written answers.', '/studio/marking');
+        }
+        $state = $complete && self::resultsVisible($v['assessment']) ? 'results' : ($complete ? 'marked' : 'submitted');
 
         return ['error' => '', 'late' => $late || $closed, 'state' => $state];
     }
@@ -225,5 +252,17 @@ final class ExamService
             'questions' => $this->assessments->questions($id),
             'answers' => $this->submissions->answers((int) $v['submission']['id']),
         ];
+    }
+
+    /**
+     * Latest marked work the student may see, for the dashboard.
+     * @return list<array<string, mixed>>
+     */
+    public function recentResults(int $userId): array
+    {
+        return array_values(array_filter(
+            $this->submissions->recentMarked($userId),
+            static fn (array $s): bool => self::resultsVisible($s)
+        ));
     }
 }

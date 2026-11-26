@@ -11,6 +11,8 @@ use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
 use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\ExamService;
+use SmartCircle\Application\Assessments\RecheckService;
+use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
@@ -32,7 +34,9 @@ use SmartCircle\Data\Repositories\SubmissionRepository;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
+use SmartCircle\Data\Repositories\NoteRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
+use SmartCircle\Data\Repositories\RecheckRepository;
 use SmartCircle\Data\Repositories\PledgeRepository;
 use SmartCircle\Data\Repositories\SchoolRepository;
 use SmartCircle\Data\Repositories\TextbookRepository;
@@ -56,7 +60,9 @@ use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\HonestyController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LessonController;
+use SmartCircle\Presentation\Controllers\NoteController;
 use SmartCircle\Presentation\Controllers\NotificationController;
+use SmartCircle\Presentation\Controllers\StudioNoteController;
 use SmartCircle\Presentation\Controllers\PartnerController;
 use SmartCircle\Presentation\Controllers\SchoolController;
 use SmartCircle\Presentation\Controllers\StudioTopicController;
@@ -242,9 +248,14 @@ final class App
         $partnerService = new PartnerService($db, $users, new PartnerRepository($db), new SchoolRepository($db), new StudentRepository($db), $documentService, $audit);
         $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
-        $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService);
-        $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view);
-        $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view);
+        $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
+        $recheckService = new RecheckService(new RecheckRepository($db), new SubmissionRepository($db), new AssessmentRepository($db), $this->notifications($db));
+        $noteService = new NoteService(new NoteRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), new TopicRepository($db),
+            new StudentRepository($db), $accessService, $examService, $this->notifications($db), $this->storage(''));
+        $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
+        $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view, $recheckService);
+        $studioNotes = new StudioNoteController($noteService, $topicService, $this->context, $this->session, $this->view);
+        $notesCtl = new NoteController($noteService, $this->context, $this->session, $this->view);
         $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
         $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
         $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
@@ -265,7 +276,8 @@ final class App
                 'letters' => $partnerService->letters($userId),
                 'fresh' => $schoolService->freshness($schoolId),
             ];
-        }, fn (int $userId): ?array => $this->accountSetup($db, $users, $audit)->latestPledge($userId));
+        }, fn (int $userId): ?array => $this->accountSetup($db, $users, $audit)->latestPledge($userId),
+            static fn (int $userId): array => $examService->recentResults($userId));
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
         // Public
@@ -366,6 +378,35 @@ final class App
         $r->get('/assessments/{id}/take', $assessCtl->take(...), [$student, $onboarded]);
         $r->post('/assessments/{id}/save', $assessCtl->save(...), [$csrf, $student, $onboarded]);
         $r->get('/assessments/{id}/result', $assessCtl->result(...), [$student, $onboarded]);
+
+        $r->post('/assessments/{id}/recheck', $assessCtl->recheck(...), [$csrf, $student, $onboarded]);
+
+        // Notes and slides: students read up to each checkpoint
+        $r->get('/notes', $notesCtl->index(...), [$student, $onboarded]);
+        $r->get('/notes/{id}', $notesCtl->show(...), [$student, $onboarded]);
+        $r->post('/notes/{id}/checkpoint/{block}', $notesCtl->submit(...), [$csrf, $student, $onboarded]);
+        $r->get('/notes/{id}/images/{block}', $notesCtl->image(...), [$student, $onboarded]);
+
+        // Tutor: notes and slides
+        $r->get('/studio/notes', $studioNotes->index(...), [$tutor]);
+        $r->get('/studio/notes/new', $studioNotes->create(...), [$tutor]);
+        $r->post('/studio/notes', $studioNotes->create(...), [$csrf, $tutor]);
+        $r->get('/studio/notes/{id}', $studioNotes->edit(...), [$tutor]);
+        $r->post('/studio/notes/{id}', $studioNotes->update(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/text', $studioNotes->addText(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/image', $studioNotes->addImage(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/checkpoint', $studioNotes->addCheckpoint(...), [$csrf, $tutor]);
+        $r->get('/studio/notes/{id}/images/{block}', $studioNotes->image(...), [$tutor]);
+        $r->post('/studio/notes/{id}/blocks/{block}', $studioNotes->updateBlock(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $tutor]);
+        $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $tutor]);
+
+        // Tutor: marking queue and re-checks
+        $r->get('/studio/marking', $studioAssess->queue(...), [$tutor]);
+        $r->get('/studio/rechecks', $studioAssess->rechecks(...), [$tutor]);
+        $r->get('/studio/rechecks/{id}', $studioAssess->recheck(...), [$tutor]);
+        $r->post('/studio/rechecks/{id}', $studioAssess->resolveRecheck(...), [$csrf, $tutor]);
 
         // Tutor: question bank, assessment builder, marking
         $r->get('/studio/questions', $studioAssess->bank(...), [$tutor]);
