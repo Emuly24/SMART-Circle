@@ -20,6 +20,7 @@ $shown = static function (array $q, string $answer): string {
     <div class="container narrow-wide">
         <p class="crumbs"><a href="/studio/assessments/<?= e($s['assessment_id']) ?>/submissions">Submissions</a></p>
         <h1><?= e($s['full_name']) ?></h1>
+        <p class="note">Mark to encourage: students see ✓ Got it, ◐ Partly there or ↻ Not yet, never a red cross. Say what went well, where it went off track, and the next step.</p>
         <p class="lead"><?= e($s['assessment_title']) ?><?= $s['score'] !== null ? ' · ' . e($fmt($s['score'])) . ' / ' . e($fmt($s['max_score'])) : '' ?></p>
         <?php if ($errors !== []): ?><div class="alert alert--error" role="alert">Some marks are missing or too high. See below.</div><?php endif; ?>
         <form method="post" action="/studio/submissions/<?= e($s['id']) ?>" class="form">
@@ -46,8 +47,12 @@ $shown = static function (array $q, string $answer): string {
                         <label class="field"><span class="field__label">Mark <?= $auto !== null ? '<span class="muted">(automatic: ' . e($fmt($auto)) . '; leave empty to keep)</span>' : '' ?></span>
                             <input type="number" name="score[<?= $qid ?>]" value="<?= e($typed === null || $typed === '' ? '' : $fmt($typed)) ?>" min="0" max="<?= e($fmt($q['max_marks'])) ?>" step="0.5">
                             <?= isset($errors[(string) $qid]) ? '<span class="field__error">' . e($errors[(string) $qid]) . '</span>' : '' ?></label>
-                        <label class="field"><span class="field__label">Comment <span class="muted">(optional)</span></span>
-                            <input type="text" name="feedback[<?= $qid ?>]" value="<?= e($old['feedback'][$qid] ?? ($ans['feedback'] ?? '')) ?>" maxlength="2000"></label>
+                    </div>
+                    <div class="feedback-fields">
+                        <?php foreach (['did_well' => ['What you did well', 'e.g. You chose the right formula and showed every step.'], 'off_track' => ['Where it went off track', 'e.g. In step 3 the time must be in hours, not minutes.'], 'next_step' => ['Your next step', 'e.g. Practise two more conversions, then try Question 4 again.']] as $key => [$label, $hint]): ?>
+                            <label class="field"><span class="field__label"><?= e($label) ?> <span class="muted">(optional)</span></span>
+                                <input type="text" name="feedback[<?= e($key) ?>][<?= $qid ?>]" value="<?= e($old['feedback'][$key][$qid] ?? ($ans[$key] ?? '')) ?>" maxlength="2000" placeholder="<?= e($hint) ?>"></label>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

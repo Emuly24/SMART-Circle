@@ -19,12 +19,21 @@ $toMark = count(array_filter($submissions, static fn (array $s): bool => $s['sta
 ?>
 <section class="section section--tight">
     <div class="container narrow-wide">
-        <p class="crumbs"><a href="/studio/assessments">Exams &amp; assignments</a></p>
+        <?php $isCheckpoint = $a['kind'] === 'note_check'; ?>
+        <p class="crumbs"><?= $isCheckpoint
+            ? '<a href="/studio/notes/' . e($a['note_id']) . '">Back to the notes: ' . e($a['note_title'] ?? '') . '</a>'
+            : '<a href="/studio/assessments">Exams &amp; assignments</a>' ?></p>
         <h1><?= e($a['title']) ?></h1>
         <p><span class="badge badge--<?= e($a['subject']) ?>"><?= e($names[$a['subject']] ?? '') ?></span>
-            <span class="muted">Form <?= e($a['form']) ?> · <?= e($kinds[$a['kind']] ?? '') ?> · <?= e(count($questions)) ?> questions, <?= e(\SmartCircle\Application\Assessments\AssessmentService::fmt($total)) ?> marks</span>
+            <span class="muted">Form <?= e($a['form']) ?> · <?= e($kinds[$a['kind']] ?? 'Checkpoint in notes') ?> · <?= e(count($questions)) ?> questions, <?= e(\SmartCircle\Application\Assessments\AssessmentService::fmt($total)) ?> marks</span>
             <span class="chip"><?= e(ucfirst((string) $a['status'])) ?></span><?= $a['results_at'] ? ' <span class="chip chip--lesson">Results released</span>' : '' ?></p>
 
+        <?php if ($isCheckpoint): ?>
+            <div class="card assess-actions">
+                <p>This exercise sits inside the notes. It is published with them, and students must submit it before the next part opens. Checkpoints show marks as soon as they are marked.</p>
+                <?php if ($submissions !== []): ?><p><a class="btn btn--small" href="/studio/assessments/<?= e($id) ?>/submissions">Answers (<?= e(count($submissions)) ?>)<?= $toMark > 0 ? ' · ' . e($toMark) . ' to mark' : '' ?></a></p><?php endif; ?>
+            </div>
+        <?php else: ?>
         <div class="card assess-actions">
             <div class="decision__buttons">
                 <?php if ($a['status'] === 'draft'): ?>
@@ -45,6 +54,7 @@ $toMark = count(array_filter($submissions, static fn (array $s): bool => $s['sta
             </div>
             <?php if ($a['kind'] === 'weekly_check'): ?><p class="note">Exercises show marks to students as soon as everything is marked.</p><?php endif; ?>
         </div>
+        <?php endif; ?>
 
         <h2 class="h3" id="questions">Questions</h2>
         <?php if ($questions === []): ?>
@@ -87,6 +97,7 @@ $toMark = count(array_filter($submissions, static fn (array $s): bool => $s['sta
             <?php endif; ?>
         </div>
 
+        <?php if (!$isCheckpoint): ?>
         <details class="card section-card"<?= $errors !== [] ? ' open' : '' ?>>
             <summary><strong>Edit details</strong></summary>
             <form method="post" action="/studio/assessments/<?= e($id) ?>" class="form">
@@ -95,6 +106,7 @@ $toMark = count(array_filter($submissions, static fn (array $s): bool => $s['sta
                 <div class="form-actions"><button type="submit" class="btn btn--small">Save details</button></div>
             </form>
         </details>
+        <?php endif; ?>
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>

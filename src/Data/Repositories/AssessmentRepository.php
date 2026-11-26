@@ -34,7 +34,11 @@ final class AssessmentRepository
     /** @return array<string, mixed>|null */
     public function find(int $id): ?array
     {
-        return $this->db->one('SELECT * FROM assessments WHERE id = ? AND lesson_id IS NULL', [$id]);
+        return $this->db->one(
+            'SELECT a.*, n.title AS note_title, n.topic_id AS note_topic_id FROM assessments a LEFT JOIN notes n ON n.id = a.note_id
+             WHERE a.id = ? AND a.lesson_id IS NULL',
+            [$id]
+        );
     }
 
     /** @return list<array<string, mixed>> all, with question and submission counts */
@@ -45,7 +49,7 @@ final class AssessmentRepository
                     (SELECT COUNT(*) FROM assessment_questions aq WHERE aq.assessment_id = a.id) AS questions,
                     (SELECT COUNT(*) FROM submissions s WHERE s.assessment_id = a.id AND s.status <> 'in_progress') AS submitted,
                     (SELECT COUNT(*) FROM submissions s WHERE s.assessment_id = a.id AND s.status = 'submitted') AS to_mark
-             FROM assessments a WHERE a.lesson_id IS NULL ORDER BY a.created_at DESC, a.id DESC"
+             FROM assessments a WHERE a.lesson_id IS NULL AND a.note_id IS NULL ORDER BY a.created_at DESC, a.id DESC"
         );
     }
 
@@ -53,10 +57,24 @@ final class AssessmentRepository
     public function publishedForForm(int $form): array
     {
         return $this->db->all(
-            "SELECT * FROM assessments WHERE status IN ('published', 'closed') AND form = ? AND lesson_id IS NULL
+            "SELECT * FROM assessments WHERE status IN ('published', 'closed') AND form = ? AND lesson_id IS NULL AND note_id IS NULL
              ORDER BY COALESCE(closes_at, '9999-12-31'), created_at DESC",
             [$form]
         );
+    }
+
+    /** A checkpoint exercise inside notes. */
+    public function createForNote(int $noteId, string $title, int $form, string $subject, int $createdBy): int
+    {
+        return $this->db->insert(
+            "INSERT INTO assessments (kind, title, form, subject, note_id, created_by) VALUES ('note_check', ?, ?, ?, ?, ?)",
+            [$title, $form, $subject, $noteId, $createdBy]
+        );
+    }
+
+    public function setStatusForNote(int $noteId, string $status): void
+    {
+        $this->db->run('UPDATE assessments SET status = ? WHERE note_id = ?', [$status, $noteId]);
     }
 
     public function setStatus(int $id, string $status): void

@@ -6,6 +6,7 @@ namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\ExamService;
+use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
@@ -33,6 +34,7 @@ final class AssessmentController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?RecheckService $rechecks = null,
     ) {
     }
 
@@ -125,7 +127,19 @@ final class AssessmentController
             'title' => 'Results: ' . $r['assessment']['title'],
             'r' => $r,
             'names' => Subjects::NAMES,
+            'rechecks' => $this->rechecks?->history((int) $r['submission']['id']) ?? [],
+            'canRecheck' => $this->rechecks !== null && RecheckService::windowOpen(RecheckService::visibleSince($r['submission'], $r['assessment'])),
+            'windowDays' => RecheckService::WINDOW_DAYS,
         ]));
+    }
+
+    public function recheck(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $error = $this->rechecks?->request($id, $this->userId(), (int) $request->input('question_id'), $request->input('reason')) ?? 'Not available.';
+        $this->session->flash(...($error === '' ? ['success', 'Thank you. Your re-check request has been sent; the tutor will reply here.'] : ['error', $error]));
+
+        return Response::redirect('/assessments/' . $id . '/result#q' . (int) $request->input('question_id'));
     }
 
     /** @return array{assessment: array<string, mixed>, state: string, submission: ?array<string, mixed>} */

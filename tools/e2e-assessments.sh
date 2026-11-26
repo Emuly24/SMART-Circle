@@ -110,7 +110,7 @@ check "marking page shows model answer"    "SECRET-MODEL-ANSWER" "$M"
 check "release refused before marking"     "Mark every submission first" "$(post "$TJ" "/studio/assessments/$A1" "/studio/assessments/$A1/release" >/dev/null; curl -s -b "$TJ" "$BASE/studio/assessments/$A1")"
 check "too-high mark refused"              "422" "$(post "$TJ" "/studio/submissions/$S1" "/studio/submissions/$S1" --data-urlencode "score[$Q3]=5")"
 check "  explains"                         "from 0 to 3" "$(cat "$WORK/last.html")"
-R=$(post "$TJ" "/studio/submissions/$S1" "/studio/submissions/$S1" --data-urlencode "score[$Q3]=2.5" --data-urlencode "feedback[$Q3]=Mention stopping distance." --data-urlencode "overall=Good work on units.")
+R=$(post "$TJ" "/studio/submissions/$S1" "/studio/submissions/$S1" --data-urlencode "score[$Q3]=2.5" --data-urlencode "feedback[next_step][$Q3]=Mention stopping distance." --data-urlencode "overall=Good work on units.")
 check "marks saved"                        "303" "$R"
 check "  total 8.5 of 9, marked"           "marked 8.50" "$(sql "SELECT status, score FROM submissions WHERE id=$S1")"
 check "student waits for release"          "Marked, results coming soon" "$(curl -s -b "$E" "$BASE/assessments")"
@@ -142,7 +142,7 @@ post "$E" "/assessments/$A3" "/assessments/$A3/start" >/dev/null
 R=$(post "$E" "/assessments/$A3/take" "/assessments/$A3/save" --data-urlencode "answer[$Q1]=0" --data-urlencode "answer[$Q2]=80" --data-urlencode action=submit)
 check "submit -> straight to results"      "303 $BASE/assessments/$A3/result" "$R"
 RS=$(curl -s -b "$E" "$BASE/assessments/$A3/result")
-check "  wrong choice: correct one shown"  "Correct answer:</span> 7" "$RS"
+check "  not yet: the answer is shown"     "The answer:</span> 7" "$RS"
 check "  missing unit: half marks"         "2 / 4" "$RS"
 
 echo "Untaught topic in an assessment"

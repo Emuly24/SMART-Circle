@@ -98,17 +98,19 @@ final class SubmissionRepository
     }
 
     /**
-     * Tutor marks: per question score (overrides the automatic one) and feedback.
-     * @param array<int, array{score: ?float, feedback: string}> $marks
+     * Tutor marks: per question score (overrides the automatic one) and encouraging feedback.
+     * @param array<int, array{score: ?float, did_well: string, off_track: string, next_step: string}> $marks
      */
     public function mark(int $submissionId, array $marks, float $total, string $feedback, int $tutorId): void
     {
         $this->db->transaction(function (Database $db) use ($submissionId, $marks, $total, $feedback, $tutorId): void {
+            $nul = static fn (string $s): ?string => $s === '' ? null : $s;
             foreach ($marks as $qid => $m) {
                 $db->run(
-                    'INSERT INTO submission_answers (submission_id, question_id, manual_score, feedback) VALUES (?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE manual_score = VALUES(manual_score), feedback = VALUES(feedback)',
-                    [$submissionId, $qid, $m['score'], $m['feedback'] === '' ? null : $m['feedback']]
+                    'INSERT INTO submission_answers (submission_id, question_id, manual_score, did_well, off_track, next_step) VALUES (?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE manual_score = VALUES(manual_score), did_well = VALUES(did_well),
+                        off_track = VALUES(off_track), next_step = VALUES(next_step)',
+                    [$submissionId, $qid, $m['score'], $nul($m['did_well']), $nul($m['off_track']), $nul($m['next_step'])]
                 );
             }
             $db->run(
@@ -116,6 +118,46 @@ final class SubmissionRepository
                 [$total, $feedback === '' ? null : $feedback, $tutorId, $submissionId]
             );
         });
+    }
+
+    /** A re-check changed one answer's mark: store it and recount the total. */
+    public function changeScore(int $submissionId, int $questionId, float $score): void
+    {
+        $this->db->transaction(function (Database $db) use ($submissionId, $questionId, $score): void {
+            $db->run(
+                'INSERT INTO submission_answers (submission_id, question_id, manual_score) VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE manual_score = VALUES(manual_score)',
+                [$submissionId, $questionId, $score]
+            );
+            $db->run(
+                'UPDATE submissions SET score = (SELECT COALESCE(SUM(COALESCE(manual_score, auto_score, 0)), 0)
+                 FROM submission_answers WHERE submission_id = ?) WHERE id = ?',
+                [$submissionId, $submissionId]
+            );
+        });
+    }
+
+    /** @return list<array<string, mixed>> everything waiting for the tutor, oldest first */
+    public function toMark(): array
+    {
+        return $this->db->all(
+            "SELECT s.*, u.full_name, a.title AS assessment_title, a.kind, a.form, a.subject, n.title AS note_title
+             FROM submissions s JOIN users u ON u.id = s.user_id JOIN assessments a ON a.id = s.assessment_id
+             LEFT JOIN notes n ON n.id = a.note_id
+             WHERE s.status = 'submitted' ORDER BY s.submitted_at"
+        );
+    }
+
+    /** @return list<array<string, mixed>> the student's latest marked work */
+    public function recentMarked(int $userId, int $limit = 5): array
+    {
+        return $this->db->all(
+            "SELECT s.*, a.title AS assessment_title, a.kind, a.results_at, a.note_id, n.title AS note_title
+             FROM submissions s JOIN assessments a ON a.id = s.assessment_id LEFT JOIN notes n ON n.id = a.note_id
+             WHERE s.user_id = ? AND s.status = 'marked'
+             ORDER BY COALESCE(s.marked_at, s.submitted_at) DESC LIMIT " . max(1, min(20, $limit)),
+            [$userId]
+        );
     }
 
     /** @return list<array<string, mixed>> */

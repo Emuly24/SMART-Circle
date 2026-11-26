@@ -287,6 +287,12 @@ final class AssessmentService
 
     /* ---------- Marking ---------- */
 
+    /** @return list<array<string, mixed>> every submission waiting for marking, across exams and notes */
+    public function toMark(): array
+    {
+        return $this->submissions->toMark();
+    }
+
     /** @return list<array<string, mixed>> */
     public function submissions(int $assessmentId): array
     {
@@ -311,7 +317,7 @@ final class AssessmentService
     /**
      * Save the tutor's marks. A blank score keeps the automatic one (where there is one).
      * @param array<string, mixed> $scores question id => score typed by the tutor
-     * @param array<string, mixed> $feedback question id => comment
+     * @param array<string, mixed> $feedback did_well|off_track|next_step => question id => note
      * @return array<string, string> errors (question id => message)
      */
     public function mark(int $submissionId, array $scores, array $feedback, string $overall, int $tutorId): array
@@ -342,7 +348,8 @@ final class AssessmentService
                 $score = round((float) $typed, 2);
                 $total += $score;
             }
-            $marks[$qid] = ['score' => $score, 'feedback' => mb_substr(trim((string) ($feedback[$qid] ?? '')), 0, 2000)];
+            $note = static fn (string $key): string => mb_substr(trim((string) ($feedback[$key][$qid] ?? '')), 0, 2000);
+            $marks[$qid] = ['score' => $score, 'did_well' => $note('did_well'), 'off_track' => $note('off_track'), 'next_step' => $note('next_step')];
         }
         if ($errors !== []) {
             return $errors;

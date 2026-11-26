@@ -6,6 +6,7 @@ namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\Marker;
+use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
@@ -28,6 +29,7 @@ final class StudioAssessmentController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?RecheckService $rechecks = null,
     ) {
     }
 
@@ -226,6 +228,57 @@ final class StudioAssessmentController
         $this->session->flash('success', 'Marks saved.');
 
         return Response::redirect('/studio/assessments/' . ($view['submission']['assessment_id'] ?? '') . '/submissions');
+    }
+
+    /* ---------- Marking queue and re-checks ---------- */
+
+    public function queue(Request $request): Response
+    {
+        return Response::html($this->view->render('studio/marking', [
+            'title' => 'Marking',
+            'rows' => $this->assessments->toMark(),
+            'openRechecks' => $this->rechecks?->countOpen() ?? 0,
+            'kinds' => AssessmentService::KINDS + ['note_check' => 'Checkpoint in notes'],
+        ]));
+    }
+
+    public function rechecks(Request $request): Response
+    {
+        return Response::html($this->view->render('studio/rechecks/index', [
+            'title' => 'Re-check requests',
+            'rows' => $this->rechecks?->all() ?? [],
+        ]));
+    }
+
+    public function recheck(Request $request): Response
+    {
+        return $this->recheckPage((int) $request->param('id'), [], []);
+    }
+
+    public function resolveRecheck(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $in = ['decision' => $request->input('decision'), 'new_score' => $request->input('new_score'), 'tutor_reply' => $request->input('tutor_reply')];
+        $errors = $this->rechecks?->resolve($id, $in['decision'], $in['new_score'], $in['tutor_reply'], (int) $this->context->userId()) ?? ['decision' => 'Not available.'];
+        if ($errors !== []) {
+            return $this->recheckPage($id, $errors, $in, 422);
+        }
+        $this->session->flash('success', 'Reply sent to the student.');
+
+        return Response::redirect('/studio/rechecks');
+    }
+
+    /** @param array<string, string> $errors @param array<string, string> $old */
+    private function recheckPage(int $id, array $errors, array $old, int $status = 200): Response
+    {
+        $r = $this->rechecks?->find($id) ?? throw new HttpException(404);
+
+        return Response::html($this->view->render('studio/rechecks/show', [
+            'title' => 'Re-check: ' . $r['full_name'],
+            'r' => $r,
+            'errors' => $errors,
+            'old' => $old,
+        ]), $status);
     }
 
     /* ---------- Helpers ---------- */
