@@ -119,6 +119,10 @@ final class App
         $this->shareViewHelpers();
         $this->view->share('path', $request->path);
 
+        if ($this->config->secretsError !== '') {
+            return $this->setupNeededPage($this->config->secretsError);
+        }
+
         if ($this->config->string('db.name') === '') {
             return $this->setupNeededPage('The database is not configured yet. Copy secrets.example.php to secrets.php and fill in the database details.');
         }
