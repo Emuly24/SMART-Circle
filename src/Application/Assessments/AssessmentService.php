@@ -15,10 +15,14 @@ use SmartCircle\Support\Subjects;
 final class AssessmentService
 {
     public const KINDS = [
-        'exam' => 'Exam (timed)',
+        'exam' => 'End-of-term exam (timed)',
+        'test' => 'Test (timed)',
         'assignment' => 'Assignment',
         'weekly_check' => 'Exercise (instant marks)',
     ];
+
+    /** Kinds that need a time limit. */
+    public const TIMED = ['exam', 'test'];
 
     public function __construct(
         private readonly QuestionRepository $questions,
@@ -112,15 +116,15 @@ final class AssessmentService
         if ($opens !== null && $closes !== null && $closes <= $opens) {
             $errors['closes_at'] = 'It must close after it opens.';
         }
-        if ($kind === 'exam' && ($duration < 5 || $duration > 240)) {
-            $errors['duration_min'] = 'An exam needs a time limit between 5 and 240 minutes.';
+        if (in_array($kind, self::TIMED, true) && ($duration < 5 || $duration > 240)) {
+            $errors['duration_min'] = 'An exam or test needs a time limit between 5 and 240 minutes.';
         }
 
         return ['errors' => $errors, 'clean' => [
             'kind' => $kind, 'title' => $title, 'form' => $form, 'subject' => $subject,
             'instructions' => trim(str_replace("\r\n", "\n", (string) ($in['instructions'] ?? ''))) ?: null,
             'opens_at' => $opens, 'closes_at' => $closes,
-            'duration_min' => $kind === 'exam' ? $duration : null,
+            'duration_min' => in_array($kind, self::TIMED, true) ? $duration : null,
         ]];
     }
 

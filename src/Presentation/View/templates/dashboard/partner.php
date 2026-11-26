@@ -2,6 +2,7 @@
 /**
  * @var \SmartCircle\Presentation\Http\Context $ctx
  * @var array<string, mixed>|null $summary
+ * @var array<string, mixed>|null $calendar
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -9,6 +10,7 @@ $user = $ctx->user() ?? [];
     <div class="container narrow-wide">
         <p class="eyebrow">School partner</p>
         <h1>Welcome, <?= e(explode(' ', (string) ($user['full_name'] ?? ''))[0]) ?></h1>
+        <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today']]) ?><?php endif; ?>
         <?php if ($summary === null): ?>
             <p class="lead">Your account is not linked to a school yet. Please contact the tutor.</p>
         <?php else:

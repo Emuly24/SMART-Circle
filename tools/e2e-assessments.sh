@@ -72,7 +72,7 @@ if [[ -n "$OTHER" ]]; then check "other subject's question refused" "same form a
 check "total marks shown"                  "9 marks" "$(curl -s -b "$TJ" "$BASE/studio/assessments/$A1")"
 post "$TJ" "/studio/assessments/$A1" "/studio/assessments/$A1/publish" >/dev/null
 check "published"                          "published" "$(sql "SELECT status FROM assessments WHERE id=$A1")"
-check "taught student notified"            "New exam (timed): E2E Speed test" "$(curl -s -b "$E" "$BASE/notifications")"
+check "taught student notified"            "New end-of-term exam (timed): E2E Speed test" "$(curl -s -b "$E" "$BASE/notifications")"
 refute "untaught student not notified"     "E2E Speed test" "$(curl -s -b "$W" "$BASE/notifications")"
 
 echo "Honesty rule"

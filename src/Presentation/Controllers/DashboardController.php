@@ -25,6 +25,8 @@ final class DashboardController
         private readonly ?\Closure $studentPledge = null,
         /** @var (\Closure(int): list<array<string, mixed>>)|null the student's latest marked work */
         private readonly ?\Closure $studentFeedback = null,
+        /** @var (\Closure(int, string): array<string, mixed>)|null term, week and MANEB countdown */
+        private readonly ?\Closure $calendarInfo = null,
     ) {
     }
 
@@ -43,6 +45,7 @@ final class DashboardController
             'summary' => $role === 'partner' && $this->partnerSummary !== null ? ($this->partnerSummary)((int) $this->context->userId()) : null,
             'pledge' => $role === 'student' && $this->studentPledge !== null ? ($this->studentPledge)((int) $this->context->userId()) : null,
             'feedback' => $role === 'student' && $this->studentFeedback !== null ? ($this->studentFeedback)((int) $this->context->userId()) : [],
+            'calendar' => $this->calendarInfo !== null ? ($this->calendarInfo)((int) $this->context->userId(), $role) : null,
         ]));
     }
 

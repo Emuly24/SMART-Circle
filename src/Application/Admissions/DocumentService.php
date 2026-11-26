@@ -18,6 +18,7 @@ final class DocumentService
         'decline_letter' => 'Application outcome',
         'partner_invite' => 'Invitation to partner with SMART Circle',
         'pledge_certificate' => 'The SMART Circle Pledge',
+        'term_report' => 'Term report',
     ];
 
     public function __construct(private readonly DocumentRepository $documents)
@@ -58,5 +59,11 @@ final class DocumentService
     public function forUser(int $userId): array
     {
         return $this->documents->forSubject('user', $userId);
+    }
+
+    /** Mark one document as replaced (e.g. a re-issued term report). */
+    public function revoke(string $code): void
+    {
+        $this->documents->revokeCode($code);
     }
 }

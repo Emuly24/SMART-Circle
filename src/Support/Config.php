@@ -23,6 +23,9 @@ final class Config
         $error = '';
 
         if ($secretsFile !== null && is_file($secretsFile)) {
+            // Anything the file prints (e.g. text before a missing "<?php") is thrown away:
+            // secrets.php holds passwords and must never reach the browser.
+            ob_start();
             try {
                 $secrets = require $secretsFile;
             } catch (\Throwable $e) {
@@ -31,6 +34,7 @@ final class Config
                 $secrets = null;
                 $error = self::describeMistake((string) @file_get_contents($secretsFile), $e->getLine());
             }
+            ob_end_clean();
             if (is_array($secrets)) {
                 $values = self::merge($values, $secrets);
             } elseif ($error === '') {
