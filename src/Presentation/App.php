@@ -912,7 +912,7 @@ final class App
             $this->config->string('mail.encryption', 'ssl'),
             $this->config->string('mail.username'),
             $password,
-            $this->config->string('mail.from_email', 'smartcircle@zohomail.com'),
+            $this->contactEmail(),
             $this->config->string('mail.from_name', 'SMART Circle'),
         );
 
@@ -1009,12 +1009,26 @@ final class App
         );
     }
 
+    /** The address the site sends from and that people write to: from_email, else the Zoho login, else the old address. */
+    private function contactEmail(): string
+    {
+        foreach (['mail.from_email', 'mail.username'] as $key) {
+            $v = trim($this->config->string($key));
+            if ($v !== '' && filter_var($v, FILTER_VALIDATE_EMAIL) !== false) {
+                return $v;
+            }
+        }
+
+        return 'smartcircle@zohomail.com';
+    }
+
     private function shareViewHelpers(): void
     {
         $this->view->share('appName', $this->config->string('app.name', 'SMART Circle'));
         $this->view->share('tagline', $this->config->string('app.tagline'));
         $this->view->share('ctx', $this->context);
         $this->view->share('csrf', $this->csrf);
+        $this->view->share('contactEmail', $this->contactEmail());
         $this->view->share('siteUrl', rtrim($this->config->string('app.url'), '/'));
         $this->view->share('shareLink', fn (string $path, string $title = ''): string
             => ShareLinks::url($this->config->string('app.share_url'), $this->config->string('app.url'), $path, $title));

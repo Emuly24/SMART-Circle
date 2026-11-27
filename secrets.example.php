@@ -33,9 +33,9 @@ return [
         'install_token' => 'replace-with-a-long-random-string',
     ],
 
-    // Zoho Mail SMTP (smartcircle@zohomail.com)
+    // Zoho Mail SMTP: the address the site sends from (and that letters show for replies)
     'mail' => [
-        'username' => 'smartcircle@zohomail.com',
+        'username' => 'tutor@smartcircle.gt.tc',
         'password' => 'your-zoho-password-or-app-password',
     ],
 ];

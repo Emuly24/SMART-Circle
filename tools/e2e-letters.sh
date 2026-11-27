@@ -2,7 +2,7 @@
 # End-to-end test of invitation letters (school teacher, volunteer tutor) and brand-styled written text.
 #
 # Needs an INSTALLED server (tutor 0999123456 / correct-horse-1) and a mysql client:
-#   BASE_URL=http://127.0.0.1:8098 MYSQL="mariadb -h127.0.0.1 -P3307 -usc -pscpw sc_e2e" tools/e2e-letters.sh
+#   CONTACT_EMAIL=tutor@smartcircle.gt.tc BASE_URL=http://127.0.0.1:8098 MYSQL="mariadb -h127.0.0.1 -P3307 -usc -pscpw sc_e2e" tools/e2e-letters.sh
 set -euo pipefail
 
 BASE="${BASE_URL:?}"; MYSQL="${MYSQL:?}"
@@ -76,6 +76,12 @@ check "share card is served"               "image/png" "$(curl -s -D - -o /dev/n
 check "About can be shared"                "Share our story" "$(curl -s "$BASE/about")"
 check "  with its own description"         "The founder&#039;s story" "$(curl -s "$BASE/about")"
 check "library can be shared"              "Share the free library" "$(curl -s "$BASE/library")"
+
+echo "Contact address (CONTACT_EMAIL = the address in the server's secrets.php)"
+CE="${CONTACT_EMAIL:-smartcircle@zohomail.com}"
+check "safeguarding shows it"              "$CE" "$(curl -s "$BASE/safeguarding")"
+check "letters show it"                    "$CE" "$(curl -s "$BASE/letters/$TL")"
+check "email page shows it"                "$CE" "$(curl -s -b "$TJ" "$BASE/studio/mail")"
 
 echo; echo "Letters: $PASS passed, $FAIL failed"
 [[ $FAIL -eq 0 ]]

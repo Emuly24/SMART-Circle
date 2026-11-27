@@ -17,7 +17,7 @@
 
         <h2>If you are worried</h2>
         <p>Tell someone you trust: your parent or guardian, a teacher, or the tutor. In Malawi you can also call the free <strong>Child Helpline on 116</strong>.</p>
-        <p>To raise a concern about SMART Circle itself, email <strong>smartcircle@zohomail.com</strong>.</p>
+        <p>To raise a concern about SMART Circle itself, email <strong><?= e($contactEmail ?? 'smartcircle@zohomail.com') ?></strong>.</p>
 
         <h2>Your information</h2>
         <p>We follow Malawi’s Data Protection Act. In short:</p>

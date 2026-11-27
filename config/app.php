@@ -52,7 +52,8 @@ return [
         'encryption' => 'ssl',
         'username'   => '',
         'password'   => '',
-        'from_email' => 'smartcircle@zohomail.com',
+        // Sender and contact address. Empty = the username above (Zoho only sends from the address you log in with).
+        'from_email' => '',
         'from_name'  => 'SMART Circle',
         // Emails sent per batch when the admin area is opened (no cron on InfinityFree).
         'batch_size' => 10,

@@ -62,6 +62,7 @@ check "test email delivered"               "1" "$(inbox tutor.test@example.com)"
 check "  with the right subject"           "SMART Circle test email" "$(subject tutor.test@example.com)"
 check "  plain text and branded HTML"      "UNDERSTAND IT. APPLY IT." "$(body tutor.test@example.com)"
 check "  marked sent"                      "sent" "$(sql "SELECT status FROM mail_queue WHERE to_email='tutor.test@example.com'")"
+check "  sent from the contact address"    "From: SMART Circle <${CONTACT_EMAIL:-smartcircle@zohomail.com}>" "$(grep -h '^From:' "$(grep -l 'X-Rcpt: tutor.test@example.com' "$BOX"/*.eml | tail -1)")"
 check "page lists it"                      "tutor.test@example.com" "$(curl -s -b "$TJ" "$BASE/studio/mail")"
 
 echo "Notifications by email"

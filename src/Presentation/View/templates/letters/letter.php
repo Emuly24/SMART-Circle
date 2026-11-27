@@ -76,12 +76,12 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <?php require __DIR__ . '/_teacher_benefits.php'; ?>
         <h2>How to join</h2>
         <p>Simply reply<?= !empty($data['contact_phone']) ? ' on WhatsApp or by phone at <strong>' . e($data['contact_phone']) . '</strong>, or' : '' ?> by email to
-            <strong>smartcircle@zohomail.com</strong>. I will set up your account and send you a setup code. I would be honoured to work with you.</p>
+            <strong><?= e($contactEmail ?? 'smartcircle@zohomail.com') ?></strong>. I will set up your account and send you a setup code. I would be honoured to work with you.</p>
     <?php elseif ($doc['type'] === 'tutor_invitation'): ?>
         <?php require __DIR__ . '/_tutor_invitation.php'; ?>
         <h2>How to join</h2>
         <p>Simply reply<?= !empty($data['contact_phone']) ? ' on WhatsApp or by phone at <strong>' . e($data['contact_phone']) . '</strong>, or' : '' ?> by email to
-            <strong>smartcircle@zohomail.com</strong>. I will create your team account; at your first sign-in you read and agree to our principles.
+            <strong><?= e($contactEmail ?? 'smartcircle@zohomail.com') ?></strong>. I will create your team account; at your first sign-in you read and agree to our principles.
             I would be glad to have you with us.</p>
     <?php elseif ($doc['type'] === 'contribution_certificate'): ?>
         <p>This certifies that <strong><?= e($data['full_name'] ?? '') ?></strong><?= !empty($data['school']) ? ', a teacher at <strong>' . e($data['school']) . '</strong>,' : '' ?>
@@ -153,6 +153,6 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <footer class="letter__foot">
         <p>Verify this letter: <strong><?= e($verifyUrl) ?></strong> · Code <strong><?= e($doc['code']) ?></strong></p>
-        <p>SMART Circle · Understand it. Apply it. · smartcircle@zohomail.com</p>
+        <p>SMART Circle · Understand it. Apply it. · <?= e($contactEmail ?? 'smartcircle@zohomail.com') ?></p>
     </footer>
 </article>

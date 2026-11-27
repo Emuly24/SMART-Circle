@@ -74,7 +74,7 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 
 | Constraint | Rule |
 |---|---|
-| No `mail()` | Email goes out through Zoho SMTP (smartcircle@zohomail.com) from a queue. Replies arrive in Zoho, not the site. |
+| No `mail()` | Email goes out through Zoho SMTP (tutor@smartcircle.gt.tc, set in secrets.php) from a queue. Replies arrive in Zoho, not the site. |
 | No cron | Scheduled work runs lazily on normal requests or from an admin button. |
 | No shell / long scripts | No `exec`/`shell_exec`/`proc_open`, no `sleep()`, keep requests short. |
 | ~50,000 hits/day | Avoid polling; replays and static files only. |
