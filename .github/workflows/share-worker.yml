@@ -1,0 +1,32 @@
+name: Install the share Worker on Cloudflare
+
+# Press "Run workflow" (Actions tab) to install or update the link-preview Worker (tools/cloudflare).
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   CLOUDFLARE_API_TOKEN   a token made from the "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID  shown on the right of the Cloudflare dashboard's Workers & Pages page
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets are set
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::error::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets first (see tools/cloudflare/README.md)."
+            exit 1
+          fi
+
+      - name: Deploy the Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: tools/cloudflare
+          command: deploy
