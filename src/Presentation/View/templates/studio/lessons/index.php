@@ -3,13 +3,15 @@
  * @var list<array<string, mixed>> $lessons
  * @var array<string, string> $subjects
  * @var array<int, list<string>> $missing
+ * @var array<int, array{name: string, submitted_at: ?string}> $guestLessons
+ * @var bool $isGuest
  */
 ?>
 <section class="section">
     <div class="container">
         <p class="crumbs"><a href="/dashboard">Dashboard</a></p>
         <h1>My lessons</h1>
-        <p class="lead">Lessons uploaded from the board. Fill in the real-life sections, then publish.</p>
+        <p class="lead"><?= !empty($isGuest) ? 'Your guest lessons. Fill in the real-life sections, then send each one to the tutor, who publishes it with your name.' : 'Lessons uploaded from the board. Fill in the real-life sections, then publish.' ?></p>
         <p><a class="btn" href="/studio/lab">Record a new lesson</a></p>
 
         <?php if ($lessons === []): ?>
@@ -21,7 +23,8 @@
                     <tbody>
                     <?php foreach ($lessons as $lesson): $id = (int) $lesson['id']; ?>
                         <tr>
-                            <td><a href="/studio/lessons/<?= e($id) ?>"><?= e($lesson['title']) ?></a></td>
+                            <td><a href="/studio/lessons/<?= e($id) ?>"><?= e($lesson['title']) ?></a>
+                                <?php if (empty($isGuest) && isset($guestLessons[$id])): ?><br><span class="muted">Guest teacher: <?= e($guestLessons[$id]['name']) ?></span><?php if ($lesson['status'] !== 'published' && $guestLessons[$id]['submitted_at'] !== null): ?> <span class="tag tag--ready">Asks you to publish</span><?php endif; ?><?php endif; ?></td>
                             <td>
                                 <?= $lesson['form'] ? 'Form ' . e($lesson['form']) : '<span class="muted">No form</span>' ?>
                                 <?php if ($lesson['subject']): ?><span class="badge badge--<?= e($lesson['subject']) ?>"><?= e($subjects[$lesson['subject']] ?? '') ?></span><?php endif; ?>

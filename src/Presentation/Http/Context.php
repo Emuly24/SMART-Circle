@@ -47,6 +47,19 @@ final class Context
 
     private ?int $practiceAdmin = null;
 
+    private bool $guestTeacher = false;
+
+    /** A partner teacher the tutor has made a guest teacher (records lessons in their subjects). */
+    public function setGuestTeacher(bool $guest): void
+    {
+        $this->guestTeacher = $guest;
+    }
+
+    public function isGuestTeacher(): bool
+    {
+        return $this->guestTeacher;
+    }
+
     /** @param list<string>|null $subjects */
     public function setSubjects(?array $subjects): void
     {

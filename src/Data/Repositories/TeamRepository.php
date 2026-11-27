@@ -64,7 +64,7 @@ final class TeamRepository
      * The subject and creator of an item, for checking a team tutor may open it.
      * @return array{subject: ?string, owner: ?int}|null
      */
-    public function subjectOf(string $type, int $id): ?array
+    public function subjectOf(string $type, int|string $id): ?array
     {
         $sql = match ($type) {
             'lesson' => 'SELECT subject, created_by AS owner FROM lessons WHERE id = ?',

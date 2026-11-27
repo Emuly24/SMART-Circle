@@ -4,6 +4,17 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation;
 
+use SmartCircle\Data\Repositories\ContributionStatsRepository;
+use SmartCircle\Application\Partners\ContributionCertificateService;
+use SmartCircle\Presentation\Controllers\LessonReviewController;
+use SmartCircle\Data\Repositories\LessonReviewRepository;
+use SmartCircle\Application\Reviews\LessonReviewService;
+use SmartCircle\Presentation\Controllers\TeacherRolesController;
+use SmartCircle\Data\Repositories\QuestionSuggestionRepository;
+use SmartCircle\Application\Partners\QuestionSuggestionService;
+use SmartCircle\Presentation\Middleware\RequireGuestTeacher;
+use SmartCircle\Data\Repositories\GuestRepository;
+use SmartCircle\Application\Partners\GuestTeacherService;
 use SmartCircle\Presentation\Controllers\EngagementController;
 use SmartCircle\Data\Repositories\TemplateRepository;
 use SmartCircle\Data\Repositories\EngagementRepository;
@@ -254,6 +265,13 @@ final class App
                 if ($user !== null && $user['role'] === 'student') {
                     $this->context->setNeedsOnboarding($this->accountSetup($db, $users, $audit)->needsOnboarding((int) $user['id']));
                 }
+                if ($user !== null && $user['role'] === 'partner') {
+                    $scope = (new GuestTeacherService(new GuestRepository($db), $this->notifications($db)))->scope((int) $user['id']);
+                    if ($scope !== null) {
+                        $this->context->setGuestTeacher(true);
+                        $this->context->setSubjects($scope);
+                    }
+                }
                 if ($user !== null && $user['role'] === 'team') {
                     $team = $this->team($db, $users, $audit);
                     $this->context->setNeedsOnboarding($team->needsAgreement((int) $user['id']));
@@ -308,6 +326,8 @@ final class App
         $member = new RequireRole($this->context, $this->session);
         $tutor = new RequireRole($this->context, $this->session, ['tutor']);
         $teacher = new RequireRole($this->context, $this->session, ['tutor', 'team']);
+        // Lesson recording also opens to guest teachers (partner teachers the tutor has chosen).
+        $recorder = [new RequireRole($this->context, $this->session, ['tutor', 'team', 'partner']), new RequireGuestTeacher($this->context)];
         $teamTutor = $this->team($db, new UserRepository($db), new AuditLogRepository($db));
         $guard = fn (?string $type = null): SubjectGuard => new SubjectGuard($this->context, $teamTutor, $type);
         $learner = new RequireRole($this->context, $this->session, ['tutor', 'student', 'partner']);
@@ -332,7 +352,10 @@ final class App
             $lessonStorage,
             $this->config->int('lessons.max_bytes', 150 * 1024 * 1024),
         );
-        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService);
+        $guestTeachers = new GuestTeacherService(new GuestRepository($db), $this->notifications($db));
+        $lessonReviews = new LessonReviewService(new LessonReviewRepository($db), new ReviewRepository($db), $this->notifications($db), $this->storage(''));
+        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService, $guestTeachers, $lessonReviews);
+        $lessonReviewCtl = new LessonReviewController($lessonReviews, $lessonService, $this->context, $this->session, $this->view);
         $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view, $accessService);
         $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view, $this->context);
         $notificationsCtl = new NotificationController($this->notifications($db), $this->context, $this->session, $this->view);
@@ -436,14 +459,15 @@ final class App
         $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
         $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view, $recheckService);
         $noteReviews = new NoteReviewService(new ReviewRepository($db), $this->notifications($db), $this->storage(''));
-        $reviewCtl = new ReviewController($noteReviews, $this->context, $this->session, $this->view);
+        $reviewCtl = new ReviewController($noteReviews, $this->context, $this->session, $this->view, $lessonReviews);
         $libraryService = new LibraryService(new LibraryRepository($db), $this->storage(''));
         $libraryCtl = new LibraryController($libraryService, $this->view, $this->config->string('app.url'), $noteReviews);
         $studioLibrary = new StudioLibraryController($libraryService, $this->session);
         $studioNotes = new StudioNoteController($noteService, $topicService, $this->context, $this->session, $this->view, $noteReviews);
         $notesCtl = new NoteController($noteService, $this->context, $this->session, $this->view, $noteReviews);
         $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
-        $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
+        $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view,
+            new ContributionCertificateService(new ContributionStatsRepository($db), new PartnerRepository($db), $documentService, $this->notifications($db)));
         $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
         $partner = new RequireRole($this->context, $this->session, ['partner']);
         $dashboard = new DashboardController($this->context, $this->view, $installer, $this->session, static function (int $userId) use ($partnerService, $schoolService): ?array {
@@ -601,6 +625,16 @@ final class App
         $r->post('/studio/notes/{id}/library/{action}', $studioLibrary->note(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);
 
+        // Question Contributor and Guest Teacher
+        $rolesCtl = new TeacherRolesController(new QuestionSuggestionService(new QuestionSuggestionRepository($db), new QuestionRepository($db), new ReviewRepository($db), new TopicRepository($db), $this->notifications($db)),
+            $guestTeachers, $topicService, $this->context, $this->session, $this->view);
+        $r->get('/partner/questions', $rolesCtl->questions(...), [$partner]);
+        $r->post('/partner/questions', $rolesCtl->suggest(...), [$csrf, $partner]);
+        $r->get('/studio/question-suggestions', $rolesCtl->review(...), [$tutor]);
+        $r->post('/studio/question-suggestions/{id}', $rolesCtl->decide(...), [$csrf, $tutor]);
+        $r->post('/studio/partners/{id}/guest', $rolesCtl->setGuest(...), [$csrf, $tutor]);
+        $r->post('/studio/partners/{id}/certificate', $partnersCtl->certificate(...), [$csrf, $tutor]);
+
         // Partner teachers check notes and sign
         $r->get('/partner/reviews', $reviewCtl->queue(...), [$partner]);
         $r->get('/partner/reviews/{id}', $reviewCtl->show(...), [$partner]);
@@ -610,6 +644,12 @@ final class App
         $r->post('/partner/signature', $reviewCtl->saveSignature(...), [$csrf, $partner]);
         $r->get('/partner/signature/image', $reviewCtl->mySignature(...), [$partner]);
         $r->get('/reviews/{id}/signature', $reviewCtl->signature(...));
+        $r->get('/partner/reviews/lessons/{id}', $lessonReviewCtl->show(...), [$partner]);
+        $r->post('/partner/reviews/lessons/{id}', $lessonReviewCtl->decide(...), [$csrf, $partner]);
+        $r->get('/partner/reviews/lessons/{id}/file', $lessonReviewCtl->file(...), [$partner]);
+        $r->get('/partner/reviews/lessons/{id}/handout', $lessonReviewCtl->handout(...), [$partner]);
+        $r->get('/reviews/lessons/{id}/signature', $lessonReviewCtl->signature(...));
+        $r->post('/studio/lessons/{id}/review', $lessonReviewCtl->request(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
 
         // The free public library: no account needed
         $r->get('/library', $libraryCtl->index(...));
@@ -777,15 +817,15 @@ final class App
         $r->post('/studio/submissions/{id}', $studioAssess->mark(...), [$csrf, $teacher, $onboarded, $guard('submission')]);
 
         // Tutor: recording studio and lesson management
-        $r->get('/studio/lab', $studio->lab(...), [$teacher, $onboarded, $guard()]);
-        $r->get('/studio/lessons', $lessons->manage(...), [$teacher, $onboarded, $guard()]);
-        $r->get('/studio/lessons/{id}', $lessons->edit(...), [$teacher, $onboarded, $guard('lesson')]);
-        $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
-        $r->get('/studio/lessons/{id}/handout', $studioLibrary->download(...), [$teacher, $onboarded, $guard('lesson')]);
-        $r->post('/studio/lessons/{id}/handout', $studioLibrary->upload(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
-        $r->post('/studio/lessons/{id}/handout/{action}', $studioLibrary->handout(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->get('/studio/lab', $studio->lab(...), [...$recorder, $onboarded, $guard()]);
+        $r->get('/studio/lessons', $lessons->manage(...), [...$recorder, $onboarded, $guard()]);
+        $r->get('/studio/lessons/{id}', $lessons->edit(...), [...$recorder, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);
+        $r->get('/studio/lessons/{id}/handout', $studioLibrary->download(...), [...$recorder, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/handout', $studioLibrary->upload(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/handout/{action}', $studioLibrary->handout(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
-        $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);
 
         // Tutor: admissions
         $r->get('/studio/admissions', $admissions->index(...), [$tutor]);
@@ -798,9 +838,9 @@ final class App
         $r->get('/studio/admissions/{id}/report', $admissions->report(...), [$tutor]);
 
         // Tutor: resumable lesson upload API (JSON; CSRF token in X-CSRF-Token header)
-        $r->post('/studio/uploads', $uploads->start(...), [$teacher, $csrf, $onboarded, $guard()]);
-        $r->post('/studio/uploads/{id}/chunk', $uploads->chunk(...), [$teacher, $csrf, $onboarded, $guard('upload')]);
-        $r->post('/studio/uploads/{id}/finish', $uploads->finish(...), [$teacher, $csrf, $onboarded, $guard('upload')]);
+        $r->post('/studio/uploads', $uploads->start(...), [...$recorder, $csrf, $onboarded, $guard()]);
+        $r->post('/studio/uploads/{id}/chunk', $uploads->chunk(...), [...$recorder, $csrf, $onboarded, $guard('upload')]);
+        $r->post('/studio/uploads/{id}/finish', $uploads->finish(...), [...$recorder, $csrf, $onboarded, $guard('upload')]);
 
         // One-time setup
         $r->get('/install', $installCtl->show(...));

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Lessons\LessonService;
+use SmartCircle\Application\Partners\GuestTeacherService;
+use SmartCircle\Application\Reviews\LessonReviewService;
 use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Support\Subjects;
@@ -28,7 +30,14 @@ final class LessonController
         private readonly View $view,
         private readonly ?TopicService $topics = null,
         private readonly ?AccessService $access = null,
+        private readonly ?GuestTeacherService $guests = null,
+        private readonly ?LessonReviewService $reviews = null,
     ) {
+    }
+
+    private function isGuest(): bool
+    {
+        return $this->context->role() === 'partner';
     }
 
     /* ---------- Watching (students and tutor) ---------- */
@@ -84,6 +93,8 @@ final class LessonController
             'sections' => LessonService::REAL_LIFE_SECTIONS,
             'isTutor' => $this->context->role() === 'tutor',
             'topic' => !empty($lesson['topic_id']) ? $this->topics?->find((int) $lesson['topic_id']) : null,
+            'guestCredit' => $this->guests?->credit((int) $lesson['id']),
+            'approval' => $this->reviews?->approval((int) $lesson['id']),
         ]));
     }
 
@@ -106,12 +117,14 @@ final class LessonController
     public function manage(Request $request): Response
     {
         $uid = (int) $this->context->userId();
-        $lessons = array_values(array_filter($this->lessons->allForTutor(), fn (array $l): bool => $l['subject'] !== null
-            ? $this->context->canTeach((string) $l['subject']) : ($this->context->subjects() === null || (int) $l['created_by'] === $uid)));
+        $lessons = array_values(array_filter($this->lessons->allForTutor(), fn (array $l): bool => $this->isGuest() ? (int) $l['created_by'] === $uid
+            : ($l['subject'] !== null ? $this->context->canTeach((string) $l['subject']) : ($this->context->subjects() === null || (int) $l['created_by'] === $uid))));
 
         return Response::html($this->view->render('studio/lessons/index', [
             'title' => 'My lessons',
             'lessons' => $lessons,
+            'guestLessons' => $this->guests?->guestLessons() ?? [],
+            'isGuest' => $this->isGuest(),
             'subjects' => LessonService::SUBJECTS,
             'missing' => array_combine(
                 array_map(static fn (array $l): int => (int) $l['id'], $lessons),
@@ -130,6 +143,9 @@ final class LessonController
     public function update(Request $request): Response
     {
         $lesson = $this->lessonOr404($request);
+        if ($this->isGuest() && $lesson['status'] === 'published') {
+            throw new HttpException(403, 'This lesson is published. Ask the tutor if it needs a change.');
+        }
         $input = [];
         foreach (['title', 'form', 'subject', 'topic_id', 'summary', ...array_keys(LessonService::REAL_LIFE_SECTIONS)] as $field) {
             $input[$field] = $request->input($field);
@@ -140,12 +156,22 @@ final class LessonController
             return $this->editForm(array_merge($lesson, $input), $errors, [], 422);
         }
 
-        if ($request->input('action') === 'publish') {
+        if ($request->input('action') === 'publish' && $this->isGuest()) {
+            // Guest teachers do not publish: the tutor does, after watching it.
+            $fresh = $this->lessons->find((int) $lesson['id']) ?? $lesson;
+            $missing = $this->lessons->missingForPublish($fresh);
+            if ($missing !== []) {
+                return $this->editForm($fresh, [], $missing, 422);
+            }
+            $this->guests?->submit((int) $lesson['id'], (string) ($this->context->user()['full_name'] ?? 'A guest teacher'), (string) $fresh['title']);
+            $this->session->flash('success', 'Sent to the tutor. You will be told when it is published.');
+        } elseif ($request->input('action') === 'publish') {
             $missing = $this->lessons->publish((int) $lesson['id']);
             if ($missing !== []) {
                 $fresh = $this->lessons->find((int) $lesson['id']) ?? $lesson;
                 return $this->editForm($fresh, [], $missing, 422);
             }
+            $this->guests?->published((int) $lesson['id'], (string) ($this->lessons->find((int) $lesson['id'])['title'] ?? ''));
             $this->session->flash('success', 'Published. Students can now watch this lesson.');
         } else {
             $this->session->flash('success', 'Lesson details saved.');
@@ -166,6 +192,9 @@ final class LessonController
     public function delete(Request $request): Response
     {
         $lesson = $this->lessonOr404($request);
+        if ($this->isGuest() && $lesson['status'] === 'published') {
+            throw new HttpException(403, 'This lesson is published. Ask the tutor if it should be removed.');
+        }
         $this->lessons->delete((int) $lesson['id']);
         $this->session->flash('info', 'Lesson deleted.');
 
@@ -180,6 +209,10 @@ final class LessonController
         return Response::html($this->view->render('studio/lessons/edit', [
             'title' => 'Edit lesson',
             'lesson' => $lesson,
+            'isGuest' => $this->isGuest(),
+            'guestCredit' => $this->isGuest() ? null : $this->guests?->credit((int) $lesson['id']),
+            'review' => $this->isGuest() ? null : $this->reviews?->state((int) $lesson['id']),
+            'reviewHistory' => $this->isGuest() ? [] : ($this->reviews?->history((int) $lesson['id']) ?? []),
             'errors' => $errors,
             'missing' => $missing,
             'subjects' => $this->context->subjects() === null ? LessonService::SUBJECTS

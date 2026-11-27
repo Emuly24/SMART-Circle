@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Reviews\LessonReviewService;
 use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
@@ -21,6 +22,7 @@ final class ReviewController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?LessonReviewService $lessonReviews = null,
     ) {
     }
 
@@ -34,6 +36,7 @@ final class ReviewController
             'title' => 'Check notes',
             'me' => $this->reviews->reviewer($uid),
             'names' => Subjects::NAMES,
+            'lessons' => $this->lessonReviews?->queue($uid) ?? [],
         ] + $this->reviews->queue($uid)));
     }
 

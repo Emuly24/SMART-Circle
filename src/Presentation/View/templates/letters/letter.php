@@ -25,8 +25,8 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <p class="letter__to">
         <?= e($data['full_name'] ?? '') ?><br>
-        <?php if ($doc['type'] === 'partner_invite'): ?>
-            <?= e($data['school'] ?? '') ?>, <?= e($data['district'] ?? '') ?>
+        <?php if (in_array($doc['type'], ['partner_invite', 'contribution_certificate'], true)): ?>
+            <?= e($data['school'] ?? '') ?><?= !empty($data['district']) ? ', ' . e($data['district']) : '' ?>
         <?php else: ?>
             Form <?= e($data['form'] ?? '') ?><?= !empty($data['school']) ? ', ' . e($data['school']) : '' ?>
         <?php endif; ?>
@@ -34,7 +34,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <h1 class="letter__title"><?= e($doc['title']) ?></h1>
 
-    <?php if (!in_array($doc['type'], ['pledge_certificate', 'term_report'], true)): ?><p>Dear <?= e($first) ?>,</p><?php endif; ?>
+    <?php if (!in_array($doc['type'], ['pledge_certificate', 'term_report', 'contribution_certificate'], true)): ?><p>Dear <?= e($first) ?>,</p><?php endif; ?>
 
     <?php if ($doc['type'] === 'admission_letter'): ?>
         <p>
@@ -71,6 +71,17 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <p><strong>To start:</strong> open the SMART Circle website, choose <strong>Log in</strong> and then <strong>set up your account</strong>,
             and enter your phone number with the setup code the tutor gives you.</p>
         <p>Thank you for supporting your students.</p>
+    <?php elseif ($doc['type'] === 'contribution_certificate'): ?>
+        <p>This certifies that <strong><?= e($data['full_name'] ?? '') ?></strong><?= !empty($data['school']) ? ', a teacher at <strong>' . e($data['school']) . '</strong>,' : '' ?>
+            has generously supported <strong>SMART Circle</strong>, a free programme for Form 1–4 students in Malawi<?= $subjects !== '' ? ', in ' . e($subjects) : '' ?>.</p>
+        <p><strong>Their contribution<?= !empty($data['since']) ? ' since ' . e(date('F Y', (int) strtotime((string) $data['since']))) : '' ?>:</strong></p>
+        <ul class="letter__vows">
+            <?php foreach (\SmartCircle\Application\Partners\ContributionCertificateService::LABELS as $k => $label): ?>
+                <?php if (!empty($data['counts'][$k])): ?><li><strong><?= e($data['counts'][$k]) ?></strong> <?= e($label) ?></li><?php endif; ?>
+            <?php endforeach; ?>
+        </ul>
+        <p>Every lesson and handout they checked carries their name, so students and parents know a qualified teacher stands behind it.
+            Thank you for giving your time and knowledge, freely, to young people in Malawi.</p>
     <?php elseif ($doc['type'] === 'term_report'): ?>
         <p><strong><?= e($data['year'] ?? '') ?>, Term <?= e($data['term'] ?? '') ?></strong> · Form <?= e($data['form'] ?? '') ?>
             · <?= ($data['scale'] ?? '') === 'jce' ? 'JCE letters A–F' : 'MSCE points 1–9' ?></p>

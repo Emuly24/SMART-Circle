@@ -33,6 +33,12 @@ $user = $ctx->user() ?? [];
                 <p class="note">Your invitation letter: <a href="/letters/<?= e($summary['letters'][0]['code']) ?>">open and print</a>.</p>
             <?php endif; ?>
         <?php endif; ?>
+        <?php if ($ctx->isGuestTeacher()): ?>
+            <a class="card section-card community-card" href="/studio/lab"><span><strong>Record a lesson</strong><br><span class="muted">You are a guest teacher. Record on the board, then send the lesson to the tutor, who publishes it with your name. <span class="nowrap">See <u>My lessons</u>.</span></span></span></a>
+        <?php endif; ?>
+        <a class="card section-card community-card" href="/partner/questions">
+            <span><strong>Suggest questions</strong><br><span class="muted">Exercise and exam questions in your subjects. Good ones join the question bank with your name.</span></span>
+        </a>
         <a class="card section-card community-card" href="/partner/reviews">
             <span><strong>Check notes and sign them</strong><br><span class="muted">Read the tutor’s notes in your subjects. Approve them with your signature, or suggest changes.</span></span>
         </a>

@@ -93,6 +93,15 @@ check "create Physics notes"               "303" "$(post "$MJ" /studio/notes/new
 check "  Chemistry refused"                "403" "$(post "$MJ" /studio/notes/new /studio/notes --data-urlencode kind=notes --data-urlencode "title=E2E team chem notes" --data-urlencode form=3 --data-urlencode subject=chemistry --data-urlencode topic_id=$(sql "SELECT id FROM topics WHERE form=3 AND subject='chemistry' LIMIT 1") | cut -c1-3)"
 check "admin makes Chemistry notes"        "303" "$(post "$TJ" /studio/notes/new /studio/notes --data-urlencode kind=notes --data-urlencode "title=E2E team admin chemistry" --data-urlencode form=3 --data-urlencode subject=chemistry --data-urlencode topic_id=$(sql "SELECT id FROM topics WHERE form=3 AND subject='chemistry' LIMIT 1") | cut -c1-3)"
 CHEM=$(sql "SELECT id FROM notes WHERE title='E2E team admin chemistry'")
+# A team tutor can upload a recording (upload ids are hex, not numbers).
+php -r '$h = json_encode(["version"=>1,"durationMs"=>1000,"events"=>[]]); file_put_contents($argv[1], "SCL1" . pack("V", strlen($h)) . $h . str_repeat("x", 3000));' "$WORK/t.scl"
+TCSRF=$(curl -s -b "$MJ" -c "$MJ" "$BASE/studio/lab" | grep -oE 'name="csrf-token" content="[^"]+"' | sed -E 's/.*content="//;s/"//')
+TUP=$(curl -s -b "$MJ" -c "$MJ" -H "X-CSRF-Token: $TCSRF" -H 'Content-Type: application/json' \
+    -d "{\"client_key\":\"e2e-team-up\",\"title\":\"E2E team upload\",\"size\":$(stat -c %s "$WORK/t.scl"),\"sha256\":\"$(sha256sum "$WORK/t.scl" | cut -d' ' -f1)\"}" "$BASE/studio/uploads" \
+    | php -r 'echo json_decode(stream_get_contents(STDIN), true)["upload_id"] ?? "";')
+curl -s -o /dev/null -b "$MJ" -c "$MJ" -H "X-CSRF-Token: $TCSRF" -H 'Content-Type: application/octet-stream' --data-binary "@$WORK/t.scl" "$BASE/studio/uploads/$TUP/chunk?offset=0"
+check "team tutor uploads a recording"     '"lesson_id":' "$(curl -s -b "$MJ" -c "$MJ" -H "X-CSRF-Token: $TCSRF" -X POST "$BASE/studio/uploads/$TUP/finish")"
+sql "DELETE FROM lessons WHERE title='E2E team upload'"
 NL=$(curl -s -b "$MJ" "$BASE/studio/notes")
 check "  team sees their notes"            "E2E team physics notes" "$NL"
 refute "  but not Chemistry"               "E2E team admin chemistry" "$NL"

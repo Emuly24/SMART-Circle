@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Partners\ContributionCertificateService;
 use SmartCircle\Application\Partners\PartnerService;
 use SmartCircle\Application\Partners\SchoolService;
 use SmartCircle\Presentation\Http\Context;
@@ -26,7 +27,18 @@ final class PartnerController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?ContributionCertificateService $certificates = null,
     ) {
+    }
+
+    public function certificate(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $this->partners->find($id) ?? throw new HttpException(404);
+        $r = $this->certificates?->issue($id, (int) $this->context->userId()) ?? ['code' => null, 'error' => 'Not available.'];
+        $this->session->flash(...($r['error'] === '' ? ['success', 'Certificate issued. The teacher has been told; it is also listed below.'] : ['error', $r['error']]));
+
+        return Response::redirect('/studio/partners/' . $id . '#roles');
     }
 
     public function index(Request $request): Response
@@ -68,6 +80,7 @@ final class PartnerController
             'letters' => $this->partners->letters((int) $partner['id']),
             'progress' => $schoolId > 0 ? $this->schools->progress($schoolId) : [],
             'names' => Subjects::NAMES,
+            'contribution' => $this->certificates?->counts((int) $partner['id']) ?? [],
         ]));
     }
 

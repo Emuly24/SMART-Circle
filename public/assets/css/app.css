@@ -1102,3 +1102,6 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .template-help ul { margin: 6px 0 0; padding-left: 1.2em; }
 .template-help code { color: var(--link); }
 .template-preview { white-space: normal; }
+.guest-credit { margin: 4px 0 10px; color: var(--green-text); }
+.suggestion { margin-bottom: 14px; }
+.suggestion details { margin-top: 10px; }
