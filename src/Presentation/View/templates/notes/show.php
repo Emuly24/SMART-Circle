@@ -14,6 +14,7 @@ $fmt = static fn ($x): string => \SmartCircle\Application\Assessments\Assessment
         <p class="crumbs"><a href="/notes">Notes &amp; slides</a></p>
         <p><span class="badge badge--<?= e($n['subject']) ?>"><?= e($names[$n['subject']] ?? '') ?></span> <span class="muted"><?= e($n['topic_title']) ?></span></p>
         <h1><?= e($n['title']) ?></h1>
+        <?php if (!$r['locked']): ?><button type="button" class="btn btn--small btn--ghost offline-save js-offline-save" hidden data-offline-title="<?= e($n['title']) ?>"><span class="js-offline-label">Save for offline</span></button><?php endif; ?>
         <?php if ($r['locked']): ?>
             <div class="card locked-card"><p class="locked-card__icon" aria-hidden="true">🔒</p>
                 <p class="lead">These notes open when your school has taught <strong><?= e($n['topic_title']) ?></strong>.</p>
@@ -62,3 +63,4 @@ $fmt = static fn ($x): string => \SmartCircle\Application\Assessments\Assessment
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>
+<script src="<?= e($asset('js/offline.js')) ?>" defer></script>

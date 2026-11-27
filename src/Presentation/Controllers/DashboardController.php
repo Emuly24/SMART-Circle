@@ -38,6 +38,14 @@ final class DashboardController
         $this->rooms = $rooms;
     }
 
+    /** @var (\Closure(int): array<string, mixed>)|null Quick 5 / feedback prompts for students */
+    private ?\Closure $learning = null;
+
+    public function setLearning(\Closure $learning): void
+    {
+        $this->learning = $learning;
+    }
+
     public function index(Request $request): Response
     {
         $role = $this->context->role() ?? 'student';
@@ -56,6 +64,7 @@ final class DashboardController
             'pledge' => $role === 'student' && $this->studentPledge !== null ? ($this->studentPledge)((int) $this->context->userId()) : null,
             'feedback' => $role === 'student' && $this->studentFeedback !== null ? ($this->studentFeedback)((int) $this->context->userId()) : [],
             'calendar' => $this->calendarInfo !== null ? ($this->calendarInfo)((int) $this->context->userId(), $role) : null,
+            'learning' => $role === 'student' && $this->learning !== null ? ($this->learning)((int) $this->context->userId()) : [],
             'rooms' => in_array($role, ['student', 'tutor'], true) && $this->rooms !== null ? ($this->rooms)((int) $this->context->userId()) : [],
         ]));
     }

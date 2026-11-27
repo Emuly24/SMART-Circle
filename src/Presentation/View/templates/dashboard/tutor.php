@@ -27,6 +27,8 @@ $user = $ctx->user() ?? [];
         <?= $view->partial('room_card', ['rooms' => $rooms ?? [], 'role' => 'tutor']) ?>
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/practice"><h2>Try as</h2><p>See every page as a student, teacher, alumnus or team tutor, with practice accounts.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/impact"><h2>Impact</h2><p>Entry quiz against this term’s average, lessons watched and Quick 5.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/feedback"><h2>Student feedback</h2><p>Anonymous termly answers about clarity and pace.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/contributions"><h2>From partner teachers</h2><p>Calendar checks, shared resources and suggested topics to add.</p><span class="tag tag--ready">Review</span></a>
             <a class="tile tile--link" href="/studio/guardians"><h2>Guardians</h2><p>Welcome messages in Chichewa or English, confirmations, and the monthly update.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/team"><h2>The Team</h2><p>Invite volunteer tutors for a subject; they agree to our principles first.</p><span class="tag tag--ready">Open</span></a>

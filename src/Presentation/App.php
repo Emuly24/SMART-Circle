@@ -27,6 +27,9 @@ use SmartCircle\Application\Students\StudentOverviewService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
+use SmartCircle\Application\Learning\FeedbackService;
+use SmartCircle\Application\Learning\ImpactService;
+use SmartCircle\Application\Learning\Quick5Service;
 use SmartCircle\Application\Maneb\ManebService;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Application\OfficeHours\OfficeHoursService;
@@ -74,6 +77,7 @@ use SmartCircle\Data\Repositories\TextbookRepository;
 use SmartCircle\Data\Repositories\DocumentRepository;
 use SmartCircle\Data\Repositories\IntakeRepository;
 use SmartCircle\Data\Repositories\StudentRepository;
+use SmartCircle\Data\Repositories\LearningRepository;
 use SmartCircle\Data\Repositories\LessonRepository;
 use SmartCircle\Data\Repositories\LessonUploadRepository;
 use SmartCircle\Data\Repositories\LoginAttemptRepository;
@@ -103,6 +107,7 @@ use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\HonestyController;
 use SmartCircle\Presentation\Controllers\InstallController;
+use SmartCircle\Presentation\Controllers\LearningController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\NoteController;
 use SmartCircle\Presentation\Controllers\NotificationController;
@@ -371,6 +376,11 @@ final class App
         $contributionService = new ContributionService(new ContributionRepository($db), $calendarService, $topicService, $this->notifications($db),
             $this->storage(''), $settingsService->tutorWhatsapp(...));
         $contribCtl = new ContributionController($contributionService, $partnerService, $this->context, $this->session, $this->view);
+        $learningRepo = new LearningRepository($db);
+        $feedbackService = new FeedbackService($learningRepo, $calendarService);
+        $quick5Service = new Quick5Service($learningRepo, new StudentRepository($db), $accessService);
+        $learningCtl = new LearningController($quick5Service, $feedbackService, new ImpactService($learningRepo, $gradeService, $calendarService),
+            $studentForm, $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
@@ -430,6 +440,7 @@ final class App
                     'form' => $student !== null ? (int) $student['form'] : null,
                     'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null];
             });
+        $dashboard->setLearning(static fn (int $userId): array => ['ask_feedback' => $feedbackService->shouldAsk($userId)]);
         $dashboard->setRooms(static fn (int $userId): array => (new MessageRepository($db))->inbox($userId, 'support'));
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
@@ -644,6 +655,14 @@ final class App
         $r->get('/studio/resources/{id}/file', $contribCtl->adminFile(...), [$tutor]);
         $r->post('/studio/contributions/suggestions/{id}', $contribCtl->decide(...), [$csrf, $tutor]);
         $r->post('/studio/contributions/calendar/{id}/resolve', $contribCtl->resolve(...), [$csrf, $tutor]);
+
+        // Quick 5, termly feedback and impact
+        $r->get('/quick5', $learningCtl->quick5(...), [$student, $onboarded]);
+        $r->post('/quick5', $learningCtl->check(...), [$csrf, $student, $onboarded]);
+        $r->get('/feedback', $learningCtl->feedbackForm(...), [$student, $onboarded]);
+        $r->post('/feedback', $learningCtl->sendFeedback(...), [$csrf, $student, $onboarded]);
+        $r->get('/studio/impact', $learningCtl->impact(...), [$tutor]);
+        $r->get('/studio/feedback', $learningCtl->feedbackReport(...), [$tutor]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);

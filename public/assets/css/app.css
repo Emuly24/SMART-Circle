@@ -1028,3 +1028,10 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .drawpad__align { min-height: 40px; border: 1.5px solid var(--field-border); border-radius: var(--radius-small); background: var(--surface); color: var(--ink); font: inherit; }
 .drawpad__msg { flex: 1 1 100%; margin: 0; color: var(--slate); }
 .checkpoint, .reader__locked, .reader__end, .note-calc { clear: both; }
+
+/* Quick 5 and feedback (Phase J2) */
+.quick5-review { padding-left: 1.2em; display: grid; gap: 10px; }
+.quick5-review p { margin: 4px 0; overflow-wrap: anywhere; }
+.clarity-scale .choice { min-width: 0; }
+.offline-save { margin: 0 0 12px; }
+.offline-save[hidden] { display: none; }

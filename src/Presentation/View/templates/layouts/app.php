@@ -27,6 +27,7 @@ $user = $ctx->user();
     <link rel="icon" href="<?= e($asset('brand/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="icon" href="<?= e($asset('brand/favicon-32.png')) ?>" sizes="32x32" type="image/png">
     <link rel="apple-touch-icon" href="<?= e($asset('brand/apple-touch-icon-180.png')) ?>">
+    <link rel="manifest" href="/manifest.webmanifest">
     <script src="<?= e($asset('js/theme.js')) ?>"></script>
     <link rel="stylesheet" href="<?= e($asset('css/app.css')) ?>">
 </head>
