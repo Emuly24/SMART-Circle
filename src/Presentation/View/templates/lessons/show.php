@@ -8,6 +8,8 @@
  * @var array<string, mixed>|null $topic
  * @var array{name: string, school: ?string}|null $guestCredit
  * @var array<string, mixed>|null $approval
+ * @var array<string, mixed>|null $thread
+ * @var array{saved: ?array<string, mixed>}|null $ticket
  * @var callable $asset
  */
 $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => '👩🏾‍⚕️', 'try_at_home' => '🏠'];
@@ -46,6 +48,8 @@ $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => 
                 <?php endif; ?>
             <?php endforeach; ?>
         </div>
+        <?php if (!empty($ticket)): ?><?= $view->partial('exit_ticket', ['lessonId' => (int) $lesson['id'], 'ticket' => $ticket['saved']]) ?><?php endif; ?>
+        <?php if (!empty($thread)): ?><?= $view->partial('discussion', ['lessonId' => (int) $lesson['id'], 'thread' => $thread, 'isTutor' => !empty($isTutor)]) ?><?php endif; ?>
     </div>
 </section>
 <script type="module" src="<?= e($asset('js/board/watch.js')) ?>"></script>

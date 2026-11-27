@@ -35,6 +35,12 @@ final class NotificationService
         $this->mail?->notifyUsers($userIds, mb_substr($title, 0, 200), $body === null ? null : mb_substr($body, 0, 500), $link);
     }
 
+    /** @return list<int> */
+    public function tutorIds(): array
+    {
+        return $this->users->idsByRole('tutor');
+    }
+
     public function notifyTutors(string $type, string $title, ?string $body = null, ?string $link = null): void
     {
         $this->notify($this->users->idsByRole('tutor'), $type, $title, $body, $link);

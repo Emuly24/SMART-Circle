@@ -54,6 +54,7 @@ $user = $ctx->user();
                 <?php if ($role === 'tutor'): ?>
                     <a href="/studio/students" <?= str_starts_with($path ?? '', '/studio/students') ? 'aria-current="page"' : '' ?>>Students</a>
                     <a href="/studio/marking" <?= str_starts_with($path ?? '', '/studio/marking') ? 'aria-current="page"' : '' ?>>Marking</a>
+                    <a href="/studio/community" <?= str_starts_with($path ?? '', '/studio/community') ? 'aria-current="page"' : '' ?>>Community</a>
                     <a href="/studio/practice" <?= str_starts_with($path ?? '', '/studio/practice') ? 'aria-current="page"' : '' ?>>Try as</a>
                 <?php elseif ($role === 'team'): ?>
                     <a href="/studio/lessons" <?= str_starts_with($path ?? '', '/studio/lessons') ? 'aria-current="page"' : '' ?>>My lessons</a>
@@ -75,6 +76,7 @@ $user = $ctx->user();
                     <a href="/topics" <?= str_starts_with($path ?? '', '/topics') ? 'aria-current="page"' : '' ?>>Topics</a>
                     <a href="/notes" <?= str_starts_with($path ?? '', '/notes') ? 'aria-current="page"' : '' ?>>Notes</a>
                     <a href="/assessments" <?= str_starts_with($path ?? '', '/assessments') ? 'aria-current="page"' : '' ?>>Exams</a>
+                    <a href="/community" <?= str_starts_with($path ?? '', '/community') ? 'aria-current="page"' : '' ?>>Community</a>
                 <?php endif; ?>
                 <?php $msgs = isset($messageCount) ? $messageCount() : 0; ?>
                 <a href="/messages" <?= str_starts_with($path ?? '', '/messages') ? 'aria-current="page"' : '' ?>>Messages<?php if ($msgs > 0): ?> <span class="nav-count" aria-label="<?= e($msgs) ?> unread"><?= e($msgs > 99 ? '99+' : $msgs) ?></span><?php endif; ?></a>

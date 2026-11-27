@@ -1105,3 +1105,37 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .guest-credit { margin: 4px 0 10px; color: var(--green-text); }
 .suggestion { margin-bottom: 14px; }
 .suggestion details { margin-top: 10px; }
+
+/* Community: discussions, challenges, the wall, badges */
+.discussion { margin-top: 28px; }
+.discussion__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.discussion__head h2 { margin: 0; }
+.comments, .comment__replies { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px; }
+.comment { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; }
+.comment--reply { border-left-color: var(--blue-tint); }
+.comment--approved { border-left-color: var(--green); background: var(--green-tint); border-radius: 0 var(--radius-small) var(--radius-small) 0; padding-right: 8px; }
+.comment--hidden { opacity: .6; }
+.comment__head { margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.comment__body { margin: 0 0 6px; overflow-wrap: anywhere; }
+.comment__actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.comment__replies { margin-left: 4px; }
+.comment__reply-form, .comment__report { margin-top: 6px; }
+.comment__report summary, .comment__reply-form summary { cursor: pointer; color: var(--link); font-size: .9rem; }
+.react { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: .85rem; cursor: pointer; min-height: 32px; }
+.react--on { border-color: var(--blue); background: var(--blue-tint); color: var(--link); font-weight: 600; }
+.mention { color: var(--link); }
+.tag-link { font-weight: 600; }
+.exit-ticket { margin-top: 24px; border-top: 4px solid var(--amber); }
+.exit-ticket h2 { margin-top: 0; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; list-style: none; padding: 0; }
+.badge-tile { border: 1px solid var(--line); border-radius: var(--radius-small); padding: 10px 12px; background: var(--surface); }
+.badge-tile--earned { border-color: var(--green); background: var(--green-tint); }
+.badge-tile strong { display: block; color: var(--link); }
+.badge-tile--locked { opacity: .65; }
+.wall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; list-style: none; padding: 0; }
+.wall-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.wall-card img { display: block; width: 100%; height: 200px; object-fit: cover; background: var(--mist); }
+.wall-card figcaption { padding: 10px 12px; }
+.wall-card--featured { border: 2px solid var(--amber); }
+.challenge-card { margin-bottom: 12px; }
+.moderation-photo { display: inline-block; vertical-align: middle; width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-small); margin-right: 8px; }
