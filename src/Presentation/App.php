@@ -15,6 +15,7 @@ use SmartCircle\Application\Alumni\YearEndService;
 use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Assessments\RecheckService;
+use SmartCircle\Application\Library\LibraryService;
 use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Calendar\CalendarService;
@@ -68,6 +69,7 @@ use SmartCircle\Data\Repositories\GuardianRepository;
 use SmartCircle\Data\Repositories\MessageRepository;
 use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
+use SmartCircle\Data\Repositories\LibraryRepository;
 use SmartCircle\Data\Repositories\NoteRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
 use SmartCircle\Data\Repositories\RecheckRepository;
@@ -109,8 +111,10 @@ use SmartCircle\Presentation\Controllers\HonestyController;
 use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LearningController;
 use SmartCircle\Presentation\Controllers\LessonController;
+use SmartCircle\Presentation\Controllers\LibraryController;
 use SmartCircle\Presentation\Controllers\NoteController;
 use SmartCircle\Presentation\Controllers\NotificationController;
+use SmartCircle\Presentation\Controllers\StudioLibraryController;
 use SmartCircle\Presentation\Controllers\StudioNoteController;
 use SmartCircle\Presentation\Controllers\PartnerController;
 use SmartCircle\Presentation\Controllers\SchoolController;
@@ -410,6 +414,9 @@ final class App
             new StudentRepository($db), $accessService, $examService, $this->notifications($db), $this->storage(''));
         $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
         $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view, $recheckService);
+        $libraryService = new LibraryService(new LibraryRepository($db), $this->storage(''));
+        $libraryCtl = new LibraryController($libraryService, $this->view, $this->config->string('app.url'));
+        $studioLibrary = new StudioLibraryController($libraryService, $this->session);
         $studioNotes = new StudioNoteController($noteService, $topicService, $this->context, $this->session, $this->view);
         $notesCtl = new NoteController($noteService, $this->context, $this->session, $this->view);
         $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
@@ -567,7 +574,15 @@ final class App
         $r->post('/studio/notes/{id}/blocks/{block}/align', $studioNotes->alignBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/library/{action}', $studioLibrary->note(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+
+        // The free public library: no account needed
+        $r->get('/library', $libraryCtl->index(...));
+        $r->get('/library/notes/{id}', $libraryCtl->note(...));
+        $r->get('/library/notes/{id}/print', $libraryCtl->printNote(...));
+        $r->get('/library/notes/{id}/images/{block}', $libraryCtl->image(...));
+        $r->get('/library/lessons/{id}/handout', $libraryCtl->handout(...));
 
         // Messages, the private room and the student overview
         $r->get('/messages', $messagesCtl->index(...), [$member, $onboarded]);
@@ -712,6 +727,9 @@ final class App
         $r->get('/studio/lessons', $lessons->manage(...), [$teacher, $onboarded, $guard()]);
         $r->get('/studio/lessons/{id}', $lessons->edit(...), [$teacher, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->get('/studio/lessons/{id}/handout', $studioLibrary->download(...), [$teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/handout', $studioLibrary->upload(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/handout/{action}', $studioLibrary->handout(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
 

@@ -10,7 +10,10 @@ namespace SmartCircle\Presentation\View;
  *
  *   # Heading            ## Smaller heading
  *   - item  /  * item    1. numbered item
- *   > Real life: ...     (a highlighted "real life" box)
+ *   > Real life: ...     a highlighted box; consecutive "> " lines join into one box.
+ *                        A leading label sets its colour: "Real life:", "Where it is used:",
+ *                        "Why it matters:", "Did you know?" (amber); "Remember:", "Key idea:"
+ *                        (blue); "Tip:", "Example:" (green); "Careful:" (warning)
  *   **bold**   *italic*
  *   H_2O  CO_{2}  x^2  10^{-3}  (subscript / superscript)
  *   ->  →     <-  ←     <=>  ⇌  (reaction arrows)
@@ -29,6 +32,14 @@ final class NoteMarkup
         $list = null;   // 'ul' | 'ol'
         $items = [];
         $calc = [];     // consecutive "= " lines
+        $box = [];      // consecutive "> " lines
+
+        $flushBox = static function () use (&$box, &$html): void {
+            if ($box !== []) {
+                $html[] = self::callout($box);
+                $box = [];
+            }
+        };
 
         $flushCalc = static function () use (&$calc, &$html): void {
             if ($calc !== []) {
@@ -55,6 +66,14 @@ final class NoteMarkup
 
         foreach ($lines as $line) {
             $t = rtrim($line);
+            if (preg_match('/^>\s?(.*)$/', $t, $m)) {
+                $flushCalc();
+                $flushPara();
+                $flushList();
+                $box[] = $m[1];
+                continue;
+            }
+            $flushBox();
             if (preg_match('/^=\s+(.+)$/', $t, $m)) {
                 $flushPara();
                 $flushList();
@@ -86,20 +105,40 @@ final class NoteMarkup
                     $list = 'ol';
                 }
                 $items[] = $m[1];
-            } elseif (preg_match('/^>\s?(.*)$/', $t, $m)) {
-                $flushPara();
-                $flushList();
-                $html[] = '<aside class="note-callout">' . self::inline($m[1]) . '</aside>';
             } else {
                 $flushList();
                 $para[] = $t;
             }
         }
+        $flushBox();
         $flushCalc();
         $flushPara();
         $flushList();
 
         return implode("\n", $html);
+    }
+
+    /** Labels that start a box, and the colour each gives it. */
+    private const LABELS = [
+        'real life' => 'life', 'in real life' => 'life', 'where it is used' => 'life', "where it's used" => 'life',
+        'why it matters' => 'life', 'did you know' => 'life', 'remember' => 'key', 'key idea' => 'key',
+        'key point' => 'key', 'note' => 'key', 'tip' => 'tip', 'example' => 'tip', 'careful' => 'warn', 'warning' => 'warn',
+    ];
+
+    /** @param list<string> $lines the box's lines (without "> ") */
+    private static function callout(array $lines): string
+    {
+        $variant = 'life';
+        $label = '';
+        if (preg_match('/^\s*([A-Za-z\' ]{2,20}?)\s*([:?])\s*(.*)$/u', $lines[0], $m) && isset(self::LABELS[strtolower(trim($m[1]))])) {
+            $variant = self::LABELS[strtolower(trim($m[1]))];
+            $label = '<span class="note-callout__label">' . self::inline(trim($m[1]) . $m[2]) . '</span> ';
+            $lines[0] = $m[3];
+        }
+        $body = implode('<br>', array_map([self::class, 'inline'], $lines));
+        $body = (string) preg_replace('/^(<br>)+/', '', $body);
+
+        return '<aside class="note-callout note-callout--' . $variant . '">' . $label . $body . '</aside>';
     }
 
     /** An equation line: inline patterns, plus * as a times sign (no bold/italic there). */

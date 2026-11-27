@@ -47,3 +47,16 @@
 .letter__table th { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: var(--slate); }
 .letter__comment { background: var(--mist); padding: 8px 10px; border-left: 3px solid var(--green); }
 .letter__small { font-size: 9pt; color: var(--slate); }
+
+/* Library handouts: long notes flow over several A4 pages. */
+.handout { display: block; min-height: 0; }
+.handout__title { font-size: 20pt; color: var(--blue); margin: 0 0 10px; }
+.handout__summary { color: var(--slate); }
+.handout .note-prose { font-size: 11.5pt; }
+.handout .note-figure img { max-height: 120mm; width: auto; max-width: 100%; margin: 0 auto; }
+.handout__foot { margin-top: 18px; }
+.handout h2, .handout h3 { break-after: avoid; }
+.handout .note-callout, .handout .note-calc, .handout .note-figure { break-inside: avoid; }
+@media print {
+    .handout { min-height: 0; }
+}

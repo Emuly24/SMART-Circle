@@ -45,6 +45,7 @@ final class DocumentController
             // Admission letters list subjects as "a,b,c"; term reports carry a table of grades instead.
             'subjects' => Subjects::names(array_filter(explode(',', is_string($data['help_subjects'] ?? $data['subjects'] ?? null) ? (string) ($data['help_subjects'] ?? $data['subjects']) : ''))),
             'verifyUrl' => rtrim($this->siteUrl, '/') . '/verify/' . $doc['code'],
+            'libraryUrl' => rtrim($this->siteUrl, '/') . '/library',
         ], 'layouts/print'));
     }
 

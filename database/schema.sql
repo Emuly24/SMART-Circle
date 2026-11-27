@@ -1873,11 +1873,25 @@ CREATE TABLE term_feedback_done (
     CONSTRAINT fk_term_feedback_done_term FOREIGN KEY (term_id) REFERENCES terms (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------------------
+-- Migration 0019_library
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: the free public library. Notes the tutor chooses are shown to everyone as branded,
+-- printable handouts (never their exercises), and lessons can carry a PDF handout made elsewhere.
+
+ALTER TABLE notes
+    ADD COLUMN in_library TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Shown in the public library (text and pictures only)' AFTER status;
+
+ALTER TABLE lessons
+    ADD COLUMN handout_path   VARCHAR(255) NULL COMMENT 'PDF handout, relative to storage/' AFTER try_at_home,
+    ADD COLUMN handout_bytes  INT UNSIGNED NULL AFTER handout_path,
+    ADD COLUMN handout_public TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'Shown in the public library' AFTER handout_bytes;
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library');
 
 SET FOREIGN_KEY_CHECKS = 1;

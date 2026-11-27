@@ -121,7 +121,7 @@
                 national syllabus and your school's pace, and partner teachers help keep them accurate.
             </p>
             <p>
-                Not admitted? Free handouts from every lesson will be available to everyone in the library.
+                Not admitted? Free handouts are open to everyone in our <a href="/library">free library</a>. No account needed.
             </p>
         </div>
     </div>

@@ -107,15 +107,15 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
             your form are currently filled. You have been placed on the <strong>waiting list</strong>.
         </p>
         <p>If a seat becomes available, you will be contacted using the phone number on your application.</p>
-        <p>Meanwhile, the free lesson handouts in the SMART Circle library are open to everyone.</p>
+        <p>Meanwhile, the free lesson handouts in the SMART Circle library are open to everyone: <strong><?= e($libraryUrl) ?></strong></p>
     <?php else: ?>
         <p>
             Thank you for applying to <strong>SMART Circle</strong>. We had more applications than places, and this time
             we are not able to offer you a seat.
         </p>
         <p>
-            Please don't be discouraged. The free lesson handouts in the SMART Circle library are open to everyone, and you
-            are welcome to apply again in the next intake.
+            Please don't be discouraged. The free lesson handouts in the SMART Circle library are open to everyone
+            (<strong><?= e($libraryUrl) ?></strong>), and you are welcome to apply again in the next intake.
         </p>
     <?php endif; ?>
 
