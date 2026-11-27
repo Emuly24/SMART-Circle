@@ -1062,3 +1062,28 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .library-invite .btn { margin: 4px 8px 4px 0; }
 .library-toggle { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .library-box h2 { margin-top: 0; }
+
+/* Teachers' checks and signatures (signatures are dark ink, so they always sit on paper-white) */
+.signature-pad__canvas { display: block; width: 100%; max-width: 600px; height: auto; aspect-ratio: 600 / 220; background: var(--white); border: 2px dashed var(--field-border); border-radius: var(--radius-small); touch-action: none; }
+.signature-img { display: block; max-width: 220px; max-height: 80px; width: auto; height: auto; background: var(--white); border-radius: 6px; padding: 4px 8px; margin: 6px 0; }
+.signature-card { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.signature-card p { margin: 0; }
+.review-badge { margin: 24px 0; padding: 14px 16px; border: 2px solid var(--green); border-radius: var(--radius); background: var(--green-tint); -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+.review-badge p { margin: 0 0 4px; }
+.review-badge__title { font-weight: 800; color: var(--green-text); }
+.review-exercise { margin: 12px 0 18px; }
+.review-questions { padding-left: 1.3em; }
+.review-questions > li { margin-bottom: 12px; }
+.review-questions .note-prose { margin: 0 0 4px; font-size: 1rem; }
+.review-options { margin: 0 0 4px; }
+.review-answer { margin: 0; color: var(--green-text); }
+.review-history { list-style: none; padding: 0; display: grid; gap: 10px; }
+.review-history__item { padding: 10px 14px; border-left: 4px solid var(--amber); background: var(--surface); border-radius: var(--radius-small); box-shadow: var(--shadow); }
+.review-history__item--approved { border-left-color: var(--green); }
+.review-history__item p { margin: 0 0 4px; }
+.review-history__comment { white-space: normal; }
+.review-status { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.review-decision { margin-bottom: 28px; }
+.review-decision fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; display: grid; gap: 8px; }
+.review-decision .choice { align-items: center; margin: 0; }
+.review-decision .choice input { margin-top: 0; }

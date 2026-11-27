@@ -17,6 +17,7 @@ use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Application\Library\LibraryService;
 use SmartCircle\Application\Notes\NoteService;
+use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Calendar\CalendarService;
 use SmartCircle\Application\Calendar\RevisionMode;
@@ -71,6 +72,7 @@ use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\LibraryRepository;
 use SmartCircle\Data\Repositories\NoteRepository;
+use SmartCircle\Data\Repositories\ReviewRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
 use SmartCircle\Data\Repositories\RecheckRepository;
 use SmartCircle\Data\Repositories\PledgeRepository;
@@ -113,6 +115,7 @@ use SmartCircle\Presentation\Controllers\LearningController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\LibraryController;
 use SmartCircle\Presentation\Controllers\NoteController;
+use SmartCircle\Presentation\Controllers\ReviewController;
 use SmartCircle\Presentation\Controllers\NotificationController;
 use SmartCircle\Presentation\Controllers\StudioLibraryController;
 use SmartCircle\Presentation\Controllers\StudioNoteController;
@@ -414,11 +417,13 @@ final class App
             new StudentRepository($db), $accessService, $examService, $this->notifications($db), $this->storage(''));
         $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
         $assessCtl = new AssessmentController($examService, $this->context, $this->session, $this->view, $recheckService);
+        $noteReviews = new NoteReviewService(new ReviewRepository($db), $this->notifications($db), $this->storage(''));
+        $reviewCtl = new ReviewController($noteReviews, $this->context, $this->session, $this->view);
         $libraryService = new LibraryService(new LibraryRepository($db), $this->storage(''));
-        $libraryCtl = new LibraryController($libraryService, $this->view, $this->config->string('app.url'));
+        $libraryCtl = new LibraryController($libraryService, $this->view, $this->config->string('app.url'), $noteReviews);
         $studioLibrary = new StudioLibraryController($libraryService, $this->session);
-        $studioNotes = new StudioNoteController($noteService, $topicService, $this->context, $this->session, $this->view);
-        $notesCtl = new NoteController($noteService, $this->context, $this->session, $this->view);
+        $studioNotes = new StudioNoteController($noteService, $topicService, $this->context, $this->session, $this->view, $noteReviews);
+        $notesCtl = new NoteController($noteService, $this->context, $this->session, $this->view, $noteReviews);
         $honesty = new HonestyController($accessService, $schoolService, $this->context, $this->session, $this->view);
         $partnersCtl = new PartnerController($partnerService, $schoolService, $this->context, $this->session, $this->view);
         $schoolsCtl = new SchoolController($schoolService, $partnerService, $this->context, $this->session, $this->view);
@@ -574,8 +579,19 @@ final class App
         $r->post('/studio/notes/{id}/blocks/{block}/align', $studioNotes->alignBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/review', $reviewCtl->request(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/library/{action}', $studioLibrary->note(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+
+        // Partner teachers check notes and sign
+        $r->get('/partner/reviews', $reviewCtl->queue(...), [$partner]);
+        $r->get('/partner/reviews/{id}', $reviewCtl->show(...), [$partner]);
+        $r->post('/partner/reviews/{id}', $reviewCtl->decide(...), [$csrf, $partner]);
+        $r->get('/partner/reviews/{id}/images/{block}', $reviewCtl->image(...), [$partner]);
+        $r->get('/partner/signature', $reviewCtl->signatureForm(...), [$partner]);
+        $r->post('/partner/signature', $reviewCtl->saveSignature(...), [$csrf, $partner]);
+        $r->get('/partner/signature/image', $reviewCtl->mySignature(...), [$partner]);
+        $r->get('/reviews/{id}/signature', $reviewCtl->signature(...));
 
         // The free public library: no account needed
         $r->get('/library', $libraryCtl->index(...));

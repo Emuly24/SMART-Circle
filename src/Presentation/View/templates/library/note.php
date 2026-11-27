@@ -6,6 +6,7 @@
  * @var array<string, string> $names
  * @var bool $print
  * @var string $applyAt
+ * @var array<string, mixed>|null $approval
  */
 use SmartCircle\Presentation\View\NoteMarkup;
 
@@ -36,6 +37,7 @@ $subject = $names[$note['subject']] ?? '';
                     <?php if ($b['body']): ?><figcaption><?= e($b['body']) ?></figcaption><?php endif; ?></figure>
             <?php endif; ?>
         <?php endforeach; ?>
+        <?= $view->partial('review_badge', ['approval' => $approval]) ?>
 <?php if ($print): ?>
     <footer class="letter__foot handout__foot">
         <p>SMART Circle · free lessons for Form 1 to 4 students in Malawi · Exercises for this topic are for admitted students. Apply free<?= $applyAt !== '' ? ' at ' . e($applyAt) : ' on our website' ?>.</p>

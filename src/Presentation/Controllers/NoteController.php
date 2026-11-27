@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Notes\NoteService;
+use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
@@ -21,6 +22,7 @@ final class NoteController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?NoteReviewService $reviews = null,
     ) {
     }
 
@@ -41,6 +43,7 @@ final class NoteController
             'title' => (string) $r['note']['title'],
             'r' => $r,
             'names' => Subjects::NAMES,
+            'approval' => $r['locked'] ? null : $this->reviews?->approval((int) $r['note']['id']),
         ]), $r['locked'] ? 403 : 200);
     }
 

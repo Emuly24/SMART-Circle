@@ -3,6 +3,7 @@
  * @var array<string, mixed> $r
  * @var array<string, string> $names
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
+ * @var array<string, mixed>|null $approval
  */
 use SmartCircle\Presentation\View\NoteMarkup;
 
@@ -56,6 +57,7 @@ $fmt = static fn ($x): string => \SmartCircle\Application\Assessments\Assessment
                     <?php endif; ?>
                 <?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($r['hidden'] === 0): ?><?= $view->partial('review_badge', ['approval' => $approval ?? null]) ?><?php endif; ?>
             <?php if ($r['hidden'] === 0 && $r['total_checkpoints'] === $r['done']): ?>
                 <div class="card reader__end"><p>🎉 You have finished these notes. Well done!</p></div>
             <?php endif; ?>
