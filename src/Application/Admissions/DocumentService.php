@@ -20,6 +20,8 @@ final class DocumentService
         'pledge_certificate' => 'The SMART Circle Pledge',
         'term_report' => 'Term report',
         'contribution_certificate' => 'Certificate of contribution',
+        'teacher_invitation' => 'Invitation to become a SMART Circle partner teacher',
+        'tutor_invitation' => 'Invitation to join the SMART Circle Team',
     ];
 
     public function __construct(private readonly DocumentRepository $documents)
@@ -48,6 +50,12 @@ final class DocumentService
     public function find(string $code): ?array
     {
         return $this->documents->findByCode(Codes::normalize($code));
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function forSubject(string $subjectType, int $subjectId): array
+    {
+        return $this->documents->forSubject($subjectType, $subjectId);
     }
 
     /** @return list<array<string, mixed>> */

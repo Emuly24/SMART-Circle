@@ -16,6 +16,7 @@ $oldSubjects = is_array($old['subjects'] ?? null) ? $old['subjects'] : [];
         <p class="crumbs"><a href="/dashboard">Dashboard</a></p>
         <h1>School partners</h1>
         <p class="lead">Teachers who tell us what their school has taught and which textbooks it uses. SMART Circle follows the schools; it never replaces them.</p>
+        <p><a class="btn btn--small btn--ghost" href="/studio/invitations?type=teacher_invitation">Write an invitation letter to a teacher</a></p>
 
         <h2 class="h3">Partners</h2>
         <?php if ($partners === []): ?>

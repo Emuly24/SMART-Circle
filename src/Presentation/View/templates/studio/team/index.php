@@ -13,6 +13,7 @@ $states = ['invited' => 'Invited, not yet agreed', 'active' => 'Active', 'declin
         <p class="crumbs"><a href="/dashboard">Dashboard</a></p>
         <h1>The SMART Circle Team</h1>
         <p class="lead">Volunteer tutors who teach and mark in the subjects you give them. Before they start, they read the duties and our principles and agree to them.</p>
+        <p><a class="btn btn--small btn--ghost" href="/studio/invitations?type=tutor_invitation">Write an invitation letter to a tutor</a></p>
         <?php if ($members === []): ?><div class="card"><p class="muted">No team tutors yet.</p></div><?php else: ?>
             <ul class="student-list">
                 <?php foreach ($members as $t): ?>

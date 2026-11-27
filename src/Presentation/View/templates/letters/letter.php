@@ -7,7 +7,7 @@
  * @var string $verifyUrl
  * @var callable $asset
  */
-$first = explode(' ', (string) ($data['full_name'] ?? ''))[0];
+$first = (string) ($data['salutation'] ?? explode(' ', (string) ($data['full_name'] ?? ''))[0]);
 $date = date('j F Y', strtotime((string) $doc['issued_at']));
 ?>
 <article class="letter">
@@ -25,8 +25,8 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <p class="letter__to">
         <?= e($data['full_name'] ?? '') ?><br>
-        <?php if (in_array($doc['type'], ['partner_invite', 'contribution_certificate'], true)): ?>
-            <?= e($data['school'] ?? '') ?><?= !empty($data['district']) ? ', ' . e($data['district']) : '' ?>
+        <?php if (in_array($doc['type'], ['partner_invite', 'contribution_certificate', 'teacher_invitation', 'tutor_invitation'], true)): ?>
+            <?= e($data['school'] ?? '') ?><?= !empty($data['district']) ? (!empty($data['school']) ? ', ' : '') . e($data['district']) : '' ?>
         <?php else: ?>
             Form <?= e($data['form'] ?? '') ?><?= !empty($data['school']) ? ', ' . e($data['school']) : '' ?>
         <?php endif; ?>
@@ -62,15 +62,27 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
             SMART Circle does not replace or compete with your teaching. We only explain again the topics your school has
             <em>already taught</em>, and we always show students why each topic matters and where it is used in real life in Malawi.
         </p>
-        <p><strong>How you can help (a few minutes a month):</strong></p>
-        <ol>
-            <li>Tell us which topics in <strong><?= e($subjects) ?></strong> your school has taught, is teaching now, or teaches next.</li>
-            <li>List the textbooks your students use, with the chapter and pages for each topic, so every lesson points them to their own book.</li>
-            <li>See, without names, which topics your students find hardest, which may help your own lessons.</li>
-        </ol>
+        <?php require __DIR__ . '/_teacher_benefits.php'; ?>
         <p><strong>To start:</strong> open the SMART Circle website, choose <strong>Log in</strong> and then <strong>set up your account</strong>,
             and enter your phone number with the setup code the tutor gives you.</p>
         <p>Thank you for supporting your students.</p>
+    <?php elseif ($doc['type'] === 'teacher_invitation'): ?>
+        <p>I am writing to invite you to become a <strong>partner teacher</strong> of <strong>SMART Circle</strong>, a free programme that supports
+            committed Form 1–4 students in Malawi in Mathematics, Physics, Chemistry, Biology and English grammar through recorded lessons,
+            notes and exercises. It is free for students, always.</p>
+        <p>SMART Circle does not replace or compete with your teaching: it reinforces it, and always shows students why each topic matters
+            and where it is used in real life in Malawi.</p>
+        <?php if (!empty($data['note'])): ?><p class="letter__note"><?= nl2br(e($data['note'])) ?></p><?php endif; ?>
+        <?php require __DIR__ . '/_teacher_benefits.php'; ?>
+        <h2>How to join</h2>
+        <p>Simply reply<?= !empty($data['contact_phone']) ? ' on WhatsApp or by phone at <strong>' . e($data['contact_phone']) . '</strong>, or' : '' ?> by email to
+            <strong>smartcircle@zohomail.com</strong>. I will set up your account and send you a setup code. I would be honoured to work with you.</p>
+    <?php elseif ($doc['type'] === 'tutor_invitation'): ?>
+        <?php require __DIR__ . '/_tutor_invitation.php'; ?>
+        <h2>How to join</h2>
+        <p>Simply reply<?= !empty($data['contact_phone']) ? ' on WhatsApp or by phone at <strong>' . e($data['contact_phone']) . '</strong>, or' : '' ?> by email to
+            <strong>smartcircle@zohomail.com</strong>. I will create your team account; at your first sign-in you read and agree to our principles.
+            I would be glad to have you with us.</p>
     <?php elseif ($doc['type'] === 'contribution_certificate'): ?>
         <p>This certifies that <strong><?= e($data['full_name'] ?? '') ?></strong><?= !empty($data['school']) ? ', a teacher at <strong>' . e($data['school']) . '</strong>,' : '' ?>
             has generously supported <strong>SMART Circle</strong>, a free programme for Form 1–4 students in Malawi<?= $subjects !== '' ? ', in ' . e($subjects) : '' ?>.</p>

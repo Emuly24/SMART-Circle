@@ -34,7 +34,9 @@ final class DocumentController
         $isTutor = $this->context->role() === 'tutor';
         $isApplicant = isset($data['reference']) && $this->session->get('apply_ref') === $data['reference'];
         $isOwner = $doc['subject_type'] === 'user' && (int) $doc['subject_id'] === $this->context->userId();
-        if (!$isTutor && !$isApplicant && !$isOwner) {
+        // Invitation letters are meant to be passed on: anyone with the link may read them.
+        $isInvitation = $doc['subject_type'] === 'invitation';
+        if (!$isTutor && !$isApplicant && !$isOwner && !$isInvitation) {
             throw new HttpException(404);
         }
 
