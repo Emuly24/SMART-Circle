@@ -12,14 +12,21 @@ final class UserRepository
     {
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * The signed-in person, on every request. SELECT * on purpose: it must keep working while a
+     * newer code version runs on a database that has not been updated yet (otherwise nobody,
+     * not even the admin, could reach the "Update database" button). The password hash is dropped.
+     * @return array<string, mixed>|null
+     */
     public function findById(int $id): ?array
     {
-        return $this->db->one(
-            'SELECT id, role, full_name, phone, email, avatar_at, gender, status, is_practice, must_change_password, last_login_at, created_at
-             FROM users WHERE id = ?',
-            [$id]
-        );
+        $user = $this->db->one('SELECT * FROM users WHERE id = ?', [$id]);
+        if ($user === null) {
+            return null;
+        }
+        unset($user['password_hash']);
+
+        return $user + ['avatar_at' => null, 'is_practice' => 0];
     }
 
     /** @return array<string, mixed>|null includes password_hash, for login only */
