@@ -23,6 +23,7 @@
             <button type="button" class="tool" data-tool="highlighter" title="Highlighter">🖍️<span>Highlight</span></button>
             <button type="button" class="tool" data-tool="eraser" title="Eraser">🧽<span>Erase</span></button>
             <button type="button" class="tool" data-tool="laser" title="Laser pointer">🔴<span>Laser</span></button>
+            <button type="button" class="tool" data-tool="text" title="Type text or an equation">🔤<span>Type</span></button>
         </div>
         <div class="tool-group" aria-label="Colour">
             <button type="button" class="swatch is-active" data-color="ink" aria-label="Black ink"></button>
@@ -47,6 +48,12 @@
             <span class="page-label" id="page-label">Page 1</span>
             <button type="button" class="tool" id="page-next" title="Next / new page">▶</button>
         </div>
+        <label class="toggle" title="Typed lines are centred on the page (best for equations and calculations)">
+            <input type="checkbox" id="text-centred" checked> <span>Centre typed lines</span>
+        </label>
+        <div class="tool-group">
+            <button type="button" class="tool" id="snapshot" title="Save this page as a picture (for notes)">📷<span>Picture</span></button>
+        </div>
         <label class="toggle" title="When off, only the Apple Pencil draws (palm rejection)">
             <input type="checkbox" id="fingers-draw" checked>
             <span>Fingers draw</span>
@@ -55,6 +62,12 @@
 
     <div class="board-wrap">
         <canvas id="board" class="board" aria-label="Drawing board"></canvas>
+        <form class="text-entry" id="text-entry" hidden>
+            <input type="text" id="text-input" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Text or equation" placeholder="e.g. v = u + at,  x^2 + 3x = 0,  2H_2 + O_2 -> 2H_2O">
+            <button type="submit" class="btn btn--small">Add</button>
+            <button type="button" class="btn btn--small btn--ghost" id="text-cancel">Cancel</button>
+            <p class="text-entry__help">x^2 superscript · H_2O subscript · -&gt; arrow · * times · sqrt √ · &lt;= ≤</p>
+        </form>
     </div>
 
     <div class="rec-bar">

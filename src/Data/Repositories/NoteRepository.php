@@ -87,14 +87,19 @@ final class NoteRepository
         return $this->db->one('SELECT * FROM note_blocks WHERE id = ?', [$id]);
     }
 
-    public function addBlock(int $noteId, string $type, ?string $body, ?string $imagePath = null, ?int $assessmentId = null, bool $isFinal = false): int
+    public function addBlock(int $noteId, string $type, ?string $body, ?string $imagePath = null, ?int $assessmentId = null, bool $isFinal = false, string $align = 'center'): int
     {
         $next = (int) $this->db->scalar('SELECT COALESCE(MAX(sort_order), 0) + 10 FROM note_blocks WHERE note_id = ?', [$noteId]);
 
         return $this->db->insert(
-            'INSERT INTO note_blocks (note_id, sort_order, type, body, image_path, assessment_id, is_final) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$noteId, $next, $type, $body, $imagePath, $assessmentId, $isFinal ? 1 : 0]
+            'INSERT INTO note_blocks (note_id, sort_order, type, body, image_path, align, assessment_id, is_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$noteId, $next, $type, $body, $imagePath, $align, $assessmentId, $isFinal ? 1 : 0]
         );
+    }
+
+    public function setAlign(int $blockId, string $align): void
+    {
+        $this->db->run('UPDATE note_blocks SET align = ? WHERE id = ?', [$align, $blockId]);
     }
 
     public function updateBody(int $id, ?string $body): void

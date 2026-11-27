@@ -28,6 +28,8 @@ final class NoteService
     public const KINDS = ['notes' => 'Written notes', 'slides' => 'Slides'];
     public const IMAGE_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     public const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+    /** Where a picture or drawing sits; text and equations are laid out by NoteMarkup. */
+    public const ALIGN = ['center' => 'Centre', 'left' => 'Left (text beside it)', 'right' => 'Right (text beside it)'];
 
     public function __construct(
         private readonly NoteRepository $notes,
@@ -142,7 +144,7 @@ final class NoteService
         return '';
     }
 
-    public function addImage(int $noteId, ?UploadedFile $file, string $caption): string
+    public function addImage(int $noteId, ?UploadedFile $file, string $caption, string $align = 'center'): string
     {
         if ($file === null || !$file->ok()) {
             return 'The picture did not upload. Try again, or use a smaller picture.';
@@ -158,7 +160,19 @@ final class NoteService
         if (!$file->moveTo($this->storageRoot . '/' . $relative)) {
             return 'The picture could not be saved. Please try again.';
         }
-        $this->notes->addBlock($noteId, 'image', mb_substr(trim($caption), 0, 500) ?: null, $relative);
+        $this->notes->addBlock($noteId, 'image', mb_substr(trim($caption), 0, 500) ?: null, $relative, null, false, isset(self::ALIGN[$align]) ? $align : 'center');
+
+        return '';
+    }
+
+    /** @return string error ('' when saved) */
+    public function setAlign(int $noteId, int $blockId, string $align): string
+    {
+        $b = $this->notes->block($blockId);
+        if ($b === null || (int) $b['note_id'] !== $noteId || $b['type'] !== 'image' || !isset(self::ALIGN[$align])) {
+            return 'That picture was not found.';
+        }
+        $this->notes->setAlign($blockId, $align);
 
         return '';
     }

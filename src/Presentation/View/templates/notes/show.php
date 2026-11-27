@@ -26,7 +26,7 @@ $fmt = static fn ($x): string => \SmartCircle\Application\Assessments\Assessment
                 <?php if ($b['type'] === 'text'): ?>
                     <div class="note-prose" id="block-<?= e($bid) ?>"><?= NoteMarkup::render((string) $b['body']) ?></div>
                 <?php elseif ($b['type'] === 'image'): ?>
-                    <figure class="note-figure" id="block-<?= e($bid) ?>"><img src="/notes/<?= e($n['id']) ?>/images/<?= e($bid) ?>" alt="<?= e($b['body'] ?? 'Slide') ?>" loading="lazy">
+                    <figure class="note-figure note-figure--<?= e($b['align'] ?? 'center') ?>" id="block-<?= e($bid) ?>"><img src="/notes/<?= e($n['id']) ?>/images/<?= e($bid) ?>" alt="<?= e($b['body'] ?? 'Slide') ?>" loading="lazy">
                         <?php if ($b['body']): ?><figcaption><?= e($b['body']) ?></figcaption><?php endif; ?></figure>
                 <?php elseif ($b['state'] === 'submitted'):
                     $cp = $b['view']; $sub = $cp['submission']; ?>

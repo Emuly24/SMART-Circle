@@ -55,8 +55,12 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                             </form>
                         </details>
                     <?php elseif ($b['type'] === 'image'): ?>
-                        <figure class="note-figure"><img src="<?= e($base) ?>/images/<?= e($bid) ?>" alt="<?= e($b['body'] ?? 'Slide') ?>" loading="lazy">
+                        <figure class="note-figure note-figure--<?= e($b['align'] ?? 'center') ?>"><img src="<?= e($base) ?>/images/<?= e($bid) ?>" alt="<?= e($b['body'] ?? 'Slide') ?>" loading="lazy">
                             <?php if ($b['body']): ?><figcaption><?= e($b['body']) ?></figcaption><?php endif; ?></figure>
+                        <form method="post" action="<?= e($base) ?>/blocks/<?= e($bid) ?>/align" class="inline-form align-form"><?= $csrf->field() ?>
+                            <span class="muted">Position:</span>
+                            <?php foreach (\SmartCircle\Application\Notes\NoteService::ALIGN as $ak => $al): ?><button type="submit" name="align" value="<?= e($ak) ?>" class="btn btn--small <?= ($b['align'] ?? 'center') === $ak ? '' : 'btn--ghost' ?>" aria-pressed="<?= ($b['align'] ?? 'center') === $ak ? 'true' : 'false' ?>"><?= e(explode(' ', $al)[0]) ?></button><?php endforeach; ?>
+                        </form>
                         <details class="note-block__edit"><summary>Edit caption</summary>
                             <form method="post" action="<?= e($base) ?>/blocks/<?= e($bid) ?>" class="form"><?= $csrf->field() ?>
                                 <input type="text" name="body" value="<?= e($b['body'] ?? '') ?>" maxlength="500" class="other-input">
@@ -83,6 +87,8 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                         <li><code># Heading</code>, <code>## Smaller heading</code></li>
                         <li><code>- item</code> for a list, <code>1. step</code> for numbered steps</li>
                         <li><code>**bold**</code>, <code>*italic*</code></li>
+                        <li><code>= v = u + at</code> an equation or calculation step, centred (one per line; steps line up)</li>
+                        <li><code>&lt;=</code> ≤, <code>&gt;=</code> ≥, <code>!=</code> ≠, <code>+-</code> ±, <code>sqrt</code> √; in an equation line <code>*</code> is ×</li>
                         <li><code>H_2O</code>, <code>CO_{2}</code> for subscripts; <code>x^2</code>, <code>10^{-3}</code> for powers</li>
                         <li><code>-&gt;</code> becomes →, <code>&lt;=&gt;</code> becomes ⇌</li>
                         <li><code>&gt; Real life: …</code> makes a highlighted real-life box</li>
@@ -98,9 +104,16 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                 <form method="post" action="<?= e($base) ?>/image" enctype="multipart/form-data" class="form"><?= $csrf->field() ?>
                     <label class="field"><span class="field__label">Picture (JPG, PNG or WebP, up to 5 MB)</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label>
                     <label class="field"><span class="field__label">Caption <span class="muted">(optional)</span></span><input type="text" name="caption" maxlength="500"></label>
-                    <p class="note">For slides, export each slide as a picture and add them in order.</p>
+                    <label class="field"><span class="field__label">Position</span><select name="align"><?php foreach (\SmartCircle\Application\Notes\NoteService::ALIGN as $ak => $al): ?><option value="<?= e($ak) ?>"><?= e($al) ?></option><?php endforeach; ?></select></label>
+                    <p class="note">For slides, export each slide as a picture and add them in order. A board page saved with “Picture” can be added here too.</p>
                     <div class="form-actions"><button type="submit" class="btn btn--small">Upload</button></div>
                 </form>
+            </div>
+            <div class="card drawpad-card">
+                <h2 class="h3">Draw a picture</h2>
+                <p class="muted">Sketch a diagram, graph or circuit with your finger or Apple Pencil; it is added like a picture.</p>
+                <button type="button" class="btn btn--small js-drawpad-open" data-action="<?= e($base) ?>/image" hidden>Open the drawing pad</button>
+                <noscript><p class="note">The drawing pad needs JavaScript.</p></noscript>
             </div>
             <div class="card">
                 <h2 class="h3">Add an exercise</h2>
@@ -122,3 +135,4 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>
+<script src="<?= e($asset('js/drawpad.js')) ?>" defer></script>

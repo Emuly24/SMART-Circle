@@ -117,3 +117,10 @@
 .library__upload { font-size: .88rem; color: #DCE6F2; margin: 6px 0 10px; }
 .library__link { color: var(--amber); font-weight: 600; }
 .library .btn { margin: 0 6px 8px 0; }
+
+/* Type tool: the text box that appears over the board */
+.board-wrap { position: relative; }
+.text-entry { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: 5; width: min(640px, calc(100% - 24px)); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; background: #FFFFFF; border: 2px solid #1D4E89; border-radius: 12px; box-shadow: 0 8px 28px rgba(20, 33, 61, .2); }
+.text-entry[hidden] { display: none; }
+.text-entry input { flex: 1 1 260px; min-width: 0; min-height: 44px; padding: 6px 10px; font-size: 1.1rem; border: 1.5px solid #C4CDD9; border-radius: 8px; color: #14213D; background: #FFFFFF; }
+.text-entry__help { flex: 1 1 100%; margin: 0; font-size: .8rem; color: #5B6577; }

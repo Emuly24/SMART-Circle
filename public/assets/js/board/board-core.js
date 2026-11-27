@@ -11,6 +11,8 @@
  *   { t, type: 'undo', id } / { t, type: 'redo', id }
  *   { t, type: 'clear' }                    wipe the current page
  *   { t, type: 'page', index }              switch to page N (creates it if new)
+ *   { t, type: 'text', id, x, y, text, size, color, align }   typed text or an equation
+ *                                           (align 'center' = centred on x; 'left' = starts at x)
  * t = milliseconds since recording started (paused time excluded).
  */
 
@@ -57,6 +59,7 @@ export class BoardState {
     apply(event) {
         switch (event.type) {
             case 'stroke':
+            case 'text':
                 this.strokes.push(event);
                 break;
             case 'erase':
@@ -132,7 +135,9 @@ export class Renderer {
         if (this.grid) this.drawGrid();
 
         for (const stroke of state.strokes) {
-            if (!state.removed.has(stroke.id)) drawStroke(ctx, stroke, untilT);
+            if (state.removed.has(stroke.id)) continue;
+            if (stroke.type === 'text') drawText(ctx, stroke, untilT);
+            else drawStroke(ctx, stroke, untilT);
         }
 
         // Laser trails fade out after LASER_FADE_MS.
@@ -258,8 +263,83 @@ function mid(a, b) {
     return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 }
 
+/*
+ * Typed text and equations. A light, safe notation (the same as in notes):
+ *   x^2  x^{n+1}  H_2O  CO_{2}   superscript / subscript
+ *   ->  =>  <=  >=  !=  +-  sqrt  *   become  →  ⇒  ≤  ≥  ≠  ±  √  ×
+ * During replay the text appears letter by letter from the moment it was typed.
+ */
+const TYPE_MS_PER_CHAR = 35;
+const SYMBOLS = [['<=>', '⇌'], ['->', '→'], ['=>', '⇒'], ['<=', '≤'], ['>=', '≥'], ['!=', '≠'], ['+-', '±'], ['sqrt', '√'], ['*', '×'], ['deg', '°']];
+
+export function prettify(text) {
+    let s = text;
+    for (const [from, to] of SYMBOLS) s = s.split(from).join(to);
+    return s;
+}
+
+/** Splits text into runs: { text, shift: 0 | 1 (superscript) | -1 (subscript) }. */
+export function textRuns(text) {
+    // Same rules as notes: x^2, x^{n+1}, CO_{2}; an unbraced subscript is digits only (H_2O).
+    const runs = [];
+    const re = /\^\{([^}]{1,20})\}|\^(-?[0-9A-Za-z+]{1,6})|_\{([^}]{1,20})\}|_([0-9]{1,3})/g;
+    let last = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+        if (m.index > last) runs.push({ text: text.slice(last, m.index), shift: 0 });
+        const sup = m[1] !== undefined || m[2] !== undefined;
+        runs.push({ text: m[1] ?? m[2] ?? m[3] ?? m[4], shift: sup ? 1 : -1 });
+        last = re.lastIndex;
+    }
+    if (last < text.length) runs.push({ text: text.slice(last), shift: 0 });
+    return runs;
+}
+
+function textWidth(ctx, runs, size) {
+    let w = 0;
+    for (const r of runs) {
+        ctx.font = `${r.shift ? Math.round(size * 0.62) : size}px Inter, system-ui, sans-serif`;
+        w += ctx.measureText(r.text).width;
+    }
+    return w;
+}
+
+export function drawText(ctx, item, untilT = Infinity) {
+    let text = prettify(item.text);
+    if (untilT !== Infinity) {
+        const shown = Math.floor((untilT - item.t) / TYPE_MS_PER_CHAR) + 1;
+        if (shown <= 0) return;
+        text = text.slice(0, shown);
+    }
+    const runs = textRuns(text);
+    ctx.save();
+    ctx.fillStyle = item.color;
+    ctx.textBaseline = 'alphabetic';
+    // Centre on the whole text, so it does not shift while it types out during replay.
+    let x = item.align === 'center' ? item.x - textWidth(ctx, textRuns(prettify(item.text)), item.size) / 2 : item.x;
+    for (const r of runs) {
+        const size = r.shift ? Math.round(item.size * 0.62) : item.size;
+        ctx.font = `${size}px Inter, system-ui, sans-serif`;
+        const dy = r.shift === 1 ? -item.size * 0.42 : r.shift === -1 ? item.size * 0.22 : 0;
+        ctx.fillText(r.text, x, item.y + dy);
+        x += ctx.measureText(r.text).width;
+    }
+    ctx.restore();
+}
+
+/** Rough box of a text item (for the eraser), in page units. */
+function textBox(item) {
+    const w = prettify(item.text).length * item.size * 0.55;
+    const left = item.align === 'center' ? item.x - w / 2 : item.x;
+    return [left, item.y - item.size, left + w, item.y + item.size * 0.3];
+}
+
 /** Distance from point to a stroke (for the stroke eraser). */
 export function hitsStroke(stroke, x, y, radius) {
+    if (stroke.type === 'text') {
+        const [l, t, r, b] = textBox(stroke);
+        return x >= l - radius && x <= r + radius && y >= t - radius && y <= b + radius;
+    }
     const r = radius + stroke.width / 2;
     const pts = stroke.points;
     for (let i = 0; i < pts.length; i++) {

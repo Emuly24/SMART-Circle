@@ -3,7 +3,7 @@
  * replay it, export it as a .scl file and open files recorded elsewhere.
  */
 
-import { COLORS, Renderer } from './board-core.js';
+import { BoardState, COLORS, PAGE_H, PAGE_W, Renderer } from './board-core.js';
 import { BoardInput } from './board-input.js';
 import { LessonClock, VoiceRecorder } from './recorder.js';
 import { decodeLesson, encodeLesson, listLocal, loadLocal, saveLocal, deleteLocal } from './lesson-file.js';
@@ -73,6 +73,55 @@ $('#page-next').addEventListener('click', () => {
     input.goToPage(next);
 });
 $('#fingers-draw').addEventListener('change', (e) => { input.fingersDraw = e.target.checked; });
+
+// Type tool: tap the board, type a line (text or an equation), press Enter.
+const entry = $('#text-entry');
+const entryInput = $('#text-input');
+let entryPoint = null;
+input.onTextRequest = (p) => {
+    entryPoint = p;
+    entry.hidden = false;
+    entryInput.value = '';
+    entryInput.focus();
+};
+const closeEntry = () => { entry.hidden = true; entryPoint = null; };
+entry.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (entryPoint) input.addText(entryInput.value, [entryPoint[0], entryPoint[1], 0.5, Math.round(clock.now())]);
+    closeEntry();
+});
+$('#text-cancel').addEventListener('click', closeEntry);
+entryInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEntry(); });
+$('#text-centred').addEventListener('change', (e) => { input.textCentred = e.target.checked; });
+
+// Save the current page as a picture (to add to notes or share).
+$('#snapshot').addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = PAGE_W;
+    canvas.height = PAGE_H;
+    const pic = new Renderer(canvas);
+    pic.canvas.width = PAGE_W;
+    pic.canvas.height = PAGE_H;
+    pic.scale = 1;
+    pic.offsetX = 0;
+    pic.offsetY = 0;
+    const state = new BoardState();
+    state.pages = input.state.pages;
+    state.pageIndex = input.state.pageIndex;
+    state.removed = input.state.removed;
+    pic.render(state);
+    canvas.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `board-page-${input.state.pageIndex + 1}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        status('Page saved as a picture. Add it to notes with “Add a picture”.');
+    }, 'image/png');
+});
 
 $('#rec').addEventListener('click', async () => {
     if (!recording) {
