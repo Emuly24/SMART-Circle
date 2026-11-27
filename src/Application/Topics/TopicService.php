@@ -139,23 +139,32 @@ final class TopicService
      */
     public function add(int $form, string $subject, ?int $parentId, string $title, string $unit = ''): array
     {
+        return $this->create($form, $subject, $parentId, $title, $unit)['errors'];
+    }
+
+    /**
+     * Adds a topic and says which one was created.
+     * @return array{errors: array<string, string>, id: int|null}
+     */
+    public function create(int $form, string $subject, ?int $parentId, string $title, string $unit = ''): array
+    {
         $title = self::oneLine($title, 200);
         $unit = self::oneLine($unit, 150);
         if (!isset(Subjects::NAMES[$subject]) || $form < 1 || $form > 4) {
-            return ['title' => 'Choose a form and subject.'];
+            return ['errors' => ['title' => 'Choose a form and subject.'], 'id' => null];
         }
         if (mb_strlen($title) < 2) {
-            return ['title' => 'Type the topic title.'];
+            return ['errors' => ['title' => 'Type the topic title.'], 'id' => null];
         }
         if ($parentId !== null) {
             $parent = $this->topics->find($parentId);
             if ($parent === null || $parent['parent_id'] !== null || (int) $parent['form'] !== $form || $parent['subject'] !== $subject) {
-                return ['parent_id' => 'Choose a main topic from this form and subject.'];
+                return ['errors' => ['parent_id' => 'Choose a main topic from this form and subject.'], 'id' => null];
             }
         }
-        $this->topics->create($form, $subject, $parentId, $unit === '' ? null : $unit, $title, $this->topics->nextSortOrder($form, $subject, $parentId));
+        $id = $this->topics->create($form, $subject, $parentId, $unit === '' ? null : $unit, $title, $this->topics->nextSortOrder($form, $subject, $parentId));
 
-        return [];
+        return ['errors' => [], 'id' => $id];
     }
 
     /**

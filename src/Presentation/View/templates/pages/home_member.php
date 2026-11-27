@@ -11,6 +11,7 @@ $links = match ($m['role']) {
         ['/dashboard', 'Dashboard', 'Everything in one place'], ['/studio/students', 'Students', 'Activity, flags and contacts'],
         ['/studio/marking', 'Marking', 'Work waiting for you'], ['/studio/admissions', 'Admissions', 'Applications and seats'],
         ['/studio/team', 'The Team', 'Invite and manage tutors'], ['/studio/practice', 'Try as', 'See every page as anyone'],
+        ['/studio/contributions', 'From teachers', 'Calendars, resources and topic suggestions'],
     ],
     'team' => [
         ['/studio/lab', 'Recording studio', 'Teach on the board'], ['/studio/lessons', 'My lessons', 'Publish and edit'],
@@ -20,6 +21,7 @@ $links = match ($m['role']) {
     'partner' => [
         ['/dashboard', 'Dashboard', 'Your school at a glance'], ['/partner/coverage', 'Topics taught', 'Keep it up to date'],
         ['/partner/calendar', 'Calendar', 'Your school’s dates'], ['/partner/textbooks', 'Textbooks', 'Books your school uses'],
+        ['/partner/contribute', 'Contribute', 'Confirm the calendar, share resources, suggest topics'],
     ],
     'alumni' => [
         ['/alumni', 'What I am doing', 'Tell us, ask for help'], ['/alumni/community', 'Community', 'Stories and opportunities'],

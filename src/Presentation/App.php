@@ -34,6 +34,7 @@ use SmartCircle\Application\Practice\PracticeService;
 use SmartCircle\Application\Profile\AvatarService;
 use SmartCircle\Application\Settings\SettingsService;
 use SmartCircle\Application\Team\TeamService;
+use SmartCircle\Application\Partners\ContributionService;
 use SmartCircle\Application\Partners\PartnerService;
 use SmartCircle\Application\Partners\SchoolService;
 use SmartCircle\Application\Topics\AccessService;
@@ -58,6 +59,7 @@ use SmartCircle\Data\Repositories\CommunityRepository;
 use SmartCircle\Data\Repositories\ManebRepository;
 use SmartCircle\Data\Repositories\OfficeHoursRepository;
 use SmartCircle\Data\Repositories\CalendarRepository;
+use SmartCircle\Data\Repositories\ContributionRepository;
 use SmartCircle\Data\Repositories\GradeRepository;
 use SmartCircle\Data\Repositories\GuardianRepository;
 use SmartCircle\Data\Repositories\MessageRepository;
@@ -90,6 +92,7 @@ use SmartCircle\Presentation\Controllers\AssessmentController;
 use SmartCircle\Presentation\Controllers\StudioAssessmentController;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\CalendarController;
+use SmartCircle\Presentation\Controllers\ContributionController;
 use SmartCircle\Presentation\Controllers\GradesController;
 use SmartCircle\Presentation\Controllers\GuardianController;
 use SmartCircle\Presentation\Controllers\ProfileController;
@@ -365,6 +368,9 @@ final class App
         $guardianCtl = new GuardianController(new GuardianService(new GuardianRepository($db), new OverviewRepository($db), $this->notifications($db),
             $this->config->string('app.url'), $settingsService->tutorWhatsapp(...)), $this->context, $this->session, $this->view);
         $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view);
+        $contributionService = new ContributionService(new ContributionRepository($db), $calendarService, $topicService, $this->notifications($db),
+            $this->storage(''), $settingsService->tutorWhatsapp(...));
+        $contribCtl = new ContributionController($contributionService, $partnerService, $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
@@ -624,6 +630,18 @@ final class App
         $r->post('/profile/photo', $profileCtl->savePhoto(...), [$csrf, $member, $onboarded]);
         $r->post('/profile/photo/remove', $profileCtl->removePhoto(...), [$csrf, $member, $onboarded]);
         $r->get('/avatars/{id}', $profileCtl->photo(...), [$member]);
+
+        // Partner teachers' contributions
+        $r->get('/partner/contribute', $contribCtl->page(...), [$partner]);
+        $r->post('/partner/contribute/calendar', $contribCtl->calendar(...), [$csrf, $partner]);
+        $r->post('/partner/contribute/resource', $contribCtl->share(...), [$csrf, $partner]);
+        $r->post('/partner/contribute/suggest', $contribCtl->suggest(...), [$csrf, $partner]);
+        $r->get('/partner/resources/{id}/file', $contribCtl->partnerFile(...), [$partner]);
+        $r->get('/studio/contributions', $contribCtl->review(...), [$tutor]);
+        $r->post('/studio/contributions/resources/{id}/reviewed', $contribCtl->reviewed(...), [$csrf, $tutor]);
+        $r->get('/studio/resources/{id}/file', $contribCtl->adminFile(...), [$tutor]);
+        $r->post('/studio/contributions/suggestions/{id}', $contribCtl->decide(...), [$csrf, $tutor]);
+        $r->post('/studio/contributions/calendar/{id}/resolve', $contribCtl->resolve(...), [$csrf, $tutor]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);

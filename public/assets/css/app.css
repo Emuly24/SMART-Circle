@@ -965,3 +965,8 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .guardian-confirm { max-width: 520px; margin: 0 auto; display: grid; gap: 10px; }
 .guardian-confirm .form { display: grid; gap: 10px; }
 .quote--plain { border-left-color: var(--line); background: var(--mist); }
+
+/* Partner contributions (Phase H) */
+.suggestion { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.suggestion:last-child { border-bottom: 0; }
+.suggestion p { margin: 0 0 6px; overflow-wrap: anywhere; }
