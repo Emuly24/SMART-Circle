@@ -20,7 +20,7 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="field
     <div class="container narrow-wide">
         <p class="eyebrow">Free · Forms 1–4</p>
         <h1>Apply to SMART Circle</h1>
-        <p class="lead">It takes about 15 minutes, then a short entry quiz (20 minutes). Have your parent or guardian with you.</p>
+        <p class="lead">It takes about 15 minutes, then a short entry quiz (20 minutes). You do not need your parent or guardian with you: we contact them after admission.</p>
         <p class="note">Day scholars, boarders, self-boarders and evening-class students are all welcome.</p>
         <?php if ($isTutor): ?>
             <div class="alert alert--info">You are logged in as the tutor: this application will be saved as a <strong>paper application</strong>.</div>
@@ -193,32 +193,55 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="field
 
             <fieldset class="card">
                 <legend>Parent or guardian</legend>
+                <p class="note">They do not need to be with you now. If you are admitted, we will contact them to tell them about SMART Circle and ask for their support.</p>
                 <div class="field-row">
                     <label class="field">
                         <span class="field__label">Full name</span>
-                        <input type="text" name="guardian_name" value="<?= e($v('guardian_name')) ?>" required>
+                        <input type="text" name="guardian_name" value="<?= e($v('guardian_name')) ?>" required autocomplete="off">
                         <?= $err('guardian_name') ?>
                     </label>
                     <label class="field">
-                        <span class="field__label">Phone number</span>
-                        <input type="tel" name="guardian_phone" value="<?= e($v('guardian_phone')) ?>" inputmode="tel" placeholder="0888 123 456" required>
-                        <?= $err('guardian_phone') ?>
+                        <span class="field__label">Relationship to you</span>
+                        <select name="guardian_relationship" required>
+                            <option value="">Choose…</option>
+                            <?php foreach ($relationships as $r): ?>
+                                <option value="<?= e($r) ?>" <?= $v('guardian_relationship') === $r ? 'selected' : '' ?>><?= e($r) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?= $err('guardian_relationship') ?>
                     </label>
                 </div>
-                <label class="field">
-                    <span class="field__label">Relationship to you</span>
-                    <select name="guardian_relationship" required>
-                        <option value="">Choose…</option>
-                        <?php foreach ($relationships as $r): ?>
-                            <option value="<?= e($r) ?>" <?= $v('guardian_relationship') === $r ? 'selected' : '' ?>><?= e($r) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?= $err('guardian_relationship') ?>
-                </label>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field__label">Phone number for calls</span>
+                        <input type="tel" name="guardian_phone" value="<?= e($v('guardian_phone')) ?>" inputmode="tel" placeholder="0888 123 456" required data-contacts="tel" data-contacts-name="guardian_name">
+                        <?= $err('guardian_phone') ?>
+                    </label>
+                    <label class="field">
+                        <span class="field__label">WhatsApp number <span class="muted">(if different)</span></span>
+                        <input type="tel" name="guardian_whatsapp" value="<?= e($v('guardian_whatsapp')) ?>" inputmode="tel" placeholder="Leave empty if the same" data-contacts="tel">
+                        <?= $err('guardian_whatsapp') ?>
+                    </label>
+                </div>
+                <div class="field-row">
+                    <label class="field">
+                        <span class="field__label">Email <span class="muted">(optional)</span></span>
+                        <input type="email" name="guardian_email" value="<?= e($v('guardian_email')) ?>" data-contacts="email">
+                        <?= $err('guardian_email') ?>
+                    </label>
+                    <fieldset class="field">
+                        <legend class="field__label">Which language do they understand best?</legend>
+                        <div class="choice-row">
+                            <?php foreach (\SmartCircle\Application\Admissions\ApplicationForm::GUARDIAN_LANGUAGES as $code => $lang): ?>
+                                <label class="choice"><input type="radio" name="guardian_language" value="<?= e($code) ?>" <?= $v('guardian_language') === $code ? 'checked' : '' ?> required> <?= e($lang) ?></label>
+                            <?php endforeach; ?>
+                        </div>
+                        <?= $err('guardian_language') ?>
+                    </fieldset>
+                </div>
                 <label class="choice choice--block">
                     <input type="checkbox" name="guardian_consent" value="1" <?= $v('guardian_consent') === '1' ? 'checked' : '' ?>>
-                    My parent or guardian has read this form and agrees that I may join SMART Circle, a free online programme
-                    where I watch recorded lessons and take part in class discussions that the whole class can see.
+                    These are my parent or guardian’s correct details, and SMART Circle may contact them about joining this free programme.
                 </label>
                 <?= $err('guardian_consent') ?>
                 <label class="choice choice--block">
@@ -234,3 +257,4 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="field
     </div>
 </section>
 <script src="<?= e($asset('js/apply.js')) ?>" defer></script>
+<script src="<?= e($asset('js/contacts.js')) ?>" defer></script>

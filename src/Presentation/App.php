@@ -20,6 +20,7 @@ use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Calendar\CalendarService;
 use SmartCircle\Application\Calendar\RevisionMode;
 use SmartCircle\Application\Grades\GradeService;
+use SmartCircle\Application\Guardians\GuardianService;
 use SmartCircle\Application\Messages\MessageService;
 use SmartCircle\Application\Messages\SupportService;
 use SmartCircle\Application\Students\StudentOverviewService;
@@ -30,6 +31,7 @@ use SmartCircle\Application\Maneb\ManebService;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Application\OfficeHours\OfficeHoursService;
 use SmartCircle\Application\Practice\PracticeService;
+use SmartCircle\Application\Profile\AvatarService;
 use SmartCircle\Application\Settings\SettingsService;
 use SmartCircle\Application\Team\TeamService;
 use SmartCircle\Application\Partners\PartnerService;
@@ -57,6 +59,7 @@ use SmartCircle\Data\Repositories\ManebRepository;
 use SmartCircle\Data\Repositories\OfficeHoursRepository;
 use SmartCircle\Data\Repositories\CalendarRepository;
 use SmartCircle\Data\Repositories\GradeRepository;
+use SmartCircle\Data\Repositories\GuardianRepository;
 use SmartCircle\Data\Repositories\MessageRepository;
 use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
@@ -88,6 +91,8 @@ use SmartCircle\Presentation\Controllers\StudioAssessmentController;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\CalendarController;
 use SmartCircle\Presentation\Controllers\GradesController;
+use SmartCircle\Presentation\Controllers\GuardianController;
+use SmartCircle\Presentation\Controllers\ProfileController;
 use SmartCircle\Presentation\Controllers\MessageController;
 use SmartCircle\Presentation\Controllers\StudentsController;
 use SmartCircle\Presentation\Controllers\SupportController;
@@ -349,6 +354,9 @@ final class App
         $teamCtl = new TeamController($this->team($db, $users, $audit), $this->context, $this->session, $this->view);
         $adminCtl = new AdminController($settingsService, new PracticeService(new PracticeRepository($db), $audit),
             new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
+        $guardianCtl = new GuardianController(new GuardianService(new GuardianRepository($db), new OverviewRepository($db), $this->notifications($db),
+            $this->config->string('app.url'), $settingsService->tutorWhatsapp(...)), $this->context, $this->session, $this->view);
+        $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
@@ -595,6 +603,19 @@ final class App
         $r->post('/studio/practice/reset', $adminCtl->reset(...), [$csrf, $tutor]);
         $r->post('/practice/leave', $adminCtl->leave(...), [$csrf, $member]);
         $r->post('/studio/backup', $adminCtl->backup(...), [$csrf, $tutor]);
+
+        // Guardians, profiles and photos
+        $r->get('/g/{token}', $guardianCtl->link(...));
+        $r->post('/g/{token}', $guardianCtl->answer(...), [$csrf]);
+        $r->get('/studio/guardians', $guardianCtl->index(...), [$tutor]);
+        $r->get('/studio/guardians/{id}', $guardianCtl->show(...), [$tutor]);
+        $r->post('/studio/guardians/{id}', $guardianCtl->update(...), [$csrf, $tutor]);
+        $r->post('/studio/guardians/{id}/confirm', $guardianCtl->confirm(...), [$csrf, $tutor]);
+        $r->post('/studio/guardians/{id}/sent', $guardianCtl->sent(...), [$csrf, $tutor]);
+        $r->get('/profile', $profileCtl->show(...), [$member, $onboarded]);
+        $r->post('/profile/photo', $profileCtl->savePhoto(...), [$csrf, $member, $onboarded]);
+        $r->post('/profile/photo/remove', $profileCtl->removePhoto(...), [$csrf, $member, $onboarded]);
+        $r->get('/avatars/{id}', $profileCtl->photo(...), [$member]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);

@@ -13,6 +13,9 @@ Admitted students get everything; the public gets free PDF handouts from each le
 - Forms 1–2: all five subjects. Forms 3–4 science track (Physics **and** Chemistry): all five.
   Forms 3–4 humanities track: Mathematics, Biology, English grammar.
 - Day scholars, boarders, self-boarders and evening-class students are all welcome.
+- **Guardians** need not be present when a student applies. After admission the tutor sends a ready-made message in
+  the guardian's language (`GuardianMessages`: Chichewa or English); the guardian confirms with their `/g/{token}` link
+  (or the tutor records a call). It never blocks the student.
 - **Encouraging marking:** answers are "Got it", "Partly there" or "Not yet" (never a red cross), with what went
   well, where it went off track and the next step. Students may ask for a re-check within 7 days; keep every decision.
 - No live streaming. No attendance or discipline features.
@@ -84,7 +87,7 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 - Work on a branch (`v2/...`); never commit to `main` directly.
 - Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
   `tools/e2e-lessons.sh`, `tools/e2e-admissions.sh`,
-  `tools/e2e-topics.sh`, `tools/e2e-partners.sh`, `tools/e2e-honesty.sh`, `tools/e2e-assessments.sh`, `tools/e2e-notes.sh`, `tools/e2e-grades.sh`, `tools/e2e-support.sh`, `tools/e2e-maneb.sh` and `tools/e2e-team.sh` when a database is available (ideally also against
+  `tools/e2e-topics.sh`, `tools/e2e-partners.sh`, `tools/e2e-honesty.sh`, `tools/e2e-assessments.sh`, `tools/e2e-notes.sh`, `tools/e2e-grades.sh`, `tools/e2e-support.sh`, `tools/e2e-maneb.sh`, `tools/e2e-team.sh` and `tools/e2e-guardians.sh` when a database is available (ideally also against
   Apache, which honours the .htaccess files).
 - After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
   (a unit test fails if it is out of date). See `docs/database.md`.

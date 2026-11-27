@@ -17,9 +17,12 @@ final class StudentRepository
     public function createProfile(array $p): void
     {
         $this->db->run(
-            'INSERT INTO student_profiles (user_id, application_id, intake_id, form, track, school_id, guardian_name, guardian_phone)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$p['user_id'], $p['application_id'], $p['intake_id'], $p['form'], $p['track'], $p['school_id'], $p['guardian_name'], $p['guardian_phone']]
+            'INSERT INTO student_profiles (user_id, application_id, intake_id, form, track, school_id, guardian_name, guardian_phone,
+                 guardian_relationship, guardian_whatsapp, guardian_email, guardian_language, guardian_token)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$p['user_id'], $p['application_id'], $p['intake_id'], $p['form'], $p['track'], $p['school_id'], $p['guardian_name'], $p['guardian_phone'],
+                $p['guardian_relationship'] ?? null, $p['guardian_whatsapp'] ?? null, $p['guardian_email'] ?? null, $p['guardian_language'] ?? 'en',
+                $p['guardian_token'] ?? bin2hex(random_bytes(12))]
         );
     }
 
@@ -44,8 +47,7 @@ final class StudentRepository
     public function completeOnboarding(int $userId): void
     {
         $this->db->run(
-            'UPDATE student_profiles SET agreement_accepted_at = COALESCE(agreement_accepted_at, NOW()),
-             guardian_confirmed_at = COALESCE(guardian_confirmed_at, NOW()) WHERE user_id = ?',
+            'UPDATE student_profiles SET agreement_accepted_at = COALESCE(agreement_accepted_at, NOW()) WHERE user_id = ?',
             [$userId]
         );
     }

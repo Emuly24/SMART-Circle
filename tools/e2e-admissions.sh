@@ -29,7 +29,7 @@ apply() {
         --form-string "school_name=Likuni Girls Secondary" --form-string "district=Lilongwe" --form-string "phone=$phone" \
         --form-string "motivation=I want to understand science deeply and use it to help my community grow." \
         --form-string "device=own_phone" --form-string "data_access=weekly" --form-string "guardian_name=Mary Phiri" \
-        --form-string "guardian_phone=0888111222" --form-string "guardian_relationship=Parent" --form-string "guardian_consent=1" \
+        --form-string "guardian_phone=0888111222" --form-string "guardian_relationship=Parent" --form-string "guardian_consent=1" --form-string "guardian_language=ny" --form-string "guardian_whatsapp=0999111222" \
         --form-string "truthful=1" --form-string schooling_reason=understand --form-string career_interest=engineering \
         --form-string heard_from=teacher --form-string study_hours=1_2 --form-string seriousness=5 --form-string setback=review \
         --form-string discipline=stay --form-string confidence=ask_class \

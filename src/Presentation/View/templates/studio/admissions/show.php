@@ -41,6 +41,10 @@ $waText = "Hello $first, congratulations on your admission to SMART Circle! To s
             </div>
         <?php endif; ?>
 
+        <?php if ($app['status'] === 'admitted' && !empty($app['user_id'])): ?>
+            <p class="note">Next: <a href="/studio/guardians/<?= e($app['user_id']) ?>">send the welcome message to <?= e($app['guardian_name']) ?></a> in <?= e(\SmartCircle\Application\Guardians\GuardianMessages::LANGUAGES[$app['guardian_language'] ?? 'en'] ?? 'English') ?>, so they can confirm and support <?= e($first) ?>.</p>
+        <?php endif; ?>
+
         <div class="detail-grid">
             <div class="card">
                 <h2>Student</h2>
@@ -60,7 +64,10 @@ $waText = "Hello $first, congratulations on your admission to SMART Circle! To s
                 <dl class="facts">
                     <dt>Name</dt><dd><?= e($app['guardian_name']) ?> (<?= e($app['guardian_relationship']) ?>)</dd>
                     <dt>Phone</dt><dd><?= e(PhoneNumber::display((string) $app['guardian_phone'])) ?></dd>
-                    <dt>Consent</dt><dd><?= $app['guardian_consent_at'] ? 'Given ' . e(date('j M Y', strtotime((string) $app['guardian_consent_at']))) : 'Missing' ?></dd>
+                    <?php if (!empty($app['guardian_whatsapp'])): ?><dt>WhatsApp</dt><dd><?= e(PhoneNumber::display((string) $app['guardian_whatsapp'])) ?></dd><?php endif; ?>
+                    <?php if (!empty($app['guardian_email'])): ?><dt>Email</dt><dd><?= e($app['guardian_email']) ?></dd><?php endif; ?>
+                    <dt>Language</dt><dd><?= e(\SmartCircle\Application\Guardians\GuardianMessages::LANGUAGES[$app['guardian_language'] ?? 'en'] ?? 'English') ?></dd>
+                    <dt>Contact OK</dt><dd><?= $app['guardian_consent_at'] ? 'Student confirmed the details ' . e(date('j M Y', strtotime((string) $app['guardian_consent_at']))) : 'Missing' ?></dd>
                 </dl>
                 <h2>School report</h2>
                 <?php if ($app['report_path']): ?>

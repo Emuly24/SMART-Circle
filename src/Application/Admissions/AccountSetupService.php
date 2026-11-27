@@ -71,7 +71,8 @@ final class AccountSetupService
     {
         $profile = $this->students->profile($userId);
 
-        return $profile !== null && ($profile['agreement_accepted_at'] === null || $profile['guardian_confirmed_at'] === null);
+        // The guardian confirms separately, from the link SMART Circle sends them; it never blocks the student.
+        return $profile !== null && $profile['agreement_accepted_at'] === null;
     }
 
     /**

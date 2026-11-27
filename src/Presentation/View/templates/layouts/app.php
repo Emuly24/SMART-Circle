@@ -77,6 +77,7 @@ $user = $ctx->user();
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
                     <?php if ($unread > 0): ?><span class="bell__count"><?= e($unread > 99 ? '99+' : $unread) ?></span><?php endif; ?>
                 </a>
+                <a href="/profile" class="nav-avatar" aria-label="My profile"><?= $view->partial('avatar', ['id' => (int) $user['id'], 'name' => (string) $user['full_name'], 'at' => $user['avatar_at'] ?? null, 'size' => 'sm']) ?></a>
                 <form method="post" action="/logout" class="inline-form">
                     <?= $csrf->field() ?>
                     <button type="submit" class="btn btn--small btn--ghost">Log out</button>

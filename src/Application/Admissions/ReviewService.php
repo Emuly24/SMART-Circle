@@ -101,6 +101,11 @@ final class ReviewService
                     'school_id' => $app['school_id'] !== null ? (int) $app['school_id'] : null,
                     'guardian_name' => (string) $app['guardian_name'],
                     'guardian_phone' => (string) $app['guardian_phone'],
+                    'guardian_relationship' => (string) ($app['guardian_relationship'] ?? ''),
+                    'guardian_whatsapp' => $app['guardian_whatsapp'] ?? null,
+                    'guardian_email' => $app['guardian_email'] ?? null,
+                    'guardian_language' => (string) ($app['guardian_language'] ?? 'en'),
+                    'guardian_token' => bin2hex(random_bytes(12)),
                 ]);
                 $setupCode = $this->newCode($userId, 'setup', $tutorId);
             }

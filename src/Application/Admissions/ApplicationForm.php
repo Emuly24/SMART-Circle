@@ -13,6 +13,8 @@ use SmartCircle\Support\Subjects;
  */
 final class ApplicationForm
 {
+    public const GUARDIAN_LANGUAGES = ['ny' => 'Chichewa', 'en' => 'English'];
+
     public const DEVICES = [
         'own_phone' => 'My own smartphone',
         'shared_phone' => 'A family member\'s smartphone',
@@ -122,8 +124,27 @@ final class ApplicationForm
         if (!in_array($data['guardian_relationship'], self::RELATIONSHIPS, true)) {
             $errors['guardian_relationship'] = 'Choose how they are related to you.';
         }
+        // The guardian does not need to be present: SMART Circle contacts them after admission.
+        $wa = trim($str('guardian_whatsapp'));
+        $data['guardian_whatsapp'] = null;
+        if ($wa !== '' && ($in['guardian_whatsapp_same'] ?? '') !== '1') {
+            $data['guardian_whatsapp'] = PhoneNumber::normalize($wa);
+            if ($data['guardian_whatsapp'] === null) {
+                $errors['guardian_whatsapp'] = 'That WhatsApp number does not look right.';
+            } elseif ($data['guardian_whatsapp'] === $guardianPhone) {
+                $data['guardian_whatsapp'] = null;
+            }
+        }
+        $data['guardian_email'] = trim($str('guardian_email')) ?: null;
+        if ($data['guardian_email'] !== null && filter_var($data['guardian_email'], FILTER_VALIDATE_EMAIL) === false) {
+            $errors['guardian_email'] = 'That email address does not look right.';
+        }
+        $data['guardian_language'] = $str('guardian_language');
+        if (!isset(self::GUARDIAN_LANGUAGES[$data['guardian_language']])) {
+            $errors['guardian_language'] = 'Choose the language your parent or guardian understands best.';
+        }
         if (($in['guardian_consent'] ?? '') !== '1') {
-            $errors['guardian_consent'] = 'Your parent or guardian must agree before you apply.';
+            $errors['guardian_consent'] = 'Please confirm the contact details are correct and that we may contact your parent or guardian.';
         }
         [$qErrors, $data['answers']] = Questionnaire::validate($in);
         $errors += $qErrors;

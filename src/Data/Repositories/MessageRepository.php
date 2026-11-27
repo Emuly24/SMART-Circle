@@ -76,7 +76,7 @@ final class MessageRepository
     public function messages(int $conversationId): array
     {
         return $this->db->all(
-            'SELECT msg.*, u.full_name, u.role FROM messages msg LEFT JOIN users u ON u.id = msg.user_id
+            'SELECT msg.*, u.full_name, u.role, u.avatar_at FROM messages msg LEFT JOIN users u ON u.id = msg.user_id
              WHERE msg.conversation_id = ? ORDER BY msg.created_at, msg.id',
             [$conversationId]
         );

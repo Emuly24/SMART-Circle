@@ -64,11 +64,7 @@ $ticked = is_array($old['vows'] ?? null) ? $old['vows'] : [];
                 <?= $err('vows') ?>
                 <label class="field"><span class="field__label">Sign by typing your full name: <?= e($user['full_name'] ?? '') ?></span>
                     <input type="text" name="signed_name" value="<?= e($v('signed_name')) ?>" autocomplete="off" class="pledge__signature"><?= $err('signed_name') ?></label>
-                <label class="choice choice--block">
-                    <input type="checkbox" name="guardian" value="1" <?= $v('guardian') === '1' ? 'checked' : '' ?>>
-                    My parent or guardian<?= !empty($profile['guardian_name']) ? ' (' . e($profile['guardian_name']) . ')' : '' ?> knows I am joining SMART Circle and making this pledge.
-                </label>
-                <?= $err('guardian') ?>
+                <p class="note">The tutor will also tell your parent or guardian<?= !empty($profile['guardian_name']) ? ' (' . e($profile['guardian_name']) . ')' : '' ?> about SMART Circle and your pledge, in the language they understand.</p>
             </fieldset>
             <button type="submit" class="btn btn--green btn--block">Sign my pledge and start learning</button>
         </form>
