@@ -25,6 +25,9 @@ $user = $ctx->user() ?? [];
 
         <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today']]) ?><?php endif; ?>
         <div class="tile-grid">
+            <a class="tile tile--link" href="/studio/practice"><h2>Try as</h2><p>See every page as a student, teacher, alumnus or team tutor, with practice accounts.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/team"><h2>The Team</h2><p>Invite volunteer tutors for a subject; they agree to our principles first.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/settings"><h2>Settings &amp; backup</h2><p>Your WhatsApp number, the community link, and a database backup.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/students"><h2>Students</h2><p>Activity, gentle early-warning flags, and one-tap call, WhatsApp, SMS or email.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/messages"><h2>Messages</h2><p>Write to students and partner teachers, or send an announcement.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/office-hours"><h2>Office hours</h2><p>Offer call times; students book with what they are stuck on.</p><span class="tag tag--ready">Open</span></a>

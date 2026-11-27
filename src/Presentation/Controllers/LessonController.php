@@ -105,7 +105,9 @@ final class LessonController
 
     public function manage(Request $request): Response
     {
-        $lessons = $this->lessons->allForTutor();
+        $uid = (int) $this->context->userId();
+        $lessons = array_values(array_filter($this->lessons->allForTutor(), fn (array $l): bool => $l['subject'] !== null
+            ? $this->context->canTeach((string) $l['subject']) : ($this->context->subjects() === null || (int) $l['created_by'] === $uid)));
 
         return Response::html($this->view->render('studio/lessons/index', [
             'title' => 'My lessons',
@@ -180,9 +182,10 @@ final class LessonController
             'lesson' => $lesson,
             'errors' => $errors,
             'missing' => $missing,
-            'subjects' => LessonService::SUBJECTS,
+            'subjects' => $this->context->subjects() === null ? LessonService::SUBJECTS
+                : array_intersect_key(LessonService::SUBJECTS, array_flip($this->context->subjects())),
             'sections' => LessonService::REAL_LIFE_SECTIONS,
-            'topicOptions' => $this->topics?->options() ?? [],
+            'topicOptions' => array_values(array_filter($this->topics?->options() ?? [], fn (array $o): bool => $this->context->canTeach((string) $o['subject']))),
         ]), $status);
     }
 

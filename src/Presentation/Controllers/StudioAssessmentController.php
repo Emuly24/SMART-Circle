@@ -44,7 +44,7 @@ final class StudioAssessmentController
             'form' => $form,
             'subject' => $subject,
             'questions' => $this->assessments->bank($form, $subject),
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'types' => Marker::TYPES,
         ]));
     }
@@ -92,8 +92,8 @@ final class StudioAssessmentController
     {
         return Response::html($this->view->render('studio/assessments/index', [
             'title' => 'Exams & assignments',
-            'assessments' => $this->assessments->all(),
-            'names' => Subjects::NAMES,
+            'assessments' => $this->mine($this->assessments->all()),
+            'names' => $this->subjectNames(),
             'kinds' => AssessmentService::KINDS,
         ]));
     }
@@ -101,7 +101,7 @@ final class StudioAssessmentController
     public function create(Request $request): Response
     {
         if (!$request->isPost()) {
-            return $this->detailsForm(['id' => null, 'kind' => 'exam', 'form' => 1, 'subject' => 'mathematics', 'duration_min' => 40], []);
+            return $this->detailsForm(['id' => null, 'kind' => 'exam', 'form' => 1, 'subject' => array_key_first($this->subjectNames()), 'duration_min' => 40], []);
         }
         $input = $this->detailsInput($request);
         $result = $this->assessments->save(null, $input, (int) $this->context->userId());
@@ -236,7 +236,7 @@ final class StudioAssessmentController
     {
         return Response::html($this->view->render('studio/marking', [
             'title' => 'Marking',
-            'rows' => $this->assessments->toMark(),
+            'rows' => $this->mine($this->assessments->toMark()),
             'openRechecks' => $this->rechecks?->countOpen() ?? 0,
             'kinds' => AssessmentService::KINDS + ['note_check' => 'Checkpoint in notes'],
         ]));
@@ -246,7 +246,7 @@ final class StudioAssessmentController
     {
         return Response::html($this->view->render('studio/rechecks/index', [
             'title' => 'Re-check requests',
-            'rows' => $this->rechecks?->all() ?? [],
+            'rows' => $this->mine($this->rechecks?->all() ?? []),
         ]));
     }
 
@@ -307,7 +307,7 @@ final class StudioAssessmentController
             'title' => $q['id'] === null ? 'New question' : 'Edit question',
             'q' => $q,
             'errors' => $errors,
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'types' => Marker::TYPES,
             'topicOptions' => array_values(array_filter($this->topics->options(),
                 static fn (array $o): bool => $o['form'] === $form && $o['subject'] === $subject)),
@@ -327,7 +327,7 @@ final class StudioAssessmentController
             'bank' => array_values(array_filter($this->assessments->bank((int) $a['form'], (string) $a['subject']),
                 static fn (array $q): bool => !in_array((int) $q['id'], $inIds, true))),
             'submissions' => $this->assessments->submissions((int) $a['id']),
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'kinds' => AssessmentService::KINDS,
             'types' => Marker::TYPES,
         ]), $status);
@@ -340,7 +340,7 @@ final class StudioAssessmentController
             'title' => 'New exam or assignment',
             'a' => $a,
             'errors' => $errors,
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'kinds' => AssessmentService::KINDS,
         ]), $status);
     }
@@ -384,12 +384,28 @@ final class StudioAssessmentController
     /** @return array{0: int, 1: string} */
     private function formSubject(string $form, string $subject): array
     {
-        return [max(1, min(4, (int) $form)), isset(Subjects::NAMES[$subject]) ? $subject : 'mathematics'];
+        $names = $this->subjectNames();
+
+        return [max(1, min(4, (int) $form)), isset($names[$subject]) ? $subject : (string) array_key_first($names)];
     }
 
     /** @return array<string, mixed> */
     private function assessmentOr404(Request $request): array
     {
         return $this->assessments->find((int) $request->param('id')) ?? throw new HttpException(404);
+    }
+
+    /** Subjects this person may choose (team tutors: only their own). @return array<string, string> */
+    private function subjectNames(): array
+    {
+        $scope = $this->context->subjects();
+
+        return $scope === null ? Subjects::NAMES : array_intersect_key(Subjects::NAMES, array_flip($scope));
+    }
+
+    /** Team tutors only see rows in their own subjects. @param list<array<string, mixed>> $rows @return list<array<string, mixed>> */
+    private function mine(array $rows): array
+    {
+        return array_values(array_filter($rows, fn (array $r): bool => $this->context->canTeach(isset($r['subject']) ? (string) $r['subject'] : null)));
     }
 }

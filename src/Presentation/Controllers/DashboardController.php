@@ -37,6 +37,7 @@ final class DashboardController
             'tutor' => 'dashboard/tutor',
             'partner' => 'dashboard/partner',
             'alumni' => 'dashboard/alumni',
+            'team' => 'dashboard/team',
             default => 'dashboard/student',
         };
 

@@ -33,11 +33,11 @@ final class IntakeRepository
         return $this->db->one('SELECT * FROM intakes WHERE id = ?', [$id]);
     }
 
-    public function update(int $id, string $name, ?string $closesAt, int $seatsPerGroup, bool $active): void
+    public function update(int $id, string $name, ?string $closesAt, int $seatsPerGroup, bool $active, ?string $seatPlan = null): void
     {
         $this->db->run(
-            'UPDATE intakes SET name = ?, closes_at = ?, seats_per_group = ?, is_active = ? WHERE id = ?',
-            [$name, $closesAt, $seatsPerGroup, $active ? 1 : 0, $id]
+            'UPDATE intakes SET name = ?, closes_at = ?, seats_per_group = ?, is_active = ?, seat_plan = ? WHERE id = ?',
+            [$name, $closesAt, $seatsPerGroup, $active ? 1 : 0, $seatPlan, $id]
         );
     }
 

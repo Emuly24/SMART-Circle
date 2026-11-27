@@ -5,7 +5,7 @@
     <h2 class="h3">About this room</h2>
     <ul>
         <li>It is for anything that is affecting your studies: worries at home or school, health, money for fees, travel, feeling behind.</li>
-        <li>Only you and the tutor can read it. Partner teachers and other students never see it.</li>
+        <li>Only you and the tutor can read it, plus a SMART Circle Team tutor if the tutor adds one (you will see who is in the room). Partner teachers and other students never see it.</li>
         <li>Everything is kept and cannot be deleted, by you or the tutor. This protects you both.</li>
         <li>If the tutor invites you here, your guardian is told that an invitation was made, but not what you talk about.</li>
         <li>The tutor will never ask for favours of any kind, or to meet you alone.</li>

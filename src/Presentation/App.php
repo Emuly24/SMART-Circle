@@ -9,6 +9,7 @@ use SmartCircle\Application\Admissions\AccountSetupService;
 use SmartCircle\Application\Admissions\ApplicationService;
 use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
+use SmartCircle\Application\Admin\BackupService;
 use SmartCircle\Application\Alumni\AlumniService;
 use SmartCircle\Application\Alumni\YearEndService;
 use SmartCircle\Application\Assessments\AssessmentService;
@@ -28,6 +29,9 @@ use SmartCircle\Application\Lessons\UploadService;
 use SmartCircle\Application\Maneb\ManebService;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Application\OfficeHours\OfficeHoursService;
+use SmartCircle\Application\Practice\PracticeService;
+use SmartCircle\Application\Settings\SettingsService;
+use SmartCircle\Application\Team\TeamService;
 use SmartCircle\Application\Partners\PartnerService;
 use SmartCircle\Application\Partners\SchoolService;
 use SmartCircle\Application\Topics\AccessService;
@@ -43,6 +47,10 @@ use SmartCircle\Data\Repositories\QuestionRepository;
 use SmartCircle\Data\Repositories\SubmissionRepository;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\BackupRepository;
+use SmartCircle\Data\Repositories\PracticeRepository;
+use SmartCircle\Data\Repositories\SettingsRepository;
+use SmartCircle\Data\Repositories\TeamRepository;
 use SmartCircle\Data\Repositories\AlumniRepository;
 use SmartCircle\Data\Repositories\CommunityRepository;
 use SmartCircle\Data\Repositories\ManebRepository;
@@ -69,6 +77,8 @@ use SmartCircle\Data\Repositories\TopicRepository;
 use SmartCircle\Data\Repositories\TopicRequestRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 use SmartCircle\Presentation\Controllers\AdmissionsController;
+use SmartCircle\Presentation\Controllers\AdminController;
+use SmartCircle\Presentation\Controllers\TeamController;
 use SmartCircle\Presentation\Controllers\AlumniController;
 use SmartCircle\Presentation\Controllers\ManebController;
 use SmartCircle\Presentation\Controllers\OfficeHoursController;
@@ -107,6 +117,7 @@ use SmartCircle\Presentation\Http\Session;
 use SmartCircle\Presentation\Middleware\RequireGuest;
 use SmartCircle\Presentation\Middleware\RequireOnboarded;
 use SmartCircle\Presentation\Middleware\RequireRole;
+use SmartCircle\Presentation\Middleware\SubjectGuard;
 use SmartCircle\Presentation\Middleware\VerifyCsrf;
 use SmartCircle\Presentation\View\View;
 use SmartCircle\Support\Config;
@@ -209,6 +220,18 @@ final class App
                 if ($user !== null && $user['role'] === 'student') {
                     $this->context->setNeedsOnboarding($this->accountSetup($db, $users, $audit)->needsOnboarding((int) $user['id']));
                 }
+                if ($user !== null && $user['role'] === 'team') {
+                    $team = $this->team($db, $users, $audit);
+                    $this->context->setNeedsOnboarding($team->needsAgreement((int) $user['id']));
+                    $this->context->setSubjects($team->scope((int) $user['id']));
+                }
+                // "Try as": remember the admin behind a practice account, and only for practice accounts.
+                $practiceAdmin = $this->session->get('practice_admin');
+                if ($user !== null && is_int($practiceAdmin) && (int) ($user['is_practice'] ?? 0) === 1) {
+                    $this->context->setPracticeAdmin($practiceAdmin);
+                } elseif ($practiceAdmin !== null) {
+                    $this->session->forget('practice_admin');
+                }
             }
         } elseif ($request->path !== '/install') {
             return Response::redirect('/install');
@@ -220,6 +243,7 @@ final class App
             return $userId === null ? 0 : $this->notifications($db)->unreadCount($userId);
         });
 
+        $this->view->share('community', static fn (): ?string => (new SettingsService(new SettingsRepository($db)))->community());
         $this->view->share('messageCount', function () use ($db): int {
             $userId = $this->context->userId();
 
@@ -238,6 +262,9 @@ final class App
         $guest = new RequireGuest($this->context);
         $member = new RequireRole($this->context, $this->session);
         $tutor = new RequireRole($this->context, $this->session, ['tutor']);
+        $teacher = new RequireRole($this->context, $this->session, ['tutor', 'team']);
+        $teamTutor = $this->team($db, new UserRepository($db), new AuditLogRepository($db));
+        $guard = fn (?string $type = null): SubjectGuard => new SubjectGuard($this->context, $teamTutor, $type);
         $learner = new RequireRole($this->context, $this->session, ['tutor', 'student', 'partner']);
         $alumnus = new RequireRole($this->context, $this->session, ['alumni']);
         $booker = new RequireRole($this->context, $this->session, ['student', 'alumni']);
@@ -262,7 +289,7 @@ final class App
         );
         $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService);
         $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view, $accessService);
-        $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view);
+        $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view, $this->context);
         $notificationsCtl = new NotificationController($this->notifications($db), $this->context, $this->session, $this->view);
         $uploads = new UploadController($uploadService, $this->context);
 
@@ -318,10 +345,34 @@ final class App
         };
         $officeCtl = new OfficeHoursController(new OfficeHoursService(new OfficeHoursRepository($db), $this->notifications($db), $officeIds),
             $studentForm, $this->context, $this->session, $this->view);
+        $settingsService = new SettingsService(new SettingsRepository($db));
+        $teamCtl = new TeamController($this->team($db, $users, $audit), $this->context, $this->session, $this->view);
+        $adminCtl = new AdminController($settingsService, new PracticeService(new PracticeRepository($db), $audit),
+            new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
         $recheckService = new RecheckService(new RecheckRepository($db), new SubmissionRepository($db), new AssessmentRepository($db), $this->notifications($db));
+        $pages->setMemberHome(function () use ($assessmentService, $recheckService, $messageService, $accessService, $gradeService): ?array {
+            $uid = $this->context->userId();
+            if ($uid === null) {
+                return null;
+            }
+            $role = (string) $this->context->role();
+            $toMark = array_filter($assessmentService->toMark(), fn (array $r): bool => $this->context->canTeach((string) $r['subject']));
+            $student = $role === 'student' ? $gradeService->student($uid) : null;
+
+            return [
+                'role' => $role,
+                'user' => $this->context->user(),
+                'unread' => $messageService->unread($uid),
+                'to_mark' => in_array($role, ['tutor', 'team'], true) ? count($toMark) : 0,
+                'rechecks' => $role === 'tutor' ? $recheckService->countOpen() : 0,
+                'subjects' => $this->context->subjects(),
+                'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null,
+                'form' => $student !== null ? (int) $student['form'] : null,
+            ];
+        });
         $noteService = new NoteService(new NoteRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), new TopicRepository($db),
             new StudentRepository($db), $accessService, $examService, $this->notifications($db), $this->storage(''));
         $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
@@ -410,9 +461,9 @@ final class App
         $r->post('/notifications/read', $notificationsCtl->markRead(...), [$csrf, $member]);
 
         // Tutor: ranked topic requests and the topic catalogue
-        $r->get('/studio/requests', $studioTopics->requests(...), [$tutor]);
-        $r->get('/studio/requests/{id}', $studioTopics->request(...), [$tutor]);
-        $r->post('/studio/requests/{id}/status', $studioTopics->setStatus(...), [$csrf, $tutor]);
+        $r->get('/studio/requests', $studioTopics->requests(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/requests/{id}', $studioTopics->request(...), [$teacher, $onboarded, $guard('request')]);
+        $r->post('/studio/requests/{id}/status', $studioTopics->setStatus(...), [$csrf, $teacher, $onboarded, $guard('request')]);
         $r->get('/studio/checks', $honesty->checks(...), [$tutor]);
         $r->post('/studio/checks/exception', $honesty->decideException(...), [$csrf, $tutor]);
         $r->post('/studio/checks/report', $honesty->reviewReport(...), [$csrf, $tutor]);
@@ -467,32 +518,33 @@ final class App
         $r->get('/notes/{id}/images/{block}', $notesCtl->image(...), [$student, $onboarded]);
 
         // Tutor: notes and slides
-        $r->get('/studio/notes', $studioNotes->index(...), [$tutor]);
-        $r->get('/studio/notes/new', $studioNotes->create(...), [$tutor]);
-        $r->post('/studio/notes', $studioNotes->create(...), [$csrf, $tutor]);
-        $r->get('/studio/notes/{id}', $studioNotes->edit(...), [$tutor]);
-        $r->post('/studio/notes/{id}', $studioNotes->update(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/text', $studioNotes->addText(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/image', $studioNotes->addImage(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/checkpoint', $studioNotes->addCheckpoint(...), [$csrf, $tutor]);
-        $r->get('/studio/notes/{id}/images/{block}', $studioNotes->image(...), [$tutor]);
-        $r->post('/studio/notes/{id}/blocks/{block}', $studioNotes->updateBlock(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $tutor]);
-        $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $tutor]);
+        $r->get('/studio/notes', $studioNotes->index(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/notes/new', $studioNotes->create(...), [$teacher, $onboarded, $guard()]);
+        $r->post('/studio/notes', $studioNotes->create(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/notes/{id}', $studioNotes->edit(...), [$teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}', $studioNotes->update(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/text', $studioNotes->addText(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/image', $studioNotes->addImage(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/checkpoint', $studioNotes->addCheckpoint(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->get('/studio/notes/{id}/images/{block}', $studioNotes->image(...), [$teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/blocks/{block}', $studioNotes->updateBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);
 
         // Messages, the private room and the student overview
         $r->get('/messages', $messagesCtl->index(...), [$member, $onboarded]);
         $r->get('/messages/new', $messagesCtl->create(...), [$member, $onboarded]);
         $r->post('/messages', $messagesCtl->store(...), [$csrf, $member, $onboarded]);
-        $r->post('/messages/announce', $messagesCtl->announce(...), [$csrf, $tutor]);
+        $r->post('/messages/announce', $messagesCtl->announce(...), [$csrf, $teacher, $onboarded]);
         $r->get('/messages/{id}', $messagesCtl->show(...), [$member, $onboarded]);
         $r->post('/messages/{id}/reply', $messagesCtl->reply(...), [$csrf, $member, $onboarded]);
         $r->get('/support', $supportCtl->mine(...), [$student, $onboarded]);
         $r->post('/support', $supportCtl->send(...), [$csrf, $student, $onboarded]);
         $r->get('/studio/support', $supportCtl->index(...), [$tutor]);
-        $r->get('/studio/support/{id}', $supportCtl->show(...), [$tutor]);
-        $r->post('/studio/support/{id}', $supportCtl->reply(...), [$csrf, $tutor]);
+        $r->get('/studio/support/{id}', $supportCtl->show(...), [$teacher, $onboarded]);
+        $r->post('/studio/support/{id}', $supportCtl->reply(...), [$csrf, $teacher, $onboarded]);
+        $r->post('/studio/support/{id}/members', $supportCtl->addMember(...), [$csrf, $tutor]);
         $r->post('/studio/support/{id}/guardian', $supportCtl->guardianNotified(...), [$csrf, $tutor]);
         $r->get('/studio/students', $studentsCtl->index(...), [$tutor]);
         $r->get('/studio/students/{id}', $studentsCtl->show(...), [$tutor]);
@@ -519,11 +571,30 @@ final class App
         $r->get('/office-hours', $officeCtl->index(...), [$booker, $onboarded]);
         $r->post('/office-hours/{id}/book', $officeCtl->book(...), [$csrf, $booker, $onboarded]);
         $r->post('/office-hours/{id}/cancel', $officeCtl->cancel(...), [$csrf, $booker, $onboarded]);
-        $r->get('/studio/office-hours', $officeCtl->studio(...), [$tutor]);
-        $r->post('/studio/office-hours', $officeCtl->create(...), [$csrf, $tutor]);
-        $r->get('/studio/office-hours/{id}', $officeCtl->slot(...), [$tutor]);
-        $r->post('/studio/office-hours/{id}/cancel', $officeCtl->cancelSlot(...), [$csrf, $tutor]);
-        $r->post('/studio/office-hours/bookings/{id}', $officeCtl->markBooking(...), [$csrf, $tutor]);
+        $r->get('/studio/office-hours', $officeCtl->studio(...), [$teacher, $onboarded, $guard()]);
+        $r->post('/studio/office-hours', $officeCtl->create(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/office-hours/{id}', $officeCtl->slot(...), [$teacher, $onboarded, $guard()]);
+        $r->post('/studio/office-hours/{id}/cancel', $officeCtl->cancelSlot(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->post('/studio/office-hours/bookings/{id}', $officeCtl->markBooking(...), [$csrf, $teacher, $onboarded, $guard()]);
+
+        // The SMART Circle Team, "Try as", settings and backup (admin)
+        $teamOnly = new RequireRole($this->context, $this->session, ['team']);
+        $r->get('/studio/team', $teamCtl->index(...), [$tutor]);
+        $r->post('/studio/team', $teamCtl->invite(...), [$csrf, $tutor]);
+        $r->get('/studio/team/{id}', $teamCtl->show(...), [$tutor]);
+        $r->post('/studio/team/{id}/code', $teamCtl->newCode(...), [$csrf, $tutor]);
+        $r->post('/studio/team/{id}/code/hide', $teamCtl->hideCode(...), [$csrf, $tutor]);
+        $r->post('/studio/team/{id}/subjects', $teamCtl->subjects(...), [$csrf, $tutor]);
+        $r->post('/studio/team/{id}/status', $teamCtl->status(...), [$csrf, $tutor]);
+        $r->get('/team/agreement', $teamCtl->agreement(...), [$teamOnly]);
+        $r->post('/team/agreement', $teamCtl->agree(...), [$csrf, $teamOnly]);
+        $r->get('/studio/settings', $adminCtl->settings(...), [$tutor]);
+        $r->post('/studio/settings', $adminCtl->saveSettings(...), [$csrf, $tutor]);
+        $r->get('/studio/practice', $adminCtl->practice(...), [$tutor]);
+        $r->post('/studio/practice/enter', $adminCtl->enter(...), [$csrf, $tutor]);
+        $r->post('/studio/practice/reset', $adminCtl->reset(...), [$csrf, $tutor]);
+        $r->post('/practice/leave', $adminCtl->leave(...), [$csrf, $member]);
+        $r->post('/studio/backup', $adminCtl->backup(...), [$csrf, $tutor]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);
@@ -541,38 +612,38 @@ final class App
         $r->post('/partner/calendar/events/{id}/delete', $calendarCtl->deleteEvent(...), [$csrf, $partner]);
 
         // Tutor: marking queue and re-checks
-        $r->get('/studio/marking', $studioAssess->queue(...), [$tutor]);
-        $r->get('/studio/rechecks', $studioAssess->rechecks(...), [$tutor]);
-        $r->get('/studio/rechecks/{id}', $studioAssess->recheck(...), [$tutor]);
-        $r->post('/studio/rechecks/{id}', $studioAssess->resolveRecheck(...), [$csrf, $tutor]);
+        $r->get('/studio/marking', $studioAssess->queue(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/rechecks', $studioAssess->rechecks(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/rechecks/{id}', $studioAssess->recheck(...), [$teacher, $onboarded, $guard('recheck')]);
+        $r->post('/studio/rechecks/{id}', $studioAssess->resolveRecheck(...), [$csrf, $teacher, $onboarded, $guard('recheck')]);
 
         // Tutor: question bank, assessment builder, marking
-        $r->get('/studio/questions', $studioAssess->bank(...), [$tutor]);
-        $r->get('/studio/questions/new', $studioAssess->newQuestion(...), [$tutor]);
-        $r->post('/studio/questions', $studioAssess->saveQuestion(...), [$csrf, $tutor]);
-        $r->get('/studio/questions/{id}', $studioAssess->editQuestion(...), [$tutor]);
-        $r->post('/studio/questions/{id}', $studioAssess->saveQuestion(...), [$csrf, $tutor]);
-        $r->post('/studio/questions/{id}/delete', $studioAssess->deleteQuestion(...), [$csrf, $tutor]);
-        $r->get('/studio/assessments', $studioAssess->index(...), [$tutor]);
-        $r->get('/studio/assessments/new', $studioAssess->create(...), [$tutor]);
-        $r->post('/studio/assessments', $studioAssess->create(...), [$csrf, $tutor]);
-        $r->get('/studio/assessments/{id}', $studioAssess->show(...), [$tutor]);
-        $r->post('/studio/assessments/{id}', $studioAssess->update(...), [$csrf, $tutor]);
-        $r->post('/studio/assessments/{id}/questions', $studioAssess->addQuestion(...), [$csrf, $tutor]);
-        $r->post('/studio/assessments/{id}/questions/{question}/remove', $studioAssess->removeQuestion(...), [$csrf, $tutor]);
-        $r->post('/studio/assessments/{id}/questions/{question}/move', $studioAssess->moveQuestion(...), [$csrf, $tutor]);
-        $r->get('/studio/assessments/{id}/submissions', $studioAssess->submissions(...), [$tutor]);
-        $r->post('/studio/assessments/{id}/{action}', $studioAssess->action(...), [$csrf, $tutor]);
-        $r->get('/studio/submissions/{id}', $studioAssess->markForm(...), [$tutor]);
-        $r->post('/studio/submissions/{id}', $studioAssess->mark(...), [$csrf, $tutor]);
+        $r->get('/studio/questions', $studioAssess->bank(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/questions/new', $studioAssess->newQuestion(...), [$teacher, $onboarded, $guard()]);
+        $r->post('/studio/questions', $studioAssess->saveQuestion(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/questions/{id}', $studioAssess->editQuestion(...), [$teacher, $onboarded, $guard('question')]);
+        $r->post('/studio/questions/{id}', $studioAssess->saveQuestion(...), [$csrf, $teacher, $onboarded, $guard('question')]);
+        $r->post('/studio/questions/{id}/delete', $studioAssess->deleteQuestion(...), [$csrf, $teacher, $onboarded, $guard('question')]);
+        $r->get('/studio/assessments', $studioAssess->index(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/assessments/new', $studioAssess->create(...), [$teacher, $onboarded, $guard()]);
+        $r->post('/studio/assessments', $studioAssess->create(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/assessments/{id}', $studioAssess->show(...), [$teacher, $onboarded, $guard('assessment')]);
+        $r->post('/studio/assessments/{id}', $studioAssess->update(...), [$csrf, $teacher, $onboarded, $guard('assessment')]);
+        $r->post('/studio/assessments/{id}/questions', $studioAssess->addQuestion(...), [$csrf, $teacher, $onboarded, $guard('assessment')]);
+        $r->post('/studio/assessments/{id}/questions/{question}/remove', $studioAssess->removeQuestion(...), [$csrf, $teacher, $onboarded, $guard('assessment')]);
+        $r->post('/studio/assessments/{id}/questions/{question}/move', $studioAssess->moveQuestion(...), [$csrf, $teacher, $onboarded, $guard('assessment')]);
+        $r->get('/studio/assessments/{id}/submissions', $studioAssess->submissions(...), [$teacher, $onboarded, $guard('assessment')]);
+        $r->post('/studio/assessments/{id}/{action}', $studioAssess->action(...), [$csrf, $teacher, $onboarded, $guard('assessment')]);
+        $r->get('/studio/submissions/{id}', $studioAssess->markForm(...), [$teacher, $onboarded, $guard('submission')]);
+        $r->post('/studio/submissions/{id}', $studioAssess->mark(...), [$csrf, $teacher, $onboarded, $guard('submission')]);
 
         // Tutor: recording studio and lesson management
-        $r->get('/studio/lab', $studio->lab(...), [$tutor]);
-        $r->get('/studio/lessons', $lessons->manage(...), [$tutor]);
-        $r->get('/studio/lessons/{id}', $lessons->edit(...), [$tutor]);
-        $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $tutor]);
-        $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $tutor]);
-        $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $tutor]);
+        $r->get('/studio/lab', $studio->lab(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/lessons', $lessons->manage(...), [$teacher, $onboarded, $guard()]);
+        $r->get('/studio/lessons/{id}', $lessons->edit(...), [$teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/unpublish', $lessons->unpublish(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
+        $r->post('/studio/lessons/{id}/delete', $lessons->delete(...), [$csrf, $teacher, $onboarded, $guard('lesson')]);
 
         // Tutor: admissions
         $r->get('/studio/admissions', $admissions->index(...), [$tutor]);
@@ -585,9 +656,9 @@ final class App
         $r->get('/studio/admissions/{id}/report', $admissions->report(...), [$tutor]);
 
         // Tutor: resumable lesson upload API (JSON; CSRF token in X-CSRF-Token header)
-        $r->post('/studio/uploads', $uploads->start(...), [$tutor, $csrf]);
-        $r->post('/studio/uploads/{id}/chunk', $uploads->chunk(...), [$tutor, $csrf]);
-        $r->post('/studio/uploads/{id}/finish', $uploads->finish(...), [$tutor, $csrf]);
+        $r->post('/studio/uploads', $uploads->start(...), [$teacher, $csrf, $onboarded, $guard()]);
+        $r->post('/studio/uploads/{id}/chunk', $uploads->chunk(...), [$teacher, $csrf, $onboarded, $guard('upload')]);
+        $r->post('/studio/uploads/{id}/finish', $uploads->finish(...), [$teacher, $csrf, $onboarded, $guard('upload')]);
 
         // One-time setup
         $r->get('/install', $installCtl->show(...));
@@ -597,6 +668,11 @@ final class App
     }
 
     private ?NotificationService $notifications = null;
+
+    private function team(Database $db, UserRepository $users, AuditLogRepository $audit): TeamService
+    {
+        return new TeamService($db, $users, new TeamRepository($db), new StudentRepository($db), $audit);
+    }
 
     private function notifications(Database $db): NotificationService
     {

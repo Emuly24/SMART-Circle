@@ -1,6 +1,7 @@
 <?php
 /**
  * @var array<string, mixed>|null $intake
+ * @var \SmartCircle\Application\Admissions\SeatChart|null $chart
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
  */
 $open = $intake !== null && ($intake['closes_at'] === null || strtotime((string) $intake['closes_at']) > time());
@@ -16,11 +17,19 @@ $open = $intake !== null && ($intake['closes_at'] === null || strtotime((string)
                     <span class="field__label">Intake name</span>
                     <input type="text" name="name" value="<?= e($intake['name']) ?>" maxlength="100" required>
                 </label>
-                <label class="field">
-                    <span class="field__label">Seats per form for girls, and for boys</span>
-                    <input type="number" name="seats_per_group" value="<?= e($intake['seats_per_group']) ?>" min="1" max="10" required>
-                    <span class="note">3 means 3 girls + 3 boys per form, so 24 seats in total.</span>
-                </label>
+                <input type="hidden" name="seats_per_group" value="<?= e($intake['seats_per_group']) ?>">
+                <fieldset class="field seat-plan"><legend class="field__label">Seats in each form <span class="muted">(<?= e($chart?->totalSeats() ?? 24) ?> in total)</span></legend>
+                    <div class="seat-plan__grid">
+                        <span></span><span class="field__label">Girls</span><span class="field__label">Boys</span>
+                        <?php for ($f = 1; $f <= 4; $f++): ?>
+                            <span class="field__label">Form <?= $f ?></span>
+                            <?php foreach (['female' => 'girls', 'male' => 'boys'] as $g => $label): $cell = $chart?->cell($f, $g); ?>
+                                <input type="number" name="plan[<?= $f ?>][<?= $g ?>]" value="<?= e($cell['seats'] ?? $intake['seats_per_group']) ?>" min="0" max="<?= e(\SmartCircle\Application\Admissions\SeatChart::MAX_PER_CELL) ?>" aria-label="Form <?= $f ?> <?= e($label) ?>"<?= ($cell['admitted'] ?? 0) > 0 ? ' data-admitted="' . e($cell['admitted']) . '"' : '' ?>>
+                            <?php endforeach; ?>
+                        <?php endfor; ?>
+                    </div>
+                    <span class="note">Raise a number to enrol more students in that form. Lowering it never removes anyone already admitted.</span>
+                </fieldset>
                 <label class="choice choice--block">
                     <input type="checkbox" name="is_open" value="1" <?= $open ? 'checked' : '' ?>> Accept applications
                 </label>
@@ -44,7 +53,8 @@ $open = $intake !== null && ($intake['closes_at'] === null || strtotime((string)
             </label>
             <label class="field">
                 <span class="field__label">Seats per form for girls, and for boys</span>
-                <input type="number" name="seats_per_group" value="3" min="1" max="10" required>
+                <input type="number" name="seats_per_group" value="3" min="1" max="30" required>
+                <span class="note">You can set each form separately after starting.</span>
             </label>
             <button type="submit" class="btn btn--ghost">Start new intake</button>
         </form>

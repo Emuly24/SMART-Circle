@@ -6,14 +6,17 @@
  * @var int $me
  * @var string $draft
  * @var string|null $error
+ * @var bool $isAdmin
+ * @var list<array<string, mixed>> $team
  */
 $c = $t['conversation'];
 ?>
 <section class="section section--tight">
     <div class="container narrow-wide">
-        <p class="crumbs"><a href="/studio/support">Private rooms</a><?php if ($student !== null): ?> · <a href="/studio/students/<?= e($student['id']) ?>"><?= e($student['full_name']) ?></a><?php endif; ?></p>
+        <p class="crumbs"><a href="<?= $isAdmin ? '/studio/support' : '/messages' ?>"><?= $isAdmin ? 'Private rooms' : 'Messages' ?></a><?php if ($student !== null): ?> · <a href="/studio/students/<?= e($student['id']) ?>"><?= e($student['full_name']) ?></a><?php endif; ?></p>
         <h1>Private room · <?= e($c['student_name']) ?></h1>
-        <?php if ($c['opened_by'] === 'tutor'): ?>
+        <p class="muted">In this room: <?= e(implode(', ', array_map(static fn (array $m): string => (string) $m['full_name'] . ($m['role'] === 'team' ? ' (team)' : ''), $t['members']))) ?></p>
+        <?php if ($isAdmin && $c['opened_by'] === 'tutor'): ?>
             <div class="card section-card guardian-card">
                 <?php if ($c['guardian_notified_at'] !== null): ?>
                     <p>Guardian told about the invitation on <?= e(date('j M Y', (int) strtotime((string) $c['guardian_notified_at']))) ?>.</p>
@@ -28,6 +31,14 @@ $c = $t['conversation'];
         <?php endif; ?>
         <?= $view->partial('thread', ['t' => $t, 'me' => $me]) ?>
         <?= $view->partial('reply_form', ['action' => '/studio/support/' . $c['id'], 'draft' => $draft, 'error' => $error, 'label' => 'Reply']) ?>
+        <?php if ($isAdmin && $team !== []): ?>
+            <form method="post" action="/studio/support/<?= e($c['id']) ?>/members" class="form card">
+                <?= $csrf->field() ?>
+                <label class="field"><span class="field__label">Add a team tutor to this room <span class="muted">(only if the student would be helped by it; they will see who joined)</span></span>
+                    <select name="user_id"><?php foreach ($team as $p): ?><option value="<?= e($p['id']) ?>"><?= e($p['full_name']) ?></option><?php endforeach; ?></select></label>
+                <div class="form-actions"><button type="submit" class="btn btn--small btn--ghost">Add to the room</button></div>
+            </form>
+        <?php endif; ?>
         <details class="card section-card"><summary class="h3">The rules students see</summary><?= $view->partial('room_rules', ['forTutor' => true]) ?></details>
     </div>
 </section>

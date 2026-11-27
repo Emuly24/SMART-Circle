@@ -14,5 +14,6 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/office-hours"><h2>Office hours</h2><p>Book a call about selection, loans, applications or courses.</p><span class="tag tag--ready">Book</span></a>
             <a class="tile tile--link" href="/messages"><h2>Messages</h2><p>Write to the tutor at any time.</p><span class="tag tag--ready">Open</span></a>
         </div>
+        <?= $view->partial('community') ?>
     </div>
 </section>

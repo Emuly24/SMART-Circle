@@ -17,6 +17,23 @@ final class MessageService
     public const PER_HOUR = 30;
     public const AUDIENCES = ['students' => 'All students', 'form:1' => 'Form 1', 'form:2' => 'Form 2', 'form:3' => 'Form 3', 'form:4' => 'Form 4', 'alumni' => 'All alumni', 'partners' => 'All partner teachers'];
 
+    /**
+     * Who someone may announce to: the admin everyone; a team tutor only students of their own subjects.
+     * @param list<string>|null $scope null = the admin
+     * @return array<string, string>
+     */
+    public static function audiencesFor(?array $scope): array
+    {
+        $bySubject = [];
+        foreach (\SmartCircle\Support\Subjects::NAMES as $key => $name) {
+            if ($scope === null || in_array($key, $scope, true)) {
+                $bySubject['subject:' . $key] = 'Students taking ' . $name;
+            }
+        }
+
+        return $scope === null ? self::AUDIENCES + $bySubject : $bySubject;
+    }
+
     public function __construct(
         private readonly MessageRepository $messages,
         private readonly NotificationService $notifications,
@@ -42,9 +59,9 @@ final class MessageService
     /** Who a person may start a conversation with. @return list<array<string, mixed>> */
     public function recipients(int $userId, string $role): array
     {
-        if ($role === 'tutor') {
+        if ($role === 'tutor' || $role === 'team') {
             $out = [];
-            foreach (['student', 'alumni', 'partner', 'tutor'] as $r) {
+            foreach ($role === 'tutor' ? ['student', 'alumni', 'partner', 'tutor', 'team'] : ['student', 'tutor', 'team'] as $r) {
                 foreach ($this->messages->people($r) as $p) {
                     if ((int) $p['id'] !== $userId) {
                         $out[] = $p + ['role' => $r];
@@ -55,7 +72,10 @@ final class MessageService
             return $out;
         }
 
-        return array_map(static fn (array $p): array => $p + ['role' => 'tutor'], $this->messages->people('tutor'));
+        $tutors = array_map(static fn (array $p): array => $p + ['role' => 'tutor'], $this->messages->people('tutor'));
+
+        // Students may also write to the team tutors who teach them.
+        return $role === 'student' ? [...$tutors, ...array_map(static fn (array $p): array => $p + ['role' => 'team'], $this->messages->people('team'))] : $tutors;
     }
 
     /**
@@ -67,7 +87,7 @@ final class MessageService
         $errors = [];
         $allowed = array_column($this->recipients($userId, $role), 'role', 'id');
         if (!isset($allowed[$toId])) {
-            $errors['to'] = $role === 'tutor' ? 'Choose who to write to.' : 'You can write to the tutor.';
+            $errors['to'] = in_array($role, ['tutor', 'team'], true) ? 'Choose who to write to.' : 'You can write to the tutor.';
         }
         $subject = trim($subject);
         if ($subject === '' || mb_strlen($subject) > 150) {
@@ -93,10 +113,10 @@ final class MessageService
      * Send an announcement (tutor only). Members are fixed when it is sent.
      * @return array{errors: array<string, string>, id: int|null}
      */
-    public function announce(int $tutorId, string $audience, string $subject, string $body): array
+    public function announce(int $tutorId, string $audience, string $subject, string $body, ?array $scope = null): array
     {
         $errors = [];
-        if (!isset(self::AUDIENCES[$audience])) {
+        if (!isset(self::audiencesFor($scope)[$audience])) {
             $errors['audience'] = 'Choose who should get it.';
         }
         $subject = trim($subject);
@@ -127,8 +147,12 @@ final class MessageService
             return array_map(static fn (array $p): int => (int) $p['id'], $this->messages->people($audience === 'partners' ? 'partner' : 'alumni'));
         }
         $form = str_starts_with($audience, 'form:') ? (int) substr($audience, 5) : null;
+        $subject = str_starts_with($audience, 'subject:') ? substr($audience, 8) : null;
         $ids = [];
         foreach (($this->students)() as $s) {
+            if ($subject !== null && !in_array($subject, \SmartCircle\Support\Subjects::forTrack((string) $s['track']), true)) {
+                continue;
+            }
             if ($form === null || (int) $s['form'] === $form) {
                 $ids[] = (int) $s['user_id'];
             }
@@ -205,7 +229,7 @@ final class MessageService
     private function canReply(array $c, int $userId, string $role): bool
     {
         if ($c['kind'] === 'announcement') {
-            return $role === 'tutor';
+            return $role === 'tutor' || (int) $c['created_by'] === $userId;
         }
 
         return $role === 'tutor' || $this->messages->isMember((int) $c['id'], $userId);
@@ -226,16 +250,23 @@ final class MessageService
             $this->messages->addMember($conversationId, $userId);
         }
         $this->messages->addMessage($conversationId, $userId, trim($body));
-        $others = array_values(array_filter(
-            array_map(static fn (array $m): int => (int) $m['user_id'], $this->messages->members($conversationId)),
-            static fn (int $id): bool => $id !== $userId
-        ));
-        $link = $c['kind'] === 'support' ? ($role === 'tutor' ? '/support' : '/studio/support/' . $conversationId) : '/messages/' . $conversationId;
-        $title = $c['kind'] === 'support' ? 'New message in your private room' : 'New reply: ' . $c['subject'];
-        if ($c['kind'] === 'support' && $role !== 'tutor') {
-            $title = 'Private room: new message from ' . ($c['student_name'] ?? 'a student');
+        $others = array_values(array_filter($this->messages->members($conversationId), static fn (array $m): bool => (int) $m['user_id'] !== $userId));
+        if ($c['kind'] !== 'support') {
+            $this->notifications->notify(array_map(static fn (array $m): int => (int) $m['user_id'], $others), 'message', 'New reply: ' . $c['subject'], null, '/messages/' . $conversationId);
+
+            return null;
         }
-        $this->notifications->notify($others, $c['kind'] === 'support' ? 'support' : 'message', $title, null, $link);
+        // Private room: the student goes to their room, tutors to the studio view of it.
+        foreach ($others as $m) {
+            $isStudent = (int) $m['user_id'] === (int) $c['student_id'];
+            $this->notifications->notify(
+                [(int) $m['user_id']],
+                'support',
+                $isStudent ? 'New message in your private room' : 'Private room (' . ($c['student_name'] ?? 'a student') . '): new message',
+                null,
+                $isStudent ? '/support' : '/studio/support/' . $conversationId
+            );
+        }
 
         return null;
     }

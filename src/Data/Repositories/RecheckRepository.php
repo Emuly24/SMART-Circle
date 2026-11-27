@@ -51,7 +51,7 @@ final class RecheckRepository
     public function all(): array
     {
         return $this->db->all(
-            "SELECT r.*, u.full_name, a.title AS assessment_title, q.prompt
+            "SELECT r.*, u.full_name, a.title AS assessment_title, a.subject, q.prompt
              FROM recheck_requests r
              JOIN users u ON u.id = r.user_id
              JOIN submissions s ON s.id = r.submission_id

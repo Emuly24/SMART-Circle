@@ -8,7 +8,7 @@ use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
 
-/** New students must accept the class agreement before using the site. */
+/** New students must accept the class agreement, and new team tutors the team agreement, before using the site. */
 final class RequireOnboarded implements Middleware
 {
     public function __construct(private readonly Context $context)
@@ -17,6 +17,10 @@ final class RequireOnboarded implements Middleware
 
     public function handle(Request $request, callable $next): Response
     {
-        return $this->context->needsOnboarding() ? Response::redirect('/welcome/onboarding') : $next($request);
+        if (!$this->context->needsOnboarding()) {
+            return $next($request);
+        }
+
+        return Response::redirect($this->context->role() === 'team' ? '/team/agreement' : '/welcome/onboarding');
     }
 }

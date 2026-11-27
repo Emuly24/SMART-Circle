@@ -921,3 +921,32 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .quote footer { font-size: .9rem; color: var(--slate); }
 .slot--mine { border-left: 4px solid var(--green); }
 .choice-grid .choice { min-width: 0; }
+
+/* Roles, team, practice mode and settings (Phase F) */
+.practice-bar { background: var(--amber-tint); border-bottom: 2px solid var(--amber); color: var(--ink); }
+.practice-bar__inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 8px; padding-bottom: 8px; }
+.practice-bar__inner > span { min-width: 0; overflow-wrap: anywhere; }
+.community-card { display: flex; align-items: center; gap: 14px; margin-top: 16px; color: var(--ink); text-decoration: none; border-left: 4px solid var(--green); }
+.community-card:hover { border-color: var(--link); }
+.community-card__icon { flex: 0 0 auto; color: var(--green-text); }
+.hero--member { padding: 28px 0 20px; }
+.stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+.stat-tile { display: grid; gap: 2px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); text-decoration: none; box-shadow: var(--shadow); transition: transform .15s ease, border-color .15s ease; }
+.stat-tile:hover { transform: translateY(-2px); border-color: var(--link); }
+.stat-tile__n { font: 700 2rem var(--font-display); color: var(--link); line-height: 1.1; }
+.stat-tile--amber { background: var(--amber-tint); }
+.seat-plan__grid { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px; align-items: center; max-width: 360px; }
+.seat-plan__grid input { min-width: 0; width: 100%; }
+.principles { padding-left: 1.3em; display: grid; gap: 8px; }
+.practice-tile { display: grid; gap: 10px; align-content: space-between; }
+.practice-tile h2 { margin: 0; }
+/* Gentle entrance effect; off when the device asks for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+    .reveal { animation: reveal-up .45s ease both; }
+    .reveal:nth-child(2) { animation-delay: .05s; }
+    .reveal:nth-child(3) { animation-delay: .1s; }
+    .reveal:nth-child(4) { animation-delay: .15s; }
+    .reveal:nth-child(5) { animation-delay: .2s; }
+    .reveal:nth-child(6) { animation-delay: .25s; }
+    @keyframes reveal-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
