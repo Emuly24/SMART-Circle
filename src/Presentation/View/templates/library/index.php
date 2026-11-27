@@ -59,6 +59,7 @@ $kb = static fn (int $bytes): string => $bytes >= 1048576 ? round($bytes / 10485
             </div>
         <?php endif; ?>
 
+        <?= $view->partial('share_buttons', ['shareUrl' => $shareLink('/library'), 'shareText' => 'Free printable handouts for Form 1–4 students in Malawi, from SMART Circle. No account needed.', 'label' => 'Share the free library']) ?>
         <?= $view->partial('library_invite') ?>
     </div>
 </section>

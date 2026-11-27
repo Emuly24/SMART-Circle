@@ -97,3 +97,9 @@ use SmartCircle\Support\Identity;
         <p><a class="btn btn--ghost" href="/safeguarding">How we keep students safe</a></p>
     </div>
 </section>
+
+<section class="section section--tight">
+    <div class="container narrow-wide">
+        <?= $view->partial('share_buttons', ['shareUrl' => $shareLink('/about'), 'shareText' => 'Why SMART Circle exists: free support for Form 1–4 students in Malawi, by Blessings Emulyn.', 'label' => 'Share our story']) ?>
+    </div>
+</section>

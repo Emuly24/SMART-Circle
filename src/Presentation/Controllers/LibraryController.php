@@ -67,7 +67,8 @@ final class LibraryController
 
         $site = (string) preg_replace('#^https?://#', '', rtrim($this->appUrl, '/'));
 
-        return ['title' => (string) $note['title'], 'note' => $note, 'names' => Subjects::NAMES, 'applyAt' => $site === '' ? '' : $site . '/apply',
+        return ['title' => (string) $note['title'], 'description' => 'Free handout (Form ' . $note['form'] . ', ' . (Subjects::NAMES[$note['subject']] ?? '') . ')'
+            . (($note['summary'] ?? '') !== '' ? ': ' . $note['summary'] : '') . '. From SMART Circle, free for everyone.', 'note' => $note, 'names' => Subjects::NAMES, 'applyAt' => $site === '' ? '' : $site . '/apply',
             'approval' => $this->reviews?->approval((int) $note['id'])];
     }
 }

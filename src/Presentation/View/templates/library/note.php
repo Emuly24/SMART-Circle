@@ -44,6 +44,7 @@ $subject = $names[$note['subject']] ?? '';
     </footer>
 </article>
 <?php else: ?>
+        <?= $view->partial('share_buttons', ['shareUrl' => $shareLink('/library/notes/' . $id, (string) $note['title']), 'shareText' => 'Free handout: ' . $note['title'] . ' (Form ' . $note['form'] . ' ' . $subject . ') from SMART Circle', 'label' => 'Share this handout']) ?>
         <?= $view->partial('library_invite') ?>
     </div>
 </section>

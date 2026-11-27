@@ -1,0 +1,7 @@
+# Deploy with: npx wrangler deploy --config tools/cloudflare/wrangler.toml   (after: php tools/cloudflare/build.php)
+name = "smartcircle-share"
+main = "share-worker.js"
+compatibility_date = "2024-09-01"
+
+[vars]
+ORIGIN = "https://smartcircle.gt.tc"

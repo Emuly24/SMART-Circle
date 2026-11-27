@@ -22,7 +22,28 @@ $user = $ctx->user();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? $appName) ?> · <?= e($appName) ?></title>
-    <meta name="description" content="Free science, mathematics and English grammar support for Form 1–4 students in Malawi.">
+    <?php
+    $metaDescription = $description ?? 'Free recorded lessons, notes and handouts in Mathematics, Physics, Chemistry, Biology and English grammar for Form 1–4 students in Malawi. Every lesson shows why it matters in real life.';
+    $metaTitle = isset($title) && $title !== $appName ? $title . ' · ' . $appName : $appName . ': ' . ($tagline ?? '');
+    $base = $siteUrl ?? '';
+    ?>
+    <meta name="description" content="<?= e($metaDescription) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<?= e($appName) ?>">
+    <meta property="og:title" content="<?= e($metaTitle) ?>">
+    <meta property="og:description" content="<?= e($metaDescription) ?>">
+    <meta property="og:locale" content="en_GB">
+    <?php if ($base !== ''): ?>
+    <meta property="og:url" content="<?= e($base . ($path ?? '/')) ?>">
+    <meta property="og:image" content="<?= e($base) ?>/assets/brand/share-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="SMART Circle: free lessons that show why it matters">
+    <link rel="canonical" href="<?= e($base . ($path ?? '/')) ?>">
+    <?php endif; ?>
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= e($metaTitle) ?>">
+    <meta name="twitter:description" content="<?= e($metaDescription) ?>">
     <meta name="theme-color" content="#1D4E89">
     <link rel="icon" href="<?= e($asset('brand/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="icon" href="<?= e($asset('brand/favicon-32.png')) ?>" sizes="32x32" type="image/png">
@@ -133,5 +154,6 @@ $user = $ctx->user();
 </footer>
 <script src="<?= e($asset('js/site.js')) ?>" defer></script>
 <script src="<?= e($asset('js/tour.js')) ?>" defer></script>
+<script src="<?= e($asset('js/share.js')) ?>" defer></script>
 </body>
 </html>

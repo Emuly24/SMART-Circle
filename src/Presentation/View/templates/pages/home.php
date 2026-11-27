@@ -126,3 +126,9 @@
         </div>
     </div>
 </section>
+
+<section class="section section--tight">
+    <div class="container narrow-wide">
+        <?= $view->partial('share_buttons', ['shareUrl' => $shareLink('/'), 'shareText' => 'SMART Circle: free lessons for Form 1–4 students in Malawi that show why every topic matters in real life.', 'label' => 'Know a student, parent or teacher who would love this? Share SMART Circle']) ?>
+    </div>
+</section>
