@@ -1887,11 +1887,42 @@ ALTER TABLE lessons
     ADD COLUMN handout_bytes  INT UNSIGNED NULL AFTER handout_path,
     ADD COLUMN handout_public TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'Shown in the public library' AFTER handout_bytes;
 
+-- ---------------------------------------------------------------------
+-- Migration 0020_reviews
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: qualified teachers check notes. A partner teacher signs once (drawn or a photo of their
+-- signature), then approves notes in their subjects or suggests changes. Every decision is kept; an approval
+-- shows the teacher's name, school and signature until the note is changed.
+
+ALTER TABLE partner_profiles
+    ADD COLUMN signature_path VARCHAR(255) NULL COMMENT 'PNG in storage/uploads/signatures',
+    ADD COLUMN signature_at   DATETIME     NULL COMMENT 'When they signed and agreed their name, school and signature may be shown';
+
+ALTER TABLE notes
+    ADD COLUMN review_requested_at DATETIME NULL COMMENT 'Sent to partner teachers to check' AFTER in_library;
+
+CREATE TABLE note_reviews (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    note_id        INT UNSIGNED NOT NULL,
+    reviewer_id    INT UNSIGNED NULL,
+    decision       VARCHAR(10)  NOT NULL COMMENT 'approved | changes',
+    comment        TEXT         NULL,
+    content_hash   CHAR(64)     NOT NULL COMMENT 'The note as it was checked; a later edit needs a new check',
+    reviewer_name  VARCHAR(150) NOT NULL,
+    school_name    VARCHAR(150) NULL,
+    signature_path VARCHAR(255) NULL,
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_note_reviews_note (note_id, id),
+    CONSTRAINT fk_note_reviews_note FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_note_reviews_reviewer FOREIGN KEY (reviewer_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews');
 
 SET FOREIGN_KEY_CHECKS = 1;

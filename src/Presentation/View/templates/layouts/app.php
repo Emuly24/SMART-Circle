@@ -63,6 +63,7 @@ $user = $ctx->user();
                     <a href="/partner/coverage" <?= str_starts_with($path ?? '', '/partner/coverage') ? 'aria-current="page"' : '' ?>>Topics taught</a>
                     <a href="/partner/textbooks" <?= str_starts_with($path ?? '', '/partner/textbooks') ? 'aria-current="page"' : '' ?>>Textbooks</a>
                     <a href="/partner/calendar" <?= str_starts_with($path ?? '', '/partner/calendar') ? 'aria-current="page"' : '' ?>>Calendar</a>
+                    <a href="/partner/reviews" <?= str_starts_with($path ?? '', '/partner/reviews') ? 'aria-current="page"' : '' ?>>Check notes</a>
                     <a href="/partner/contribute" <?= str_starts_with($path ?? '', '/partner/contribute') ? 'aria-current="page"' : '' ?>>Contribute</a>
                 <?php elseif ($role === 'alumni'): ?>
                     <a href="/alumni/community" <?= str_starts_with($path ?? '', '/alumni/community') ? 'aria-current="page"' : '' ?>>Community</a>

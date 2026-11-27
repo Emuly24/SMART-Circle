@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Notes\NoteService;
+use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
@@ -25,6 +26,7 @@ final class StudioNoteController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?NoteReviewService $reviews = null,
     ) {
     }
 
@@ -179,6 +181,8 @@ final class StudioNoteController
             'names' => $this->subjectNames(),
             'kinds' => NoteService::KINDS,
             'topicOptions' => $this->topicOptions((int) $note['form'], (string) $note['subject']),
+            'review' => $this->reviews?->state((int) $note['id']),
+            'reviewHistory' => $this->reviews?->history((int) $note['id']) ?? [],
         ]), $status);
     }
 

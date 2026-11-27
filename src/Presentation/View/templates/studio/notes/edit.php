@@ -7,6 +7,8 @@
  * @var array<string, string> $kinds
  * @var list<array{id: int, form: int, subject: string, label: string}> $topicOptions
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
+ * @var array{state: string, review: ?array<string, mixed>}|null $review
+ * @var list<array<string, mixed>> $reviewHistory
  */
 use SmartCircle\Presentation\View\NoteMarkup;
 
@@ -42,6 +44,26 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                     <?= $tool($base . '/library/on', 'Show in the free library', 'btn btn--small btn--green') ?>
                 <?php endif; ?>
             </div>
+            <?php if ($review !== null): $rs = $review['state']; ?>
+                <div class="review-status" id="reviews">
+                    <?php if ($rs === 'approved'): ?>
+                        <p>✓ <strong>Checked by a qualified teacher:</strong> <?= e($review['review']['reviewer_name']) ?><?= $review['review']['school_name'] ? ', ' . e($review['review']['school_name']) : '' ?>. Their name and signature show on these notes. Any change you make now will need a new check.</p>
+                    <?php elseif ($rs === 'stale'): ?>
+                        <p>✎ <strong>Changed since <?= e($review['review']['reviewer_name']) ?> approved it.</strong> The signature is hidden until a teacher checks it again.</p>
+                        <?= $tool($base . '/review', 'Ask a teacher to check again', 'btn btn--small btn--green') ?>
+                    <?php elseif ($rs === 'changes'): ?>
+                        <p>✎ <strong><?= e($review['review']['reviewer_name']) ?> suggested changes</strong> (below). Make them, then ask again.</p>
+                        <?= $tool($base . '/review', 'Ask a teacher to check again', 'btn btn--small btn--green') ?>
+                    <?php elseif ($rs === 'requested'): ?>
+                        <p>⏳ <strong>Waiting for a partner teacher to check it.</strong> When one approves it, their name and signature appear on these notes.</p>
+                        <?= $tool($base . '/review', 'Remind the teachers') ?>
+                    <?php else: ?>
+                        <p>👩🏽‍🏫 Ask a partner teacher who teaches this subject to check these notes and exercises. If they approve, their name, school and signature appear on the notes and the handout.</p>
+                        <?= $tool($base . '/review', 'Ask a teacher to check', 'btn btn--small btn--green') ?>
+                    <?php endif; ?>
+                    <?php if ($reviewHistory !== []): ?><?= $view->partial('review_history', ['history' => $reviewHistory]) ?><?php endif; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <ol class="note-blocks">

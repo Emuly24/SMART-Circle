@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Library\LibraryService;
+use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
@@ -18,6 +19,7 @@ final class LibraryController
         private readonly LibraryService $library,
         private readonly View $view,
         private readonly string $appUrl,
+        private readonly ?NoteReviewService $reviews = null,
     ) {
     }
 
@@ -65,6 +67,7 @@ final class LibraryController
 
         $site = (string) preg_replace('#^https?://#', '', rtrim($this->appUrl, '/'));
 
-        return ['title' => (string) $note['title'], 'note' => $note, 'names' => Subjects::NAMES, 'applyAt' => $site === '' ? '' : $site . '/apply'];
+        return ['title' => (string) $note['title'], 'note' => $note, 'names' => Subjects::NAMES, 'applyAt' => $site === '' ? '' : $site . '/apply',
+            'approval' => $this->reviews?->approval((int) $note['id'])];
     }
 }

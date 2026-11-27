@@ -33,6 +33,9 @@ $user = $ctx->user() ?? [];
                 <p class="note">Your invitation letter: <a href="/letters/<?= e($summary['letters'][0]['code']) ?>">open and print</a>.</p>
             <?php endif; ?>
         <?php endif; ?>
+        <a class="card section-card community-card" href="/partner/reviews">
+            <span><strong>Check notes and sign them</strong><br><span class="muted">Read the tutor’s notes in your subjects. Approve them with your signature, or suggest changes.</span></span>
+        </a>
         <a class="card section-card community-card" href="/partner/contribute">
             <span><strong>Help keep SMART Circle accurate</strong><br><span class="muted">Confirm your school’s calendar, share your syllabus or scheme of work, and suggest missing topics.</span></span>
         </a>
