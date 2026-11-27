@@ -65,5 +65,17 @@ check "letters: green list markers"        ".letter li::marker" "$P"
 check "letters: colours kept in print"     "print-color-adjust: exact" "$P"
 check "About story uses the prose style"   'class="story__text prose"' "$(curl -s "$BASE/about")"
 
+echo "Sharing"
+H=$(curl -s "$BASE/")
+check "home page has a preview title"      'property="og:title"' "$H"
+check "  and the share card"               "/assets/brand/share-card.png" "$H"
+check "  large card on X"                  'twitter:card" content="summary_large_image"' "$H"
+check "  share buttons"                    "Share SMART Circle" "$H"
+check "  WhatsApp share link"              "https://wa.me/?text=" "$H"
+check "share card is served"               "image/png" "$(curl -s -D - -o /dev/null "$BASE/assets/brand/share-card.png")"
+check "About can be shared"                "Share our story" "$(curl -s "$BASE/about")"
+check "  with its own description"         "The founder&#039;s story" "$(curl -s "$BASE/about")"
+check "library can be shared"              "Share the free library" "$(curl -s "$BASE/library")"
+
 echo; echo "Letters: $PASS passed, $FAIL failed"
 [[ $FAIL -eq 0 ]]

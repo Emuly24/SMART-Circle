@@ -1158,3 +1158,13 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .principles strong, .pledge__vows strong, .two-col strong, .section-card p strong { color: var(--link); }
 .identity-card h2, .section-card > h2, .section-card > .h3 { color: var(--link); }
 .two-col h2 { color: var(--link); }
+
+/* Share buttons (brand colours; the network names are plain text, no outside icons) */
+.share { margin: 24px 0; padding: 14px 16px; border: 1px solid var(--line); border-left: 5px solid var(--green); border-radius: var(--radius); background: var(--surface); }
+.share__label { margin: 0 0 10px; font-weight: 700; color: var(--link); }
+.share__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.share__btn { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+.share__btn:hover { border-color: var(--blue); color: var(--link); }
+.share__btn--whatsapp, .share__btn--native { background: var(--btn-green); border-color: var(--btn-green); color: var(--on-brand); }
+.share__btn--whatsapp:hover, .share__btn--native:hover { color: var(--on-brand); filter: brightness(1.08); }
+.share__done { margin: 8px 0 0; }

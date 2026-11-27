@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation;
 
+use SmartCircle\Support\ShareLinks;
 use SmartCircle\Presentation\Controllers\InvitationController;
 use SmartCircle\Application\Partners\InvitationService;
 use SmartCircle\Presentation\Controllers\CommunityController;
@@ -1014,6 +1015,9 @@ final class App
         $this->view->share('tagline', $this->config->string('app.tagline'));
         $this->view->share('ctx', $this->context);
         $this->view->share('csrf', $this->csrf);
+        $this->view->share('siteUrl', rtrim($this->config->string('app.url'), '/'));
+        $this->view->share('shareLink', fn (string $path, string $title = ''): string
+            => ShareLinks::url($this->config->string('app.share_url'), $this->config->string('app.url'), $path, $title));
         $this->view->share('flashes', fn (): array => session_status() === PHP_SESSION_ACTIVE ? $this->session->takeFlashes() : []);
         $this->view->share('asset', function (string $path): string {
             $file = $this->root . '/public/assets/' . ltrim($path, '/');

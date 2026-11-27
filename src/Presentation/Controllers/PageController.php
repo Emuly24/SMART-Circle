@@ -52,7 +52,8 @@ final class PageController
 
     public function about(Request $request): Response
     {
-        return Response::html($this->view->render('pages/about', ['title' => 'About SMART Circle']));
+        return Response::html($this->view->render('pages/about', ['title' => 'About SMART Circle',
+            'description' => 'Why SMART Circle exists: free, honest support for Form 1–4 students in Malawi that connects every topic to real life. The founder\'s story, our vision and goals.']));
     }
 
     public function safeguarding(Request $request): Response

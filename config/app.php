@@ -15,6 +15,9 @@ return [
         'debug'      => false,
         // Absolute site URL used in emails, QR codes and letters, e.g. https://smartcircle.example
         'url'        => '',
+        // The Cloudflare Worker that gives link previews (tools/cloudflare), e.g. https://share.example.workers.dev.
+        // Share buttons use it when set; otherwise they share the site address.
+        'share_url'  => '',
         // Turn on only after confirming HTTPS works on the host, to avoid redirect loops.
         'force_https' => false,
         'timezone'   => 'Africa/Blantyre',
