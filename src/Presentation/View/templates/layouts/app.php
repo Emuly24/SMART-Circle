@@ -30,7 +30,7 @@ $user = $ctx->user();
     <script src="<?= e($asset('js/theme.js')) ?>"></script>
     <link rel="stylesheet" href="<?= e($asset('css/app.css')) ?>">
 </head>
-<body>
+<body data-role="<?= e($user['role'] ?? 'guest') ?>" data-path="<?= e($path ?? '/') ?>">
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
     <div class="container site-header__inner">
@@ -84,6 +84,7 @@ $user = $ctx->user();
                     <button type="submit" class="btn btn--small btn--ghost">Log out</button>
                 </form>
             <?php endif; ?>
+            <button type="button" class="tour-start" hidden aria-label="Show me around"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 17a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6Zm1.4-5.6V15h-2.6v-2.4c0-1.1.7-1.7 1.4-2.2.6-.4 1-.7 1-1.3a1.2 1.2 0 0 0-2.4 0H8.2a3.8 3.8 0 0 1 7.6 0c0 1.7-1.1 2.5-1.9 3-.3.2-.5.3-.5.3Z"/></svg><span class="tour-start__label">Tour</span></button>
             <details class="theme-menu">
                 <summary aria-label="Display theme"><svg class="theme-menu__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></svg><span class="theme-menu__label">Theme</span></summary>
                 <div class="theme-menu__panel" role="group" aria-label="Display theme">
@@ -124,5 +125,6 @@ $user = $ctx->user();
     </div>
 </footer>
 <script src="<?= e($asset('js/site.js')) ?>" defer></script>
+<script src="<?= e($asset('js/tour.js')) ?>" defer></script>
 </body>
 </html>

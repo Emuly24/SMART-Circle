@@ -236,7 +236,7 @@ final class MessageService
     }
 
     /** @return string|null an error, or null when sent */
-    public function reply(int $conversationId, int $userId, string $role, string $body): ?string
+    public function reply(int $conversationId, int $userId, string $role, string $body, ?int $quoteId = null): ?string
     {
         $c = $this->messages->conversation($conversationId);
         if ($c === null || !$this->canSee($c, $userId, $role) || !$this->canReply($c, $userId, $role)) {
@@ -249,7 +249,7 @@ final class MessageService
             // A tutor joining a conversation (e.g. a second tutor) becomes a member.
             $this->messages->addMember($conversationId, $userId);
         }
-        $this->messages->addMessage($conversationId, $userId, trim($body));
+        $this->messages->addMessage($conversationId, $userId, trim($body), $quoteId);
         $others = array_values(array_filter($this->messages->members($conversationId), static fn (array $m): bool => (int) $m['user_id'] !== $userId));
         if ($c['kind'] !== 'support') {
             $this->notifications->notify(array_map(static fn (array $m): int => (int) $m['user_id'], $others), 'message', 'New reply: ' . $c['subject'], null, '/messages/' . $conversationId);

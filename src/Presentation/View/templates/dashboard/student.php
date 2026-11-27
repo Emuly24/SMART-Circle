@@ -4,6 +4,7 @@
  * @var array<string, mixed>|null $pledge
  * @var list<array<string, mixed>> $feedback
  * @var array<string, mixed>|null $calendar
+ * @var list<array<string, mixed>> $rooms
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -18,6 +19,7 @@ $user = $ctx->user() ?? [];
                 Every Form <?= e(implode(' and Form ', $rv['forms'])) ?> topic is open to you now. See your revision plan →
             </a>
         <?php endif; ?>
+        <?= $view->partial('room_card', ['rooms' => $rooms ?? [], 'role' => 'student']) ?>
         <?php if ($feedback !== []): ?>
             <div class="card section-card recent-feedback">
                 <h2 class="h3">Your latest feedback</h2>

@@ -1814,11 +1814,20 @@ CREATE TABLE topic_suggestions (
     CONSTRAINT fk_topic_suggestions_decided_by FOREIGN KEY (decided_by) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------------------
+-- Migration 0016_message_quotes
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: a reply can quote an earlier message in the same conversation.
+
+ALTER TABLE messages
+    ADD COLUMN quote_id INT UNSIGNED NULL COMMENT 'The earlier message this one quotes (same conversation)' AFTER body,
+    ADD CONSTRAINT fk_messages_quote FOREIGN KEY (quote_id) REFERENCES messages (id) ON DELETE SET NULL;
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes');
 
 SET FOREIGN_KEY_CHECKS = 1;

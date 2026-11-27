@@ -430,6 +430,7 @@ final class App
                     'form' => $student !== null ? (int) $student['form'] : null,
                     'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null];
             });
+        $dashboard->setRooms(static fn (int $userId): array => (new MessageRepository($db))->inbox($userId, 'support'));
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
         // Public
