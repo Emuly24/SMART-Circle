@@ -54,4 +54,9 @@ final class DocumentRepository
             [$subjectType, $subjectId]
         );
     }
+
+    public function revokeCode(string $code): void
+    {
+        $this->db->run('UPDATE issued_documents SET revoked_at = NOW() WHERE code = ? AND revoked_at IS NULL', [$code]);
+    }
 }

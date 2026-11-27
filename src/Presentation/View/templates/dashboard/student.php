@@ -3,6 +3,7 @@
  * @var \SmartCircle\Presentation\Http\Context $ctx
  * @var array<string, mixed>|null $pledge
  * @var list<array<string, mixed>> $feedback
+ * @var array<string, mixed>|null $calendar
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -10,6 +11,7 @@ $user = $ctx->user() ?? [];
     <div class="container">
         <h1>Hello, <?= e(explode(' ', (string) ($user['full_name'] ?? ''))[0]) ?></h1>
         <p class="lead">Your lessons, topic requests, exams and assignments.</p>
+        <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today'], 'maneb' => $calendar['maneb']]) ?><?php endif; ?>
         <?php if ($feedback !== []): ?>
             <div class="card section-card recent-feedback">
                 <h2 class="h3">Your latest feedback</h2>
@@ -29,6 +31,7 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/topics"><h2>Topics</h2><p>Stuck on a topic your school has taught? Ask for a lesson on it.</p><span class="tag tag--ready">Ask for help</span></a>
             <a class="tile tile--link" href="/notes"><h2>Notes &amp; slides</h2><p>Read at your own pace; each exercise opens the next part.</p><span class="tag tag--ready">Read</span></a>
             <a class="tile tile--link" href="/assessments"><h2>Exams &amp; assignments</h2><p>Tests on topics your school has taught, with marks and comments.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/grades"><h2>My grades</h2><p>Your term grade in each subject, and your term reports.</p><span class="tag tag--ready">See grades</span></a>
             <a class="tile tile--link" href="/notifications"><h2>Notifications</h2><p>Find out when a lesson you asked for is planned or ready.</p><span class="tag tag--ready">Open</span></a>
         </div>
     </div>

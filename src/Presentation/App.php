@@ -14,6 +14,8 @@ use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Auth\AuthService;
+use SmartCircle\Application\Calendar\CalendarService;
+use SmartCircle\Application\Grades\GradeService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
@@ -33,6 +35,8 @@ use SmartCircle\Data\Repositories\QuestionRepository;
 use SmartCircle\Data\Repositories\SubmissionRepository;
 use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
+use SmartCircle\Data\Repositories\CalendarRepository;
+use SmartCircle\Data\Repositories\GradeRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\NoteRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
@@ -55,6 +59,8 @@ use SmartCircle\Presentation\Controllers\ApplyController;
 use SmartCircle\Presentation\Controllers\AssessmentController;
 use SmartCircle\Presentation\Controllers\StudioAssessmentController;
 use SmartCircle\Presentation\Controllers\AuthController;
+use SmartCircle\Presentation\Controllers\CalendarController;
+use SmartCircle\Presentation\Controllers\GradesController;
 use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\HonestyController;
@@ -250,7 +256,11 @@ final class App
         $onboarded = new RequireOnboarded($this->context);
         $student = new RequireRole($this->context, $this->session, ['student']);
         $partnerService = new PartnerService($db, $users, new PartnerRepository($db), new SchoolRepository($db), new StudentRepository($db), $documentService, $audit);
-        $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService);
+        $calendarService = new CalendarService(new CalendarRepository($db));
+        $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService, $calendarService);
+        $gradeService = new GradeService(new GradeRepository($db), $calendarService, $accessService, $documentService, $this->notifications($db));
+        $calendarCtl = new CalendarController($calendarService, $partnerService, $this->context, $this->session, $this->view);
+        $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
         $recheckService = new RecheckService(new RecheckRepository($db), new SubmissionRepository($db), new AssessmentRepository($db), $this->notifications($db));
@@ -281,7 +291,12 @@ final class App
                 'fresh' => $schoolService->freshness($schoolId),
             ];
         }, fn (int $userId): ?array => $this->accountSetup($db, $users, $audit)->latestPledge($userId),
-            static fn (int $userId): array => $examService->recentResults($userId));
+            static fn (int $userId): array => $examService->recentResults($userId),
+            static function (int $userId, string $role) use ($calendarService, $gradeService): array {
+                $student = $role === 'student' ? $gradeService->student($userId) : null;
+
+                return ['today' => $calendarService->today(), 'maneb' => $student !== null ? $calendarService->maneb((int) $student['form']) : []];
+            });
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 
         // Public
@@ -405,6 +420,21 @@ final class App
         $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $tutor]);
         $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $tutor]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $tutor]);
+
+        // Grades and the academic calendar
+        $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);
+        $r->get('/studio/grades', $gradesCtl->book(...), [$tutor]);
+        $r->get('/studio/grades/settings', $gradesCtl->settings(...), [$tutor]);
+        $r->post('/studio/grades/settings', $gradesCtl->saveSettings(...), [$csrf, $tutor]);
+        $r->post('/studio/grades/issue', $gradesCtl->issue(...), [$csrf, $tutor]);
+        $r->get('/studio/grades/student/{id}', $gradesCtl->student(...), [$tutor]);
+        $r->get('/studio/calendar', $calendarCtl->show(...), [$tutor]);
+        $r->post('/studio/calendar/year', $calendarCtl->saveYear(...), [$csrf, $tutor]);
+        $r->post('/studio/calendar/events', $calendarCtl->addEvent(...), [$csrf, $tutor]);
+        $r->post('/studio/calendar/events/{id}/delete', $calendarCtl->deleteEvent(...), [$csrf, $tutor]);
+        $r->get('/partner/calendar', $calendarCtl->show(...), [$partner]);
+        $r->post('/partner/calendar/events', $calendarCtl->addEvent(...), [$csrf, $partner]);
+        $r->post('/partner/calendar/events/{id}/delete', $calendarCtl->deleteEvent(...), [$csrf, $partner]);
 
         // Tutor: marking queue and re-checks
         $r->get('/studio/marking', $studioAssess->queue(...), [$tutor]);

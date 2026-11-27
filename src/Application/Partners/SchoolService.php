@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Partners;
 
+use SmartCircle\Application\Calendar\CalendarService;
 use SmartCircle\Application\Topics\AccessService;
 use SmartCircle\Application\Topics\TopicService;
 use SmartCircle\Data\Repositories\CoverageRepository;
@@ -33,6 +34,7 @@ final class SchoolService
         private readonly TextbookRepository $textbooks,
         private readonly TopicService $topics,
         private readonly ?AccessService $access = null,
+        private readonly ?CalendarService $calendar = null,
     ) {
     }
 
@@ -117,7 +119,13 @@ final class SchoolService
     /** @return array{last: ?string, days: ?int, stale: bool} */
     public function freshness(int $schoolId): array
     {
-        return self::freshnessOf($this->coverage->lastUpdate($schoolId));
+        $f = self::freshnessOf($this->coverage->lastUpdate($schoolId));
+        // Schools are closed during holidays: nothing changes, so no reminder (once a report exists).
+        if ($f['last'] !== null && $this->calendar?->isHoliday() === true) {
+            $f['stale'] = false;
+        }
+
+        return $f;
     }
 
     /** @return array{last: ?string, days: ?int, stale: bool} */

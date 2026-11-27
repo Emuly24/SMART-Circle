@@ -3,6 +3,7 @@
  * @var \SmartCircle\Presentation\Http\Context $ctx
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
  * @var list<string> $pendingUpdates
+ * @var array<string, mixed>|null $calendar
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -22,6 +23,7 @@ $user = $ctx->user() ?? [];
             </div>
         <?php endif; ?>
 
+        <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today']]) ?><?php endif; ?>
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/requests"><h2>Topic requests</h2><p>Ranked by form and subject, with where students struggle.</p><span class="tag tag--ready">See the ranking</span></a>
             <a class="tile tile--link" href="/studio/checks"><h2>Checks</h2><p>Early-access requests and students’ “my class has covered it” reports.</p><span class="tag tag--ready">Review</span></a>
@@ -32,6 +34,8 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/studio/admissions"><h2>Admissions</h2><p>Seat chart, applications, entry quizzes, decisions and letters.</p><span class="tag tag--ready">Review applications</span></a>
             <a class="tile tile--link" href="/studio/notes"><h2>Notes &amp; slides</h2><p>Write notes or build slides with checkpoint exercises inside.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/marking"><h2>Marking</h2><p>Everything waiting for your marks, and students’ re-check requests.</p><span class="tag tag--ready">Mark</span></a>
+            <a class="tile tile--link" href="/studio/grades"><h2>Grades</h2><p>Gradebook by form, term grades and term reports.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/calendar"><h2>Academic calendar</h2><p>Terms, MANEB dates and every school’s own dates.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/assessments"><h2>Exams &amp; assignments</h2><p>Question bank, timed exams, automatic marking, your marking and results.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/partners"><h2>School partners</h2><p>Invite teachers, see topics covered and textbook pages.</p><span class="tag tag--ready">Partners &amp; schools</span></a>
             <div class="tile"><h2>Mail &amp; templates</h2><p>Branded letters, invitations and the Zoho email queue.</p><span class="tag">Planned</span></div>

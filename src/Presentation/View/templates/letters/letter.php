@@ -28,13 +28,13 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <?php if ($doc['type'] === 'partner_invite'): ?>
             <?= e($data['school'] ?? '') ?>, <?= e($data['district'] ?? '') ?>
         <?php else: ?>
-            Form <?= e($data['form'] ?? '') ?>, <?= e($data['school'] ?? '') ?>
+            Form <?= e($data['form'] ?? '') ?><?= !empty($data['school']) ? ', ' . e($data['school']) : '' ?>
         <?php endif; ?>
     </p>
 
     <h1 class="letter__title"><?= e($doc['title']) ?></h1>
 
-    <?php if ($doc['type'] !== 'pledge_certificate'): ?><p>Dear <?= e($first) ?>,</p><?php endif; ?>
+    <?php if (!in_array($doc['type'], ['pledge_certificate', 'term_report'], true)): ?><p>Dear <?= e($first) ?>,</p><?php endif; ?>
 
     <?php if ($doc['type'] === 'admission_letter'): ?>
         <p>
@@ -71,6 +71,26 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         <p><strong>To start:</strong> open the SMART Circle website, choose <strong>Log in</strong> and then <strong>set up your account</strong>,
             and enter your phone number with the setup code the tutor gives you.</p>
         <p>Thank you for supporting your students.</p>
+    <?php elseif ($doc['type'] === 'term_report'): ?>
+        <p><strong><?= e($data['year'] ?? '') ?>, Term <?= e($data['term'] ?? '') ?></strong> · Form <?= e($data['form'] ?? '') ?>
+            · <?= ($data['scale'] ?? '') === 'jce' ? 'JCE letters A–F' : 'MSCE points 1–9' ?></p>
+        <table class="letter__table">
+            <thead><tr><th>Subject</th><th>Term %</th><th>Grade</th></tr></thead>
+            <tbody>
+            <?php foreach ((array) ($data['subjects'] ?? []) as $sub): ?>
+                <tr><td><?= e($sub['name'] ?? '') ?></td>
+                    <td><?= $sub['percent'] === null ? '—' : e(rtrim(rtrim(number_format((float) $sub['percent'], 1), '0'), '.')) . '%' ?></td>
+                    <td><?= !empty($sub['grade']) ? e($sub['grade']['grade']) . ' (' . e($sub['grade']['descriptor']) . ')' : 'No marked work' ?></td></tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php if (($data['overall'] ?? null) !== null): ?>
+            <p><strong>Overall: <?= e(rtrim(rtrim(number_format((float) $data['overall'], 1), '0'), '.')) ?>%</strong><?= !empty($data['overall_grade']) ? ' · ' . e($data['overall_grade']['grade']) . ' (' . e($data['overall_grade']['descriptor']) . ')' : '' ?>
+                <?= isset($data['graded'], $data['subject_count']) && $data['graded'] < $data['subject_count'] ? '<br><span class="letter__small">Overall from ' . e($data['graded']) . ' of ' . e($data['subject_count']) . ' subjects with marked work this term.</span>' : '' ?></p>
+        <?php endif; ?>
+        <?php if (!empty($data['comment'])): ?><p class="letter__comment"><strong>Tutor’s comment:</strong> <?= e($data['comment']) ?></p><?php endif; ?>
+        <p class="letter__small">Term grades combine exercises, assignments, tests and exams
+            (<?= e(implode(' / ', array_map('strval', (array) ($data['weights'] ?? [])))) ?>%). SMART Circle supports the student’s school; this report does not replace the school’s own report.</p>
     <?php elseif ($doc['type'] === 'pledge_certificate'): ?>
         <p>
             On <?= e($date) ?>, <strong><?= e($data['full_name'] ?? '') ?></strong> joined SMART Circle and made the following
@@ -99,7 +119,7 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
         </p>
     <?php endif; ?>
 
-    <?php if (isset($data['guardian_name']) && $doc['type'] !== 'pledge_certificate'): ?><p>Parent/guardian: <?= e($data['guardian_name']) ?></p><?php endif; ?>
+    <?php if (isset($data['guardian_name']) && !in_array($doc['type'], ['pledge_certificate', 'term_report'], true)): ?><p>Parent/guardian: <?= e($data['guardian_name']) ?></p><?php endif; ?>
 
     <div class="letter__sign">
         <p>Yours sincerely,</p>
