@@ -60,6 +60,20 @@ $id = (int) $partner['id'];
                 <button type="submit" class="btn btn--small <?= $partner['status'] === 'active' ? 'btn--danger' : '' ?>"><?= $partner['status'] === 'active' ? 'Disable account' : 'Enable account' ?></button>
             </form>
         </div>
+        <div class="card section-card" id="roles">
+            <h2 class="h3">Teacher roles</h2>
+            <p><strong>Guest teacher:</strong> <?= !empty($partner['guest_teacher']) ? 'yes. They can record lessons in their subjects; you publish each one.' : 'no.' ?></p>
+            <form method="post" action="/studio/partners/<?= e($id) ?>/guest" class="inline-form"><?= $csrf->field() ?>
+                <input type="hidden" name="guest" value="<?= !empty($partner['guest_teacher']) ? '0' : '1' ?>">
+                <button type="submit" class="btn btn--small <?= !empty($partner['guest_teacher']) ? 'btn--ghost' : 'btn--green' ?>"><?= !empty($partner['guest_teacher']) ? 'Stop guest teaching' : 'Make them a guest teacher' ?></button></form>
+            <p class="note">Every partner teacher can also <a href="/studio/question-suggestions">suggest questions</a> and check notes and lessons.</p>
+            <?php $given = array_filter($contribution ?? []); ?>
+            <h3 class="h4">Their contribution</h3>
+            <?php if ($given === []): ?><p class="muted">Nothing recorded yet.</p><?php else: ?>
+                <ul><?php foreach (\SmartCircle\Application\Partners\ContributionCertificateService::LABELS as $k => $label): ?><?php if (!empty($given[$k])): ?><li><strong><?= e($given[$k]) ?></strong> <?= e($label) ?></li><?php endif; ?><?php endforeach; ?></ul>
+                <form method="post" action="/studio/partners/<?= e($id) ?>/certificate" class="inline-form js-confirm" data-confirm="Issue a signed certificate of contribution to this teacher?"><?= $csrf->field() ?><button type="submit" class="btn btn--small">Issue a certificate of contribution</button></form>
+            <?php endif; ?>
+        </div>
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>

@@ -19,13 +19,15 @@ $hints = [
 ?>
 <section class="section">
     <div class="container narrow-wide">
-        <p class="crumbs"><a href="/studio/lessons">My lessons</a> · <a href="/lessons/<?= e($id) ?>">Watch</a></p>
+        <p class="crumbs"><a href="/studio/lessons">My lessons</a><?php if (empty($isGuest)): ?> · <a href="/lessons/<?= e($id) ?>">Watch</a><?php endif; ?></p>
         <h1>Edit lesson</h1>
         <p>
             <?= $lesson['status'] === 'published' ? '<span class="tag tag--ready">Published</span>' : '<span class="tag">Draft</span>' ?>
             <span class="muted">· <?= e(gmdate('i:s', intdiv((int) ($lesson['duration_ms'] ?? 0), 1000))) ?> · <?= e(number_format((int) ($lesson['size_bytes'] ?? 0) / 1048576, 1)) ?> MB · <?= !empty($lesson['has_voice']) ? 'with voice' : 'no voice' ?></span>
         </p>
 
+        <?php if (!empty($guestCredit)): ?><div class="alert alert--info">Recorded by guest teacher <strong><?= e($guestCredit['name']) ?></strong><?= $guestCredit['school'] ? ', ' . e($guestCredit['school']) : '' ?>. Watch it before you publish; students will see their name on it.</div><?php endif; ?>
+        <?php if (!empty($isGuest) && !empty($lesson['guest_submitted_at']) && $lesson['status'] !== 'published'): ?><div class="alert alert--info">Sent to the tutor <?= e(date('j M', (int) strtotime((string) $lesson['guest_submitted_at']))) ?>. You will be told when it is published.</div><?php endif; ?>
         <?php if ($missing !== []): ?>
             <div class="alert alert--error" role="alert">
                 <strong>Not published yet.</strong> Students only see a lesson once every section is filled in. Still missing:
@@ -90,13 +92,31 @@ $hints = [
             <div class="form-actions">
                 <button type="submit" name="action" value="save" class="btn btn--ghost">Save</button>
                 <?php if ($lesson['status'] !== 'published'): ?>
-                    <button type="submit" name="action" value="publish" class="btn btn--green">Save and publish</button>
+                    <button type="submit" name="action" value="publish" class="btn btn--green"><?= !empty($isGuest) ? 'Save and send to the tutor' : 'Save and publish' ?></button>
                 <?php else: ?>
                     <button type="submit" name="action" value="save" class="btn">Save changes</button>
                 <?php endif; ?>
             </div>
         </form>
 
+        <?php if (!empty($review)): $rs = $review['state']; ?>
+            <div class="card section-card" id="reviews">
+                <h2 class="h3">Checked by a qualified teacher</h2>
+                <?php if ($rs === 'approved'): ?>
+                    <p>✓ <strong><?= e($review['review']['reviewer_name']) ?></strong><?= $review['review']['school_name'] ? ', ' . e($review['review']['school_name']) : '' ?> approved this lesson. Students see their name and signature. Any change needs a new check.</p>
+                <?php elseif ($rs === 'stale'): ?>
+                    <p>✎ <strong>Changed since <?= e($review['review']['reviewer_name']) ?> approved it.</strong> The signature is hidden until a teacher checks it again.</p>
+                <?php elseif ($rs === 'changes'): ?>
+                    <p>✎ <strong><?= e($review['review']['reviewer_name']) ?> suggested changes</strong> (below).</p>
+                <?php elseif ($rs === 'requested'): ?>
+                    <p>⏳ Waiting for a partner teacher to watch and check it.</p>
+                <?php else: ?>
+                    <p>Ask a partner teacher of this subject to watch the lesson (and its PDF handout) and check it. If they approve, their name and signature appear on it.</p>
+                <?php endif; ?>
+                <?php if ($rs !== 'approved'): ?><form method="post" action="/studio/lessons/<?= e($id) ?>/review" class="inline-form"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--green"><?= $rs === 'none' ? 'Ask a teacher to check' : ($rs === 'requested' ? 'Remind the teachers' : 'Ask a teacher to check again') ?></button></form><?php endif; ?>
+                <?php if (!empty($reviewHistory)): ?><?= $view->partial('review_history', ['history' => $reviewHistory]) ?><?php endif; ?>
+            </div>
+        <?php endif; ?>
         <div class="card library-box" id="handout">
             <h2>PDF handout <span class="muted">(optional)</span></h2>
             <p>Attach a handout you made elsewhere (for example in Word, saved as PDF). Up to 9 MB.</p>
@@ -118,6 +138,7 @@ $hints = [
             </form>
         </div>
 
+        <?php if (empty($isGuest) || $lesson['status'] !== 'published'): ?>
         <div class="danger-zone">
             <?php if ($lesson['status'] === 'published'): ?>
                 <form method="post" action="/studio/lessons/<?= e($id) ?>/unpublish">
@@ -130,6 +151,7 @@ $hints = [
                 <button type="submit" class="btn btn--small btn--danger">Delete lesson</button>
             </form>
         </div>
+        <?php endif; ?>
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>

@@ -193,7 +193,7 @@ final class TeamService
     }
 
     /** @return array{subject: ?string, owner: ?int}|null */
-    public function item(string $type, int $id): ?array
+    public function item(string $type, int|string $id): ?array
     {
         return $this->team->subjectOf($type, $id);
     }

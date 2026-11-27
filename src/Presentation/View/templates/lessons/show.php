@@ -6,6 +6,8 @@
  * @var array<string, string> $sections
  * @var bool $isTutor
  * @var array<string, mixed>|null $topic
+ * @var array{name: string, school: ?string}|null $guestCredit
+ * @var array<string, mixed>|null $approval
  * @var callable $asset
  */
 $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => '👩🏾‍⚕️', 'try_at_home' => '🏠'];
@@ -22,29 +24,13 @@ $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => 
             <?php if ($lesson['form']): ?><span>Form <?= e($lesson['form']) ?></span><?php endif; ?>
             <?php if ($lesson['status'] !== 'published'): ?><span class="tag">Draft: only you can see this</span><?php endif; ?>
         </p>
+        <?php if (!empty($guestCredit)): ?><p class="guest-credit">👩🏽‍🏫 Guest teacher: <strong><?= e($guestCredit['name']) ?></strong><?= $guestCredit['school'] ? ', ' . e($guestCredit['school']) : '' ?></p><?php endif; ?>
+        <?= $view->partial('review_badge', ['approval' => $approval ?? null, 'sigBase' => '/reviews/lessons/']) ?>
         <?php if ($topic !== null): ?>
             <p class="note lesson-for">Topic: <a href="/topics/<?= e($topic['id']) ?>"><?= e($topic['title']) ?></a>. For students whose school has taught this topic.</p>
         <?php endif; ?>
 
-        <div class="watch" id="watch" data-src="/lessons/<?= e($lesson['id']) ?>/file" data-size="<?= e($lesson['size_bytes']) ?>">
-            <div class="watch__stage">
-                <canvas id="replay" class="watch__canvas" aria-label="Lesson board"></canvas>
-                <div class="watch__overlay" id="overlay">
-                    <p id="load-status">Loading lesson…</p>
-                    <div class="progress"><div class="progress__bar" id="load-bar"></div></div>
-                </div>
-            </div>
-            <div class="watch__bar">
-                <button type="button" class="watch__play" id="play" disabled aria-label="Play">▶</button>
-                <span class="watch__time" id="play-time">0:00 / 0:00</span>
-                <input type="range" id="seek" min="0" max="1000" value="0" disabled aria-label="Position in lesson">
-                <div class="watch__speeds" aria-label="Playback speed">
-                    <button type="button" class="speed is-active" data-rate="1">1×</button>
-                    <button type="button" class="speed" data-rate="1.25">1.25×</button>
-                    <button type="button" class="speed" data-rate="1.5">1.5×</button>
-                </div>
-            </div>
-        </div>
+        <?= $view->partial('lesson_player', ['src' => '/lessons/' . $lesson['id'] . '/file', 'size' => (int) $lesson['size_bytes']]) ?>
 
         <?php if (!empty($lesson['summary'])): ?>
             <p class="lead lesson-summary"><?= nl2br(e($lesson['summary'])) ?></p>

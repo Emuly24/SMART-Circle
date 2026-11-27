@@ -32,12 +32,18 @@ final class SubjectGuard implements Middleware
             return $next($request);
         }
         if ($this->type !== null && $request->param($this->param) !== '') {
-            $item = $this->team->item($this->type, (int) $request->param($this->param));
+            // Upload ids are long hex strings; everything else is a number.
+            $raw = $request->param($this->param);
+            $item = $this->team->item($this->type, $this->type === 'upload' ? $raw : (int) $raw);
             if ($item === null) {
                 throw new HttpException(404);
             }
             if (!TeamService::mayOpen($item, $scope, (int) $this->context->userId())) {
                 throw new HttpException(403, 'This belongs to a subject you do not teach.');
+            }
+            // Guest teachers (partners) only ever open their own lessons and uploads.
+            if ($this->context->role() === 'partner' && $item['owner'] !== (int) $this->context->userId()) {
+                throw new HttpException(403, 'Guest teachers can open only their own lessons.');
             }
         }
         $subject = $request->isPost() ? $request->input('subject') : '';

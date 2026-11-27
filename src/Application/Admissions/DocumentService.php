@@ -19,6 +19,7 @@ final class DocumentService
         'partner_invite' => 'Invitation to partner with SMART Circle',
         'pledge_certificate' => 'The SMART Circle Pledge',
         'term_report' => 'Term report',
+        'contribution_certificate' => 'Certificate of contribution',
     ];
 
     public function __construct(private readonly DocumentRepository $documents)

@@ -2,6 +2,7 @@
 /**
  * "Checked by a qualified teacher", with the teacher's signature.
  * @var array<string, mixed>|null $approval
+ * @var string|null $sigBase where signatures of this kind are served (default: notes)
  */
 if ($approval === null) {
     return;
@@ -11,5 +12,5 @@ if ($approval === null) {
     <p class="review-badge__title">✓ Checked by a qualified teacher</p>
     <p><strong><?= e($approval['reviewer_name']) ?></strong><?= $approval['school_name'] ? ', ' . e($approval['school_name']) : '' ?>
         <span class="muted">· <?= e(date('j F Y', (int) strtotime((string) $approval['created_at']))) ?></span></p>
-    <?php if ($approval['signature_path'] !== null): ?><img class="signature-img" src="/reviews/<?= e($approval['id']) ?>/signature" alt="Signature of <?= e($approval['reviewer_name']) ?>"><?php endif; ?>
+    <?php if ($approval['signature_path'] !== null): ?><img class="signature-img" src="<?= e(($sigBase ?? '/reviews/') . $approval['id']) ?>/signature" alt="Signature of <?= e($approval['reviewer_name']) ?>"><?php endif; ?>
 </aside>
