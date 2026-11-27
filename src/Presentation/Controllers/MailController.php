@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Jobs\JobRunner;
 use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Request;
@@ -19,12 +20,13 @@ final class MailController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?JobRunner $jobs = null,
     ) {
     }
 
     public function index(Request $request): Response
     {
-        return Response::html($this->view->render('studio/mail', ['title' => 'Email'] + $this->mail->status()));
+        return Response::html($this->view->render('studio/mail', ['title' => 'Email', 'digest' => $this->jobs?->job('digest')] + $this->mail->status()));
     }
 
     public function sendNow(Request $request): Response

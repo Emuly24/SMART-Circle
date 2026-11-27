@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Guardians;
 
+use SmartCircle\Application\Templates\TemplateService;
+
 /**
  * Ready-made messages to guardians, in Chichewa (ny) or English (en), filled in with the student's details.
  * The Chichewa wording is a draft to be checked by a fluent speaker before wide use.
@@ -16,30 +18,26 @@ final class GuardianMessages
 
     /**
      * The admission message: the child has joined, what support they need, and the confirmation link.
+     * $template is the admin's own wording (TemplateService); null uses the default.
      * @param array<string, string> $d guardian, child, child_first, form, school, link, tutor, tutor_phone
      */
-    public static function admission(string $lang, array $d): string
+    public static function admission(string $lang, array $d, ?string $template = null): string
     {
-        $school = $d['school'] !== '' ? ', ' . $d['school'] : '';
+        $lang = $lang === 'ny' ? 'ny' : 'en';
         $call = $d['tutor_phone'] !== '' ? $d['tutor_phone'] : '';
-        if ($lang === 'ny') {
-            return 'Moni ' . $d['guardian'] . ', ndine ' . $d['tutor'] . ' wa SMART Circle, pulogalamu yaulere yothandiza ophunzira a Fomu 1 mpaka 4 pa Masamu, Fizikisi, Kemisitire, Baiolojire ndi Galamala ya Chingerezi. '
-                . $d['child'] . ' (Fomu ' . $d['form'] . $school . ') walandiridwa mu pulogalamuyi. Ndi zaulere kwathunthu. '
-                . 'Kuti achite bwino, ' . $d['child_first'] . ' adzafunika thandizo lanu: foni kapena tabuleti yoti agwiritse ntchito masiku ena pa sabata, data kapena ma yunitsi pang\'ono a intaneti, komanso nthawi yabata kunyumba yowerenga. '
-                . 'Chonde tsimikizirani kuti mukumudziwa ' . $d['child_first'] . ' ndipo mudzamuthandiza podina apa: ' . $d['link'] . ' '
-                . ($call !== '' ? 'Mukhozanso kuyankha uthengawu kapena kundiimbira pa ' . $call . '. ' : '') . 'Zikomo kwambiri!';
-        }
+        $vars = $d + [
+            'school_part' => $d['school'] !== '' ? ', ' . $d['school'] : '',
+            'call_part' => $call === '' ? '' : ($lang === 'ny' ? 'Mukhozanso kuyankha uthengawu kapena kundiimbira pa ' . $call . '. ' : 'You can also reply to this message or call me on ' . $call . '. '),
+        ];
 
-        return 'Hello ' . $d['guardian'] . ', this is ' . $d['tutor'] . ' from SMART Circle, a free programme that helps Form 1 to 4 students with Mathematics, Physics, Chemistry, Biology and English grammar. '
-            . $d['child'] . ' (Form ' . $d['form'] . $school . ') has been admitted. It is completely free. '
-            . 'To do well, ' . $d['child_first'] . ' will need your support: a phone or tablet to use on some days each week, a little data or airtime for the internet, and quiet time at home to study. '
-            . 'Please confirm that you know ' . $d['child_first'] . ' and will support them here: ' . $d['link'] . ' '
-            . ($call !== '' ? 'You can also reply to this message or call me on ' . $call . '. ' : '') . 'Thank you!';
+        return TemplateService::fill($template ?? TemplateService::DEFAULTS['guardian_admission_' . $lang]['body'], $vars);
     }
 
-    public static function admissionSubject(string $lang, string $childFirst): string
+    public static function admissionSubject(string $lang, string $childFirst, ?string $template = null): string
     {
-        return $lang === 'ny' ? 'SMART Circle: ' . $childFirst . ' walandiridwa' : 'SMART Circle: ' . $childFirst . ' has been admitted';
+        $lang = $lang === 'ny' ? 'ny' : 'en';
+
+        return TemplateService::fill($template ?? (string) TemplateService::DEFAULTS['guardian_admission_' . $lang]['subject'], ['child_first' => $childFirst]);
     }
 
     /**
@@ -70,30 +68,34 @@ final class GuardianMessages
     }
 
     /**
-     * The monthly update. Pure.
+     * The monthly update. Pure. $template is the admin's own wording; null uses the default.
      * @param array<string, string> $d guardian, child_first, tutor
      */
-    public static function monthly(string $lang, array $d, int $lessons, int $work, int $monthNumber): string
+    public static function monthly(string $lang, array $d, int $lessons, int $work, int $monthNumber, ?string $template = null): string
     {
+        $lang = $lang === 'ny' ? 'ny' : 'en';
         $n = $lessons + $work;
+        $month = max(1, min(12, $monthNumber));
         if ($lang === 'ny') {
             $note = $n === 0
                 ? 'Sitinamuone kwambiri ' . $d['child_first'] . ' mwezi uno; kumulimbikitsa pang\'ono kungathandize kwambiri.'
                 : ($n >= 8 ? $d['child_first'] . ' akulimbikira kwambiri. Chonde muuzeni kuti tikunyadira naye.'
                     : 'Chonde pitirizani kumulimbikitsa ' . $d['child_first'] . ' kupeza nthawi yowerenga sabata iliyonse.');
-
-            return 'Moni ' . $d['guardian'] . ', uthenga wachidule wochokera ku SMART Circle wokhudza ' . $d['child_first']
-                . ' mwezi wa ' . self::MONTHS_NY[max(1, min(12, $monthNumber)) - 1] . ': waonera maphunziro ' . $lessons . ' ndipo wapereka ntchito ' . $work . '. '
-                . $note . ' Zikomo chifukwa cha thandizo lanu kunyumba. ' . $d['tutor'];
+            $monthName = self::MONTHS_NY[$month - 1];
+        } else {
+            $note = $n === 0
+                ? 'We have not seen ' . $d['child_first'] . ' much this month; a little encouragement from you would help a lot.'
+                : ($n >= 8 ? $d['child_first'] . ' is working hard. Please tell them we are proud of them.'
+                    : 'Please keep encouraging ' . $d['child_first'] . ' to find study time each week.');
+            $monthName = date('F', (int) mktime(0, 0, 0, $month, 1));
         }
-        $note = $n === 0
-            ? 'We have not seen ' . $d['child_first'] . ' much this month; a little encouragement from you would help a lot.'
-            : ($n >= 8 ? $d['child_first'] . ' is working hard. Please tell them we are proud of them.'
-                : 'Please keep encouraging ' . $d['child_first'] . ' to find study time each week.');
+        $vars = $d + [
+            'month' => $monthName, 'lessons' => (string) $lessons, 'work' => (string) $work, 'note' => $note,
+            'lessons_text' => $lessons . ' lesson' . ($lessons === 1 ? '' : 's'),
+            'work_text' => $work . ' piece' . ($work === 1 ? '' : 's') . ' of work',
+        ];
 
-        return 'Hello ' . $d['guardian'] . ', a short update from SMART Circle about ' . $d['child_first'] . ' for '
-            . date('F', (int) mktime(0, 0, 0, max(1, min(12, $monthNumber)), 1)) . ': ' . $lessons . ' lesson' . ($lessons === 1 ? '' : 's') . ' watched and '
-            . $work . ' piece' . ($work === 1 ? '' : 's') . ' of work handed in. ' . $note . ' Thank you for your support at home. ' . $d['tutor'];
+        return TemplateService::fill($template ?? TemplateService::DEFAULTS['guardian_monthly_' . $lang]['body'], $vars);
     }
 
     /** Wording for the guardian's confirmation page. @return array<string, string> */

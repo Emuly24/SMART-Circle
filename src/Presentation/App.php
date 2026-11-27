@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation;
 
+use SmartCircle\Presentation\Controllers\EngagementController;
+use SmartCircle\Data\Repositories\TemplateRepository;
+use SmartCircle\Data\Repositories\EngagementRepository;
+use SmartCircle\Application\Templates\TemplateService;
+use SmartCircle\Application\Students\SeatCheckService;
+use SmartCircle\Application\Students\DigestService;
+use SmartCircle\Application\Jobs\JobRunner;
 use PDOException;
 use SmartCircle\Application\Admissions\AccountSetupService;
 use SmartCircle\Application\Admissions\ApplicationService;
@@ -268,7 +275,7 @@ final class App
                     return $gate;
                 }
             } else {
-                $this->afterResponse = fn () => $this->mail($db)->runIfDue();
+                $this->afterResponse = fn () => $this->engagement($db)['jobs']->runDue();
             }
         } elseif ($request->path !== '/install') {
             return Response::redirect('/install');
@@ -345,7 +352,7 @@ final class App
         );
         $reviewService = new ReviewService($db, $applicationRepo, $intakeRepo, $users, new StudentRepository($db), $documentService, $audit);
         $apply = new ApplyController($applicationService, $documentService, $this->session, $this->context, $this->view);
-        $admissions = new AdmissionsController($reviewService, $applicationService, $documentService, $this->context, $this->session, $this->view, $this->mail($db), $this->config->string('app.url'));
+        $admissions = new AdmissionsController($reviewService, $applicationService, $documentService, $this->context, $this->session, $this->view, $this->mail($db), $this->config->string('app.url'), $this->engagement($db)['templates']);
         $welcome = new WelcomeController($this->accountSetup($db, $users, $audit), $this->session, $this->context, $this->view);
         $docs = new DocumentController($documentService, $this->context, $this->session, $this->view, $this->config->string('app.url'));
         $onboarded = new RequireOnboarded($this->context);
@@ -389,7 +396,7 @@ final class App
         $adminCtl = new AdminController($settingsService, new PracticeService(new PracticeRepository($db), $audit),
             new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
         $guardianCtl = new GuardianController(new GuardianService(new GuardianRepository($db), new OverviewRepository($db), $this->notifications($db),
-            $this->config->string('app.url'), $settingsService->tutorWhatsapp(...)), $this->context, $this->session, $this->view, $this->mail($db));
+            $this->config->string('app.url'), $settingsService->tutorWhatsapp(...), $this->engagement($db)['templates']), $this->context, $this->session, $this->view, $this->mail($db));
         $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view, new EmailSettings($users));
         $contributionService = new ContributionService(new ContributionRepository($db), $calendarService, $topicService, $this->notifications($db),
             $this->storage(''), $settingsService->tutorWhatsapp(...));
@@ -668,7 +675,17 @@ final class App
         $r->get('/team/agreement', $teamCtl->agreement(...), [$teamOnly]);
         $r->post('/team/agreement', $teamCtl->agree(...), [$csrf, $teamOnly]);
         $r->get('/studio/settings', $adminCtl->settings(...), [$tutor]);
-        $mailCtl = new MailController($this->mail($db), $this->context, $this->session, $this->view);
+        $mailCtl = new MailController($this->mail($db), $this->context, $this->session, $this->view, $this->engagement($db)['jobs']);
+        $engagementCtl = new EngagementController($this->engagement($db)['seats'], $this->engagement($db)['templates'], $this->engagement($db)['jobs'], $this->context, $this->session, $this->view);
+        $r->get('/studio/seats', $engagementCtl->seats(...), [$tutor]);
+        $r->post('/studio/seats/{id}/nudge', $engagementCtl->nudge(...), [$csrf, $tutor]);
+        $r->post('/studio/seats/{id}/pause', $engagementCtl->pause(...), [$csrf, $tutor]);
+        $r->post('/studio/seats/{id}/release', $engagementCtl->release(...), [$csrf, $tutor]);
+        $r->get('/studio/templates', $engagementCtl->templates(...), [$tutor]);
+        $r->get('/studio/templates/{key}', $engagementCtl->template(...), [$tutor]);
+        $r->post('/studio/templates/{key}', $engagementCtl->saveTemplate(...), [$csrf, $tutor]);
+        $r->post('/studio/templates/{key}/reset', $engagementCtl->resetTemplate(...), [$csrf, $tutor]);
+        $r->post('/studio/digest/send', $engagementCtl->digestNow(...), [$csrf, $tutor]);
         $r->get('/studio/mail', $mailCtl->index(...), [$tutor]);
         $r->post('/studio/mail/send', $mailCtl->sendNow(...), [$csrf, $tutor]);
         $r->post('/studio/mail/test', $mailCtl->test(...), [$csrf, $tutor]);
@@ -822,7 +839,25 @@ final class App
         return $this->mailService ??= new MailService(new MailRepository($db), $transport, $this->config->string('app.url'), $this->config->int('mail.batch_size', 10));
     }
 
-    /** Work that runs after the page has been sent (no cron on InfinityFree): a few queued emails. */
+    /** @var array{seats: SeatCheckService, templates: TemplateService, jobs: JobRunner}|null */
+    private ?array $engagement = null;
+
+    /** @return array{seats: SeatCheckService, templates: TemplateService, jobs: JobRunner} */
+    private function engagement(Database $db): array
+    {
+        if ($this->engagement === null) {
+            $repo = new EngagementRepository($db);
+            $templates = new TemplateService(new TemplateRepository($db));
+            $seats = new SeatCheckService($repo, $this->notifications($db), $templates, new AuditLogRepository($db));
+            $access = new AccessService(new AccessRepository($db), new TopicRepository($db), new CoverageRepository($db), $this->notifications($db), new RevisionMode(new CalendarRepository($db)));
+            $digest = new DigestService($repo, new StudentRepository($db), $access, $this->notifications($db), $seats);
+            $this->engagement = ['seats' => $seats, 'templates' => $templates, 'jobs' => new JobRunner(new MailRepository($db), $seats, $digest, $this->mail($db))];
+        }
+
+        return $this->engagement;
+    }
+
+    /** Work that runs after the page has been sent (no cron on InfinityFree): seat checks, the digest, queued emails. */
     private ?\Closure $afterResponse = null;
 
     public function afterResponse(): void

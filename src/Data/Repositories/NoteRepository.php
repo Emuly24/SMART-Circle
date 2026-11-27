@@ -65,7 +65,7 @@ final class NoteRepository
 
     public function setStatus(int $id, string $status): void
     {
-        $this->db->run('UPDATE notes SET status = ? WHERE id = ?', [$status, $id]);
+        $this->db->run("UPDATE notes SET status = ?, published_at = IF(? = 'published', COALESCE(published_at, NOW()), published_at) WHERE id = ?", [$status, $status, $id]);
     }
 
     public function delete(int $id): void

@@ -1094,3 +1094,11 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .mail-stat__num { font: 800 1.6rem var(--font-display); color: var(--link); }
 .mail-stat__label { font-size: .85rem; color: var(--slate); }
 .mail-test { margin-top: 14px; }
+.seat-list, .template-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.seat-card__head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.seat-card__days { margin: 6px 0 10px; }
+.seat-card details { margin-top: 10px; }
+.template-help { background: var(--mist); border-radius: var(--radius-small); padding: 10px 14px; margin: 8px 0 12px; }
+.template-help ul { margin: 6px 0 0; padding-left: 1.2em; }
+.template-help code { color: var(--link); }
+.template-preview { white-space: normal; }

@@ -11,6 +11,7 @@ use SmartCircle\Application\Admissions\DecisionEmail;
 use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
 use SmartCircle\Application\Mail\MailService;
+use SmartCircle\Application\Templates\TemplateService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
@@ -31,6 +32,7 @@ final class AdmissionsController
         private readonly View $view,
         private readonly ?MailService $mail = null,
         private readonly string $siteUrl = '',
+        private readonly ?TemplateService $templates = null,
     ) {
     }
 
@@ -84,7 +86,7 @@ final class AdmissionsController
             return Response::redirect('/studio/admissions/' . $app['id']);
         }
 
-        $email = DecisionEmail::build($app, $result['status'], $this->siteUrl, $result['letter_code']);
+        $email = DecisionEmail::build($app, $result['status'], $this->siteUrl, $result['letter_code'], $this->templates);
         if ($email !== null && $this->mail !== null && (string) ($app['email'] ?? '') !== '') {
             $this->mail->queue((string) $app['email'], (string) $app['full_name'], $email['subject'], $email['text'], 'decision_' . $result['status'], 'application', (int) $app['id'], (int) $this->context->userId());
         }
