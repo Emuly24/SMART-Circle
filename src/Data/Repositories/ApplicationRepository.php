@@ -12,7 +12,7 @@ final class ApplicationRepository
     private const COLUMNS = [
         'intake_id', 'reference', 'full_name', 'gender', 'form', 'track', 'school_id', 'phone', 'email',
         'subjects_taken', 'help_subjects', 'struggling_topics', 'motivation', 'answers', 'device', 'data_access',
-        'guardian_name', 'guardian_phone', 'guardian_relationship', 'guardian_consent_at', 'source', 'ip',
+        'guardian_name', 'guardian_phone', 'guardian_whatsapp', 'guardian_email', 'guardian_language', 'guardian_relationship', 'guardian_consent_at', 'source', 'ip',
     ];
 
     public function __construct(private readonly Database $db)

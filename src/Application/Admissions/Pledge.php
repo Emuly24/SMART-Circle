@@ -41,9 +41,6 @@ final class Pledge
         if (self::normalise((string) ($in['signed_name'] ?? '')) !== self::normalise($fullName)) {
             $errors['signed_name'] = 'Type your full name exactly as it is on your account: ' . $fullName . '.';
         }
-        if (($in['guardian'] ?? '') !== '1') {
-            $errors['guardian'] = 'Your parent or guardian must know about your pledge.';
-        }
 
         return $errors;
     }

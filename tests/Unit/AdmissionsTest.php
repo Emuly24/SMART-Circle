@@ -35,6 +35,8 @@ final class AdmissionsTest extends TestCase
             'guardian_phone' => '0888 765 432',
             'guardian_relationship' => 'Parent',
             'guardian_consent' => '1',
+            'guardian_language' => 'ny',
+            'guardian_whatsapp' => '0999 765 432',
             'truthful' => '1',
             'schooling_reason' => 'understand', 'career_interest' => 'engineering', 'heard_from' => 'teacher',
             'study_hours' => '1_2', 'seriousness' => '5', 'setback' => 'review', 'discipline' => 'stay', 'confidence' => 'ask_class',
@@ -51,6 +53,8 @@ final class AdmissionsTest extends TestCase
         self::assertSame('Chikondi Banda', $data['full_name']);
         self::assertSame('+265999123456', $data['phone']);
         self::assertSame('+265888765432', $data['guardian_phone']);
+        self::assertSame('+265999765432', $data['guardian_whatsapp']);
+        self::assertSame('ny', $data['guardian_language']);
         self::assertSame('science', $data['track']);
         self::assertSame(['physics', 'chemistry'], $data['help_subjects']);
         self::assertNull($data['email']);
@@ -93,6 +97,9 @@ final class AdmissionsTest extends TestCase
             'no device' => [['device' => 'tv'], 'device'],
             'no guardian phone' => [['guardian_phone' => ''], 'guardian_phone'],
             'no consent' => [['guardian_consent' => ''], 'guardian_consent'],
+            'no guardian language' => [['guardian_language' => 'fr'], 'guardian_language'],
+            'bad guardian WhatsApp' => [['guardian_whatsapp' => '12'], 'guardian_whatsapp'],
+            'bad guardian email' => [['guardian_email' => 'not-an-email'], 'guardian_email'],
             'not confirmed true' => [['truthful' => ''], 'truthful'],
         ];
     }

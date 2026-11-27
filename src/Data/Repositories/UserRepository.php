@@ -16,7 +16,7 @@ final class UserRepository
     public function findById(int $id): ?array
     {
         return $this->db->one(
-            'SELECT id, role, full_name, phone, email, gender, status, is_practice, must_change_password, last_login_at, created_at
+            'SELECT id, role, full_name, phone, email, avatar_at, gender, status, is_practice, must_change_password, last_login_at, created_at
              FROM users WHERE id = ?',
             [$id]
         );
@@ -70,5 +70,18 @@ final class UserRepository
     public function idsByRole(string $role): array
     {
         return array_map('intval', array_column($this->db->all("SELECT id FROM users WHERE role = ? AND status = 'active'", [$role]), 'id'));
+    }
+
+    public function setAvatar(int $userId, bool $has): void
+    {
+        $this->db->run('UPDATE users SET avatar_at = ' . ($has ? 'NOW()' : 'NULL') . ' WHERE id = ?', [$userId]);
+    }
+
+    /** When a member's photo was saved, or null if they have none. */
+    public function avatarAt(int $userId): ?string
+    {
+        $v = $this->db->scalar('SELECT avatar_at FROM users WHERE id = ?', [$userId]);
+
+        return $v === null ? null : (string) $v;
     }
 }

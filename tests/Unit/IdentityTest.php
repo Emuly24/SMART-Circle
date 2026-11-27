@@ -50,7 +50,7 @@ final class IdentityTest extends TestCase
         $all = array_keys(Pledge::VOWS);
         self::assertSame([], Pledge::validate(['vows' => $all, 'signed_name' => '  chikondi   BANDA ', 'guardian' => '1'], 'Chikondi Banda'));
         $e = Pledge::validate(['vows' => array_slice($all, 1), 'signed_name' => 'C. Banda', 'guardian' => ''], 'Chikondi Banda');
-        self::assertSame(['vows', 'signed_name', 'guardian'], array_keys($e));
+        self::assertSame(['vows', 'signed_name'], array_keys($e));
         self::assertArrayHasKey('maneb', Pledge::VOWS);
         self::assertStringContainsString('no one is ever punished', Pledge::VOWS['maneb'][1], 'sharing results stays voluntary');
     }

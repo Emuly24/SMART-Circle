@@ -26,7 +26,7 @@ $types = ['lesson' => 'Watched', 'work' => 'Handed in', 'request' => 'Asked for'
                     <a class="btn btn--small" href="/messages/new?to=<?= e($s['id']) ?>">Message in SMART Circle</a>
                     <?php foreach ($s['links']['student'] as $l): ?><a class="btn btn--small btn--ghost" href="<?= e($l['href']) ?>"<?= str_starts_with($l['href'], 'https:') ? ' target="_blank" rel="noopener"' : '' ?>><?= e($l['label']) ?></a><?php endforeach; ?>
                 </div>
-                <p class="field__label">Guardian<?= !empty($s['guardian_name']) ? ' · ' . e($s['guardian_name']) : '' ?><?= !empty($s['guardian_phone']) ? ' · ' . e(\SmartCircle\Support\PhoneNumber::display((string) $s['guardian_phone'])) : '' ?></p>
+                <p class="field__label">Guardian<?= !empty($s['guardian_name']) ? ' · ' . e($s['guardian_name']) : '' ?> · <a href="/studio/guardians/<?= e($s['id']) ?>">messages &amp; confirmation</a><?= !empty($s['guardian_phone']) ? ' · ' . e(\SmartCircle\Support\PhoneNumber::display((string) $s['guardian_phone'])) : '' ?></p>
                 <div class="contact-buttons">
                     <?php foreach ($s['links']['guardian'] as $l): ?><a class="btn btn--small btn--ghost" href="<?= e($l['href']) ?>"<?= str_starts_with($l['href'], 'https:') ? ' target="_blank" rel="noopener"' : '' ?>><?= e($l['label']) ?></a><?php endforeach; ?>
                     <?php if ($s['links']['guardian'] === []): ?><span class="muted">No guardian number on file.</span><?php endif; ?>
