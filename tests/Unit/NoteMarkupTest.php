@@ -16,7 +16,7 @@ final class NoteMarkupTest extends TestCase
         self::assertStringContainsString('<p>Density is mass per volume.<br>It is measured in kg/m<sup>3</sup>.</p>', $html);
         self::assertStringContainsString('<ul><li>Water: 1000 kg/m<sup>3</sup></li><li>Iron: 7874 kg/m<sup>3</sup></li></ul>', $html);
         self::assertStringContainsString('<ol><li>Weigh</li><li>Measure</li></ol>', $html);
-        self::assertStringContainsString('<aside class="note-callout">Real life: a boat floats', $html);
+        self::assertStringContainsString('<aside class="note-callout note-callout--life"><span class="note-callout__label">Real life:</span> a boat floats', $html);
         self::assertStringContainsString('<h3>Practice</h3>', $html);
     }
 

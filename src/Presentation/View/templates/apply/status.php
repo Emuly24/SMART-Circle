@@ -24,6 +24,8 @@ $messages = [
             <p><?= e($message) ?></p>
             <?php if ($app['status'] === 'admitted'): ?>
                 <p><a class="btn btn--green" href="/welcome">Set up my account</a></p>
+            <?php elseif (in_array($app['status'], ['waitlisted', 'declined'], true)): ?>
+                <p><a class="btn btn--ghost" href="/library">Open the free library</a></p>
             <?php endif; ?>
         </div>
         <?php if ($canTakeQuiz): ?>

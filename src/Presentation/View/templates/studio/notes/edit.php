@@ -33,6 +33,15 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                 <?= $tool($base . '/delete', 'Delete', 'btn btn--small btn--danger', [], 'Delete these notes for good?') ?>
             </div>
             <p class="note">Students read up to each checkpoint. The next part is not even sent to their phone until they submit the exercise.</p>
+            <div class="library-toggle">
+                <?php if (!empty($note['in_library'])): ?>
+                    <p>📚 <strong>In the free library</strong><?= $note['status'] === 'published' ? ': <a href="/library/notes/' . e($id) . '">see the public handout</a>' : ' once published' ?>. Anyone can read the text and pictures; the exercises stay for admitted students.</p>
+                    <?= $tool($base . '/library/off', 'Take out of the free library') ?>
+                <?php else: ?>
+                    <p>📚 Share the text and pictures with everyone as a free, printable handout in our brand style. The exercises stay for admitted students.</p>
+                    <?= $tool($base . '/library/on', 'Show in the free library', 'btn btn--small btn--green') ?>
+                <?php endif; ?>
+            </div>
         </div>
 
         <ol class="note-blocks">
@@ -91,7 +100,7 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                         <li><code>&lt;=</code> ≤, <code>&gt;=</code> ≥, <code>!=</code> ≠, <code>+-</code> ±, <code>sqrt</code> √; in an equation line <code>*</code> is ×</li>
                         <li><code>H_2O</code>, <code>CO_{2}</code> for subscripts; <code>x^2</code>, <code>10^{-3}</code> for powers</li>
                         <li><code>-&gt;</code> becomes →, <code>&lt;=&gt;</code> becomes ⇌</li>
-                        <li><code>&gt; Real life: …</code> makes a highlighted real-life box</li>
+                        <li><code>&gt; Real life: …</code> makes an amber real-life box (also <code>Where it is used:</code>, <code>Why it matters:</code>, <code>Did you know?</code>). <code>&gt; Remember: …</code> or <code>Key idea:</code> makes a blue box, <code>Tip:</code> or <code>Example:</code> a green one, <code>Careful:</code> a warning. Lines that all start with <code>&gt;</code> stay in one box.</li>
                         <li>A blank line starts a new paragraph.</li>
                     </ul>
                 </details>

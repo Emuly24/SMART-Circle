@@ -97,6 +97,27 @@ $hints = [
             </div>
         </form>
 
+        <div class="card library-box" id="handout">
+            <h2>PDF handout <span class="muted">(optional)</span></h2>
+            <p>Attach a handout you made elsewhere (for example in Word, saved as PDF). Up to 9 MB.</p>
+            <p class="note">An uploaded PDF keeps its own look: SMART Circle cannot restyle it. For handouts in our brand colours, write the notes in <a href="/studio/notes">Notes &amp; slides</a> and tick "Show in the free library" there.</p>
+            <?php if (!empty($lesson['handout_path'])): ?>
+                <p>✓ Handout attached (<?= e(number_format((int) $lesson['handout_bytes'] / 1048576, 1)) ?> MB) · <a href="/studio/lessons/<?= e($id) ?>/handout">Open it</a>
+                    · <?= !empty($lesson['handout_public']) ? '<strong>In the free library</strong>' . ($lesson['status'] === 'published' ? '' : ' once this lesson is published') : 'Not in the library' ?></p>
+                <div class="decision__buttons">
+                    <form method="post" action="/studio/lessons/<?= e($id) ?>/handout/<?= !empty($lesson['handout_public']) ? 'private' : 'public' ?>"><?= $csrf->field() ?>
+                        <button type="submit" class="btn btn--small <?= !empty($lesson['handout_public']) ? 'btn--ghost' : 'btn--green' ?>"><?= !empty($lesson['handout_public']) ? 'Take out of the free library' : 'Show in the free library' ?></button></form>
+                    <form method="post" action="/studio/lessons/<?= e($id) ?>/handout/remove" class="js-confirm" data-confirm="Remove this handout?"><?= $csrf->field() ?>
+                        <button type="submit" class="btn btn--small btn--ghost">Remove</button></form>
+                </div>
+            <?php endif; ?>
+            <form method="post" action="/studio/lessons/<?= e($id) ?>/handout" enctype="multipart/form-data" class="form"><?= $csrf->field() ?>
+                <label class="field"><span class="field__label"><?= empty($lesson['handout_path']) ? 'PDF handout' : 'Replace with another PDF' ?></span>
+                    <input type="file" name="handout" accept="application/pdf,.pdf" required></label>
+                <div class="form-actions"><button type="submit" class="btn btn--small">Upload handout</button></div>
+            </form>
+        </div>
+
         <div class="danger-zone">
             <?php if ($lesson['status'] === 'published'): ?>
                 <form method="post" action="/studio/lessons/<?= e($id) ?>/unpublish">

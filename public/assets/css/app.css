@@ -449,7 +449,7 @@ html:not(.js) .theme-menu { display: none; }
 .title-row__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 18px 0 12px; }
 .filters label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
-.filters select { min-height: 40px; padding: 6px 10px; border: 1.5px solid var(--field-border); border-radius: var(--radius-small); font: inherit; }
+.filters select { min-height: 40px; padding: 6px 10px; border: 1.5px solid var(--field-border); border-radius: var(--radius-small); font: inherit; background: var(--surface); color: var(--ink); }
 .detail-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 16px; }
 .detail-grid .card, .narrow-wide > .card { margin-bottom: 16px; }
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
@@ -783,15 +783,27 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .markup-help code { background: var(--mist); padding: 1px 5px; border-radius: 4px; }
 .reader { max-width: 760px; }
 .reader__progress { font-weight: 700; color: var(--green-text); }
-.note-prose { font-size: 1.08rem; line-height: 1.75; margin: 0 0 18px; }
-.note-prose h2 { font-size: 1.45rem; margin-top: 1.2em; }
-.note-prose h3 { font-size: 1.15rem; margin-top: 1em; }
+/* Notes, slides and library handouts: the text always wears the brand (brand/README.md), in every theme. */
+.note-prose { font-size: 1.08rem; line-height: 1.75; margin: 0 0 18px; color: var(--ink); }
+.note-prose h2 { font-size: 1.45rem; margin-top: 1.2em; color: var(--link); padding-bottom: 6px; position: relative; }
+.note-prose h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 4px; border-radius: 2px; background: var(--green); }
+.note-prose h3 { font-size: 1.15rem; margin-top: 1em; color: var(--green-text); }
+.note-prose strong { color: var(--link); font-weight: 700; }
+.note-prose em { color: var(--green-text); }
 .note-prose ul, .note-prose ol { padding-left: 1.3em; }
+.note-prose li::marker { color: var(--green); font-weight: 700; }
 .note-prose sub, .note-prose sup { font-size: .75em; line-height: 0; }
-.note-callout { background: var(--green-tint); border-left: 5px solid var(--green); border-radius: var(--radius-small); padding: 12px 14px; margin: 12px 0; }
+.note-callout { background: var(--amber-tint); border-left: 5px solid var(--amber); border-radius: var(--radius-small); padding: 12px 14px; margin: 14px 0; color: var(--ink); }
+.note-callout__label { font-weight: 800; color: var(--amber-text); }
+.note-callout--key { background: var(--blue-tint); border-left-color: var(--blue); }
+.note-callout--key .note-callout__label { color: var(--link); }
+.note-callout--tip { background: var(--green-tint); border-left-color: var(--green); }
+.note-callout--tip .note-callout__label { color: var(--green-text); }
+.note-callout--warn { background: var(--red-tint); border-left-color: var(--red); }
+.note-callout--warn .note-callout__label { color: var(--red); }
 .note-figure { margin: 0 0 18px; }
 .note-figure img { display: block; width: 100%; height: auto; border-radius: var(--radius-small); border: 1px solid var(--line); background: #fff; }
-.note-figure figcaption { font-size: .9rem; color: var(--slate); margin-top: 6px; }
+.note-figure figcaption { font-size: .9rem; color: var(--slate); font-style: italic; margin-top: 6px; }
 .checkpoint { margin: 18px 0; }
 .checkpoint--active { border: 2px solid var(--amber); background: var(--amber-tint); }
 .checkpoint--active .quiz-q { background: var(--surface); }
@@ -1010,8 +1022,9 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 }
 
 /* Notes: equations, picture positions and the drawing pad (Phase J1) */
-.note-calc { margin: 12px auto; padding: 8px 12px; border-left: 3px solid var(--line); background: var(--mist); border-radius: var(--radius-small); }
-.note-eq { margin: 4px 0; text-align: center; font-size: 1.12rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.note-calc { margin: 14px auto; padding: 10px 14px; border-left: 4px solid var(--blue); background: var(--blue-tint); border-radius: var(--radius-small); }
+.note-eq { margin: 4px 0; text-align: center; font-size: 1.12rem; font-weight: 600; color: var(--link); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.note-eq strong { color: inherit; }
 @media (min-width: 700px) {
     .note-figure--left { float: left; width: 45%; margin: 4px 20px 12px 0; }
     .note-figure--right { float: right; width: 45%; margin: 4px 0 12px 20px; }
@@ -1036,3 +1049,16 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .offline-save { margin: 0 0 12px; }
 .offline-save[hidden] { display: none; }
 .dashboard-summary { margin: 4px 0 16px; }
+
+/* Keep the brand colours when notes are printed or saved as PDF. */
+@media print {
+    .note-prose, .note-callout, .note-calc, .note-prose h2::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* The free library */
+.library-heading { margin-top: 28px; }
+.library-invite { margin-top: 32px; border-top: 4px solid var(--green); }
+.library-invite h2 { color: var(--link); margin-top: 0; }
+.library-invite .btn { margin: 4px 8px 4px 0; }
+.library-toggle { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.library-box h2 { margin-top: 0; }
