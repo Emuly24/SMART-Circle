@@ -385,7 +385,7 @@ final class App
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
         $recheckService = new RecheckService(new RecheckRepository($db), new SubmissionRepository($db), new AssessmentRepository($db), $this->notifications($db));
-        $pages->setMemberHome(function () use ($assessmentService, $recheckService, $messageService, $accessService, $gradeService): ?array {
+        $memberSummary = function () use ($assessmentService, $recheckService, $messageService, $accessService, $gradeService): ?array {
             $uid = $this->context->userId();
             if ($uid === null) {
                 return null;
@@ -404,7 +404,8 @@ final class App
                 'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null,
                 'form' => $student !== null ? (int) $student['form'] : null,
             ];
-        });
+        };
+        $pages->setMemberHome($memberSummary);
         $noteService = new NoteService(new NoteRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), new TopicRepository($db),
             new StudentRepository($db), $accessService, $examService, $this->notifications($db), $this->storage(''));
         $studioAssess = new StudioAssessmentController($assessmentService, $topicService, $this->context, $this->session, $this->view, $recheckService);
@@ -441,6 +442,7 @@ final class App
                     'revision' => $student !== null ? $accessService->revision((int) $student['form']) : null];
             });
         $dashboard->setLearning(static fn (int $userId): array => ['ask_feedback' => $feedbackService->shouldAsk($userId)]);
+        $dashboard->setSummary($memberSummary);
         $dashboard->setRooms(static fn (int $userId): array => (new MessageRepository($db))->inbox($userId, 'support'));
         $pages->setSeatChart($applicationService->seatChart(...), $applicationService->openIntake(...));
 

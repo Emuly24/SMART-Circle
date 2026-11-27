@@ -24,6 +24,7 @@ $user = $ctx->user() ?? [];
         <?php endif; ?>
 
         <?php if ($calendar !== null): ?><?= $view->partial('term_strip', ['today' => $calendar['today']]) ?><?php endif; ?>
+        <?php if (!empty($attention)): ?><?= $view->partial('summary_tiles', ['m' => $attention]) ?><?php endif; ?>
         <?= $view->partial('room_card', ['rooms' => $rooms ?? [], 'role' => 'tutor']) ?>
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/practice"><h2>Try as</h2><p>See every page as a student, teacher, alumnus or team tutor, with practice accounts.</p><span class="tag tag--ready">Open</span></a>

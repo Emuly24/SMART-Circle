@@ -46,6 +46,14 @@ final class DashboardController
         $this->learning = $learning;
     }
 
+    /** @var (\Closure(): ?array<string, mixed>)|null unread messages, work to mark, re-checks */
+    private ?\Closure $summary = null;
+
+    public function setSummary(\Closure $summary): void
+    {
+        $this->summary = $summary;
+    }
+
     public function index(Request $request): Response
     {
         $role = $this->context->role() ?? 'student';
@@ -64,6 +72,7 @@ final class DashboardController
             'pledge' => $role === 'student' && $this->studentPledge !== null ? ($this->studentPledge)((int) $this->context->userId()) : null,
             'feedback' => $role === 'student' && $this->studentFeedback !== null ? ($this->studentFeedback)((int) $this->context->userId()) : [],
             'calendar' => $this->calendarInfo !== null ? ($this->calendarInfo)((int) $this->context->userId(), $role) : null,
+            'attention' => in_array($role, ['tutor', 'team'], true) && $this->summary !== null ? ($this->summary)() : null,
             'learning' => $role === 'student' && $this->learning !== null ? ($this->learning)((int) $this->context->userId()) : [],
             'rooms' => in_array($role, ['student', 'tutor'], true) && $this->rooms !== null ? ($this->rooms)((int) $this->context->userId()) : [],
         ]));

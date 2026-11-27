@@ -3,6 +3,7 @@
  * @var list<array{key: string, name: string, blurb: string}> $subjects
  * @var \SmartCircle\Application\Admissions\SeatChart|null $chart
  * @var bool $isOpen
+ * @var array<string, mixed>|null $member the signed-in person (role, user), or null for visitors
  * @var callable $asset
  */
 ?>
@@ -17,7 +18,10 @@
                 and the lesson is made for you, with real-life examples from Malawi.
             </p>
             <div class="hero__actions">
-                <?php if ($isOpen): ?>
+                <?php if ($member !== null): ?>
+                    <a class="btn btn--green" href="/dashboard">Open my dashboard</a>
+                    <a class="btn btn--ghost" href="/about">Our story</a>
+                <?php elseif ($isOpen): ?>
                     <a class="btn btn--green" href="/apply">Apply now. It's free</a>
                     <a class="btn btn--ghost" href="/about">How it works</a>
                 <?php else: ?>
@@ -25,7 +29,11 @@
                     <span class="hero__note">Applications open soon</span>
                 <?php endif; ?>
             </div>
-            <p class="hero__links"><a href="/apply/status">Check my application</a> · <a href="/welcome">Admitted? Set up my account</a></p>
+            <?php if ($member === null): ?>
+                <p class="hero__links"><a href="/apply/status">Check my application</a> · <a href="/welcome">Admitted? Set up my account</a></p>
+            <?php else: ?>
+                <p class="hero__links">Welcome back, <?= e(explode(' ', (string) ($member['user']['full_name'] ?? ''))[0]) ?>.</p>
+            <?php endif; ?>
         </div>
         <img class="hero__mark brand__logo--light" src="<?= e($asset('brand/logo-mark.svg')) ?>" alt="" width="260" height="260">
         <img class="hero__mark brand__logo--dark" src="<?= e($asset('brand/logo-mark-dark.svg')) ?>" alt="" width="260" height="260">
