@@ -32,7 +32,7 @@ $sent = static fn (string $what, string $channel, string $label) => '<form metho
             <div class="contact-buttons">
                 <?php if ($l['whatsapp']): ?><a class="btn btn--small btn--green" href="<?= e($l['whatsapp']) ?>" target="_blank" rel="noopener">WhatsApp</a><?php endif; ?>
                 <?php if ($l['sms']): ?><a class="btn btn--small btn--ghost" href="<?= e($l['sms']) ?>">SMS</a><?php endif; ?>
-                <?php if ($l['email']): ?><a class="btn btn--small btn--ghost" href="<?= e($l['email']) ?>">Email</a><?php endif; ?>
+                <?php if ($l['email']): ?><form method="post" action="/studio/guardians/<?= e($g['user_id']) ?>/email" class="inline-form"><?= $csrf->field() ?><input type="hidden" name="what" value="admission"><button type="submit" class="btn btn--small btn--ghost">Send by email</button></form><a class="btn btn--small btn--ghost" href="<?= e($l['email']) ?>">Email from my phone</a><?php endif; ?>
                 <?php if ($l['tel']): ?><a class="btn btn--small btn--ghost" href="<?= e($l['tel']) ?>">Call</a><?php endif; ?>
             </div>
             <p class="contact-buttons"><span class="muted">After sending:</span> <?= $sent('admission', 'whatsapp', 'I sent it on WhatsApp') ?> <?= $sent('admission', 'phone', 'I sent it by SMS') ?><?= $l['email'] ? ' ' . $sent('admission', 'email', 'I sent the email') : '' ?></p>
@@ -49,6 +49,7 @@ $sent = static fn (string $what, string $channel, string $label) => '<form metho
             <div class="contact-buttons">
                 <?php if ($l['monthly_whatsapp']): ?><a class="btn btn--small btn--green" href="<?= e($l['monthly_whatsapp']) ?>" target="_blank" rel="noopener">WhatsApp</a><?php endif; ?>
                 <?php if ($l['monthly_sms']): ?><a class="btn btn--small btn--ghost" href="<?= e($l['monthly_sms']) ?>">SMS</a><?php endif; ?>
+                <?php if ($l['email']): ?><form method="post" action="/studio/guardians/<?= e($g['user_id']) ?>/email" class="inline-form"><?= $csrf->field() ?><input type="hidden" name="what" value="monthly"><button type="submit" class="btn btn--small btn--ghost">Send by email</button></form><?php endif; ?>
                 <?= $sent('monthly', 'whatsapp', 'I sent this month’s update') ?>
             </div>
         </div>

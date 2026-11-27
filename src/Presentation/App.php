@@ -16,6 +16,8 @@ use SmartCircle\Application\Assessments\AssessmentService;
 use SmartCircle\Application\Assessments\ExamService;
 use SmartCircle\Application\Assessments\RecheckService;
 use SmartCircle\Application\Library\LibraryService;
+use SmartCircle\Application\Mail\EmailSettings;
+use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Reviews\NoteReviewService;
 use SmartCircle\Application\Auth\AuthService;
@@ -72,6 +74,8 @@ use SmartCircle\Data\Repositories\MessageRepository;
 use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\LibraryRepository;
+use SmartCircle\Data\Mail\SmtpTransport;
+use SmartCircle\Data\Repositories\MailRepository;
 use SmartCircle\Data\Repositories\NoteRepository;
 use SmartCircle\Data\Repositories\ReviewRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
@@ -115,6 +119,7 @@ use SmartCircle\Presentation\Controllers\InstallController;
 use SmartCircle\Presentation\Controllers\LearningController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\LibraryController;
+use SmartCircle\Presentation\Controllers\MailController;
 use SmartCircle\Presentation\Controllers\NoteController;
 use SmartCircle\Presentation\Controllers\SiteAssetController;
 use SmartCircle\Presentation\Controllers\ReviewController;
@@ -262,6 +267,8 @@ final class App
                 if ($gate !== null) {
                     return $gate;
                 }
+            } else {
+                $this->afterResponse = fn () => $this->mail($db)->runIfDue();
             }
         } elseif ($request->path !== '/install') {
             return Response::redirect('/install');
@@ -338,7 +345,7 @@ final class App
         );
         $reviewService = new ReviewService($db, $applicationRepo, $intakeRepo, $users, new StudentRepository($db), $documentService, $audit);
         $apply = new ApplyController($applicationService, $documentService, $this->session, $this->context, $this->view);
-        $admissions = new AdmissionsController($reviewService, $applicationService, $documentService, $this->context, $this->session, $this->view);
+        $admissions = new AdmissionsController($reviewService, $applicationService, $documentService, $this->context, $this->session, $this->view, $this->mail($db), $this->config->string('app.url'));
         $welcome = new WelcomeController($this->accountSetup($db, $users, $audit), $this->session, $this->context, $this->view);
         $docs = new DocumentController($documentService, $this->context, $this->session, $this->view, $this->config->string('app.url'));
         $onboarded = new RequireOnboarded($this->context);
@@ -382,8 +389,8 @@ final class App
         $adminCtl = new AdminController($settingsService, new PracticeService(new PracticeRepository($db), $audit),
             new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
         $guardianCtl = new GuardianController(new GuardianService(new GuardianRepository($db), new OverviewRepository($db), $this->notifications($db),
-            $this->config->string('app.url'), $settingsService->tutorWhatsapp(...)), $this->context, $this->session, $this->view);
-        $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view);
+            $this->config->string('app.url'), $settingsService->tutorWhatsapp(...)), $this->context, $this->session, $this->view, $this->mail($db));
+        $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view, new EmailSettings($users));
         $contributionService = new ContributionService(new ContributionRepository($db), $calendarService, $topicService, $this->notifications($db),
             $this->storage(''), $settingsService->tutorWhatsapp(...));
         $contribCtl = new ContributionController($contributionService, $partnerService, $this->context, $this->session, $this->view);
@@ -661,6 +668,12 @@ final class App
         $r->get('/team/agreement', $teamCtl->agreement(...), [$teamOnly]);
         $r->post('/team/agreement', $teamCtl->agree(...), [$csrf, $teamOnly]);
         $r->get('/studio/settings', $adminCtl->settings(...), [$tutor]);
+        $mailCtl = new MailController($this->mail($db), $this->context, $this->session, $this->view);
+        $r->get('/studio/mail', $mailCtl->index(...), [$tutor]);
+        $r->post('/studio/mail/send', $mailCtl->sendNow(...), [$csrf, $tutor]);
+        $r->post('/studio/mail/test', $mailCtl->test(...), [$csrf, $tutor]);
+        $r->post('/studio/mail/retry', $mailCtl->retry(...), [$csrf, $tutor]);
+        $r->post('/studio/guardians/{id}/email', $guardianCtl->email(...), [$csrf, $tutor]);
         $r->post('/studio/settings/{kind}/upload', $siteAssetCtl->upload(...), [$csrf, $tutor]);
         $r->post('/studio/settings/{kind}/remove', $siteAssetCtl->remove(...), [$csrf, $tutor]);
         $r->get('/site/{kind}', $siteAssetCtl->show(...));
@@ -681,6 +694,7 @@ final class App
         $r->post('/studio/guardians/{id}/sent', $guardianCtl->sent(...), [$csrf, $tutor]);
         $r->get('/profile', $profileCtl->show(...), [$member, $onboarded]);
         $r->post('/profile/photo', $profileCtl->savePhoto(...), [$csrf, $member, $onboarded]);
+        $r->post('/profile/email', $profileCtl->saveEmail(...), [$csrf, $member, $onboarded]);
         $r->post('/profile/photo/remove', $profileCtl->removePhoto(...), [$csrf, $member, $onboarded]);
         $r->get('/avatars/{id}', $profileCtl->photo(...), [$member]);
 
@@ -787,7 +801,46 @@ final class App
 
     private function notifications(Database $db): NotificationService
     {
-        return $this->notifications ??= new NotificationService(new NotificationRepository($db), new UserRepository($db));
+        return $this->notifications ??= new NotificationService(new NotificationRepository($db), new UserRepository($db), $this->mail($db));
+    }
+
+    private ?MailService $mailService = null;
+
+    private function mail(Database $db): MailService
+    {
+        $password = $this->config->string('mail.password');
+        $transport = $password === '' ? null : new SmtpTransport(
+            $this->config->string('mail.host', 'smtp.zoho.com'),
+            $this->config->int('mail.port', 465),
+            $this->config->string('mail.encryption', 'ssl'),
+            $this->config->string('mail.username'),
+            $password,
+            $this->config->string('mail.from_email', 'smartcircle@zohomail.com'),
+            $this->config->string('mail.from_name', 'SMART Circle'),
+        );
+
+        return $this->mailService ??= new MailService(new MailRepository($db), $transport, $this->config->string('app.url'), $this->config->int('mail.batch_size', 10));
+    }
+
+    /** Work that runs after the page has been sent (no cron on InfinityFree): a few queued emails. */
+    private ?\Closure $afterResponse = null;
+
+    public function afterResponse(): void
+    {
+        if ($this->afterResponse === null) {
+            return;
+        }
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        } else {
+            @ob_flush();
+            flush();
+        }
+        try {
+            ($this->afterResponse)();
+        } catch (Throwable $e) {
+            $this->logger->exception($e);
+        }
     }
 
     private ?AccountSetupService $accountSetup = null;

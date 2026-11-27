@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Notifications;
 
+use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Data\Repositories\NotificationRepository;
 use SmartCircle\Data\Repositories\UserRepository;
 
@@ -13,6 +14,7 @@ final class NotificationService
     public function __construct(
         private readonly NotificationRepository $notifications,
         private readonly UserRepository $users,
+        private readonly ?MailService $mail = null,
     ) {
     }
 
@@ -29,6 +31,8 @@ final class NotificationService
             $body === null ? null : mb_substr($body, 0, 500),
             $link
         );
+        // Also by email, to those who have an address and want it (queued; sent after the page).
+        $this->mail?->notifyUsers($userIds, mb_substr($title, 0, 200), $body === null ? null : mb_substr($body, 0, 500), $link);
     }
 
     public function notifyTutors(string $type, string $title, ?string $body = null, ?string $link = null): void

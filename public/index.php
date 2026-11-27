@@ -11,4 +11,6 @@ use SmartCircle\Presentation\Http\Request;
 
 $config = require dirname(__DIR__) . '/config/bootstrap.php';
 
-(new App($config))->handle(Request::fromGlobals())->send();
+$app = new App($config);
+$app->handle(Request::fromGlobals())->send();
+$app->afterResponse();

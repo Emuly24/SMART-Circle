@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Mail\EmailSettings;
 use SmartCircle\Application\Profile\AvatarService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
@@ -21,6 +22,7 @@ final class ProfileController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?EmailSettings $emailSettings = null,
     ) {
     }
 
@@ -31,6 +33,17 @@ final class ProfileController
             'user' => $this->context->user(),
             'error' => null,
         ]));
+    }
+
+    public function saveEmail(Request $request): Response
+    {
+        $error = $this->emailSettings?->save((int) $this->context->userId(), $request->input('email'), $request->input('email_notifications') === '1') ?? '';
+        if ($error !== '') {
+            return Response::html($this->view->render('profile/show', ['title' => 'My profile', 'user' => $this->context->user(), 'error' => null, 'emailError' => $error]), 422);
+        }
+        $this->session->flash('success', 'Email settings saved.');
+
+        return Response::redirect('/profile#email');
     }
 
     public function savePhoto(Request $request): Response

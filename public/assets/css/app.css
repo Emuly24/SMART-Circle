@@ -1089,3 +1089,8 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .review-decision .choice input { margin-top: 0; }
 .story__photo--img { object-fit: cover; object-position: center 20%; padding: 0; }
 .settings-signature { display: block; max-width: 260px; height: auto; background: var(--white); border-radius: var(--radius-small); padding: 6px 10px; margin: 8px 0; }
+.mail-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 16px 0; }
+.mail-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-small); padding: 12px 14px; display: grid; }
+.mail-stat__num { font: 800 1.6rem var(--font-display); color: var(--link); }
+.mail-stat__label { font-size: .85rem; color: var(--slate); }
+.mail-test { margin-top: 14px; }
