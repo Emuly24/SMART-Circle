@@ -14,6 +14,9 @@ $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => 
     <div class="container">
         <p class="crumbs"><a href="/lessons">Lessons</a><?php if ($isTutor): ?> · <a href="/studio/lessons/<?= e($lesson['id']) ?>">Edit</a><?php endif; ?></p>
         <h1 class="lesson-title"><?= e($lesson['title']) ?></h1>
+        <button type="button" class="btn btn--small btn--ghost offline-save js-offline-save" hidden
+            data-offline-title="<?= e($lesson['title']) ?>"
+            data-offline-extra="/lessons/<?= e($lesson['id']) ?>/file /assets/js/board/lesson-file.js /assets/js/board/player.js /assets/js/board/board-core.js"><span class="js-offline-label">Save for offline</span></button>
         <p class="lesson-meta">
             <?php if ($lesson['subject']): ?><span class="badge badge--<?= e($lesson['subject']) ?>"><?= e($subjects[$lesson['subject']] ?? '') ?></span><?php endif; ?>
             <?php if ($lesson['form']): ?><span>Form <?= e($lesson['form']) ?></span><?php endif; ?>
@@ -60,3 +63,4 @@ $icons = ['why_it_matters' => '💡', 'where_in_malawi' => '🌍', 'careers' => 
     </div>
 </section>
 <script type="module" src="<?= e($asset('js/board/watch.js')) ?>"></script>
+<script src="<?= e($asset('js/offline.js')) ?>" defer></script>

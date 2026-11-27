@@ -29,7 +29,7 @@ $links = match ($m['role']) {
     ],
     default => [
         ['/lessons', 'Lessons', 'Replay any time'], ['/topics', 'Topics', 'Ask for help'], ['/notes', 'Notes & slides', 'Read at your pace'],
-        ['/assessments', 'Exams', 'Tests and assignments'], ['/support', 'Talk privately', 'A private room with the tutor'], ['/office-hours', 'Office hours', 'Book a call'],
+        ['/assessments', 'Exams', 'Tests and assignments'], ['/quick5', 'Quick 5', 'Five questions a week'], ['/support', 'Talk privately', 'A private room with the tutor'], ['/office-hours', 'Office hours', 'Book a call'],
     ],
 };
 ?>

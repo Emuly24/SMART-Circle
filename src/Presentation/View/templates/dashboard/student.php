@@ -5,6 +5,7 @@
  * @var list<array<string, mixed>> $feedback
  * @var array<string, mixed>|null $calendar
  * @var list<array<string, mixed>> $rooms
+ * @var array<string, mixed> $learning
  */
 $user = $ctx->user() ?? [];
 ?>
@@ -18,6 +19,9 @@ $user = $ctx->user() ?? [];
                 <strong>MANEB revision is open<?= $rv['days'] > 0 ? ': ' . e($rv['days']) . ' day' . ($rv['days'] === 1 ? '' : 's') . ' to go' : '' ?>.</strong>
                 Every Form <?= e(implode(' and Form ', $rv['forms'])) ?> topic is open to you now. See your revision plan →
             </a>
+        <?php endif; ?>
+        <?php if (!empty($learning['ask_feedback'])): ?>
+            <a class="card section-card community-card" href="/feedback"><span><strong>How are the lessons going?</strong><br><span class="muted">Three quick, anonymous questions. Your answers help make the lessons better.</span></span></a>
         <?php endif; ?>
         <?= $view->partial('room_card', ['rooms' => $rooms ?? [], 'role' => 'student']) ?>
         <?php if ($feedback !== []): ?>
@@ -40,6 +44,7 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/notes"><h2>Notes &amp; slides</h2><p>Read at your own pace; each exercise opens the next part.</p><span class="tag tag--ready">Read</span></a>
             <a class="tile tile--link" href="/assessments"><h2>Exams &amp; assignments</h2><p>Tests on topics your school has taught, with marks and comments.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/grades"><h2>My grades</h2><p>Your term grade in each subject, and your term reports.</p><span class="tag tag--ready">See grades</span></a>
+            <a class="tile tile--link" href="/quick5"><h2>Quick 5</h2><p>Five quick questions a week on topics you have met. Keep your streak going.</p><span class="tag tag--ready">Start</span></a>
             <a class="tile tile--link" href="/office-hours"><h2>Office hours</h2><p>Book a call with the tutor when you are stuck.</p><span class="tag tag--ready">Book</span></a>
             <?php if (($calendar['form'] ?? 0) >= 2): ?><a class="tile tile--link" href="/results/mine"><h2>MANEB results</h2><p>Share your results when they come out, and help those coming after you.</p><span class="tag tag--ready">Open</span></a><?php endif; ?>
             <?php if (($calendar['form'] ?? 0) >= 3): ?><a class="tile tile--link" href="/alumni/community"><h2>From our alumni</h2><p>Stories and opportunities from students who went before you.</p><span class="tag tag--ready">Read</span></a><?php endif; ?>

@@ -59,4 +59,12 @@
             window.setTimeout(() => items.forEach((item) => item.classList.add('is-visible')), 2500);
         }
     }
+
+    // ----- Logging out removes lessons saved for offline on this device -----
+    document.querySelectorAll('form[action="/logout"]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            try { localStorage.removeItem('sc-offline-index'); } catch (e) { /* private mode */ }
+            if ('caches' in window) { caches.delete('sc-offline-v1'); }
+        });
+    });
 })();
