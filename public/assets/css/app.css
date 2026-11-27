@@ -1087,3 +1087,5 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .review-decision fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; display: grid; gap: 8px; }
 .review-decision .choice { align-items: center; margin: 0; }
 .review-decision .choice input { margin-top: 0; }
+.story__photo--img { object-fit: cover; object-position: center 20%; padding: 0; }
+.settings-signature { display: block; max-width: 260px; height: auto; background: var(--white); border-radius: var(--radius-small); padding: 6px 10px; margin: 8px 0; }

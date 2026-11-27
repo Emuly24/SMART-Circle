@@ -38,6 +38,7 @@ use SmartCircle\Application\OfficeHours\OfficeHoursService;
 use SmartCircle\Application\Practice\PracticeService;
 use SmartCircle\Application\Profile\AvatarService;
 use SmartCircle\Application\Settings\SettingsService;
+use SmartCircle\Application\Settings\SiteAssetService;
 use SmartCircle\Application\Team\TeamService;
 use SmartCircle\Application\Partners\ContributionService;
 use SmartCircle\Application\Partners\PartnerService;
@@ -115,6 +116,7 @@ use SmartCircle\Presentation\Controllers\LearningController;
 use SmartCircle\Presentation\Controllers\LessonController;
 use SmartCircle\Presentation\Controllers\LibraryController;
 use SmartCircle\Presentation\Controllers\NoteController;
+use SmartCircle\Presentation\Controllers\SiteAssetController;
 use SmartCircle\Presentation\Controllers\ReviewController;
 use SmartCircle\Presentation\Controllers\NotificationController;
 use SmartCircle\Presentation\Controllers\StudioLibraryController;
@@ -272,6 +274,7 @@ final class App
         });
 
         $this->view->share('community', static fn (): ?string => (new SettingsService(new SettingsRepository($db)))->community());
+        $this->view->share('siteAssets', fn (): array => (new SiteAssetService(new SettingsRepository($db), $this->storage('')))->versions());
         $this->view->share('messageCount', function () use ($db): int {
             $userId = $this->context->userId();
 
@@ -374,6 +377,7 @@ final class App
         $officeCtl = new OfficeHoursController(new OfficeHoursService(new OfficeHoursRepository($db), $this->notifications($db), $officeIds),
             $studentForm, $this->context, $this->session, $this->view);
         $settingsService = new SettingsService(new SettingsRepository($db));
+        $siteAssetCtl = new SiteAssetController(new SiteAssetService(new SettingsRepository($db), $this->storage('')), $this->session);
         $teamCtl = new TeamController($this->team($db, $users, $audit), $this->context, $this->session, $this->view);
         $adminCtl = new AdminController($settingsService, new PracticeService(new PracticeRepository($db), $audit),
             new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
@@ -657,6 +661,9 @@ final class App
         $r->get('/team/agreement', $teamCtl->agreement(...), [$teamOnly]);
         $r->post('/team/agreement', $teamCtl->agree(...), [$csrf, $teamOnly]);
         $r->get('/studio/settings', $adminCtl->settings(...), [$tutor]);
+        $r->post('/studio/settings/{kind}/upload', $siteAssetCtl->upload(...), [$csrf, $tutor]);
+        $r->post('/studio/settings/{kind}/remove', $siteAssetCtl->remove(...), [$csrf, $tutor]);
+        $r->get('/site/{kind}', $siteAssetCtl->show(...));
         $r->post('/studio/settings', $adminCtl->saveSettings(...), [$csrf, $tutor]);
         $r->get('/studio/practice', $adminCtl->practice(...), [$tutor]);
         $r->post('/studio/practice/enter', $adminCtl->enter(...), [$csrf, $tutor]);

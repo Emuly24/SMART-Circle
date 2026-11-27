@@ -19,6 +19,25 @@ $err = static fn (string $f): string => isset($errors[$f]) ? '<span class="field
                 <span class="field__hint">Leave empty until the community exists. Once added, students, teachers, alumni and the team see a “Join” card.</span></label>
             <div class="form-actions"><button type="submit" class="btn btn--small">Save</button></div>
         </form>
+        <?php $assets = $siteAssets(); ?>
+        <div class="card section-card" id="signature">
+            <h2 class="h3">Your signature</h2>
+            <p>Printed on every letter and certificate (admission letters, pledge certificates, term reports, partner invitations). A photo of your signature on white paper works best: the background is removed for you.</p>
+            <?php if ($assets['signature'] !== null): ?><img class="settings-signature" src="/site/signature?v=<?= e($assets['signature']) ?>" alt="Your signature"><?php endif; ?>
+            <form method="post" action="/studio/settings/signature/upload" enctype="multipart/form-data" class="form"><?= $csrf->field() ?>
+                <label class="field"><span class="field__label"><?= $assets['signature'] === null ? 'Upload your signature' : 'Replace it' ?></span><input type="file" name="picture" accept="image/png,image/jpeg,image/webp" required></label>
+                <div class="form-actions"><button type="submit" class="btn btn--small">Save signature</button></div></form>
+            <?php if ($assets['signature'] !== null): ?><form method="post" action="/studio/settings/signature/remove" class="inline-form js-confirm" data-confirm="Remove your signature from letters?"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--ghost">Remove</button></form><?php endif; ?>
+        </div>
+        <div class="card section-card" id="photo">
+            <h2 class="h3">Your photo</h2>
+            <p>Shown with your story on the About page.</p>
+            <?php if ($assets['photo'] !== null): ?><img class="story__photo story__photo--img" src="/site/photo?v=<?= e($assets['photo']) ?>" alt="Your photo" width="140" height="140"><?php endif; ?>
+            <form method="post" action="/studio/settings/photo/upload" enctype="multipart/form-data" class="form"><?= $csrf->field() ?>
+                <label class="field"><span class="field__label"><?= $assets['photo'] === null ? 'Upload your photo' : 'Replace it' ?></span><input type="file" name="picture" accept="image/png,image/jpeg,image/webp" required></label>
+                <div class="form-actions"><button type="submit" class="btn btn--small">Save photo</button></div></form>
+            <?php if ($assets['photo'] !== null): ?><form method="post" action="/studio/settings/photo/remove" class="inline-form js-confirm" data-confirm="Remove your photo from the About page?"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--ghost">Remove</button></form><?php endif; ?>
+        </div>
         <div class="card section-card">
             <h2 class="h3">Back up the database</h2>
             <p>Download a full copy of the database to keep safe (free hosting can lose data). It contains students’ personal details: store it privately, for example in your own Google Drive, never in a shared folder.</p>
@@ -26,3 +45,4 @@ $err = static fn (string $f): string => isset($errors[$f]) ? '<span class="field
         </div>
     </div>
 </section>
+<script src="<?= e($asset('js/confirm.js')) ?>" defer></script>

@@ -60,3 +60,4 @@
 @media print {
     .handout { min-height: 0; }
 }
+.letter__signature-img { display: block; height: 18mm; width: auto; max-width: 70mm; margin: 4px 0; }
