@@ -14,7 +14,7 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
     <div class="container narrow-wide">
         <p class="crumbs"><a href="/studio/settings">Settings</a></p>
         <h1>Email</h1>
-        <p class="lead">Emails go out through Zoho (smartcircle@zohomail.com) a few at a time after people visit the site, because free hosting has no timer. Replies arrive in your Zoho inbox.</p>
+        <p class="lead">Emails go out through Zoho (<?= e($contactEmail ?? '') ?>) a few at a time after people visit the site, because free hosting has no timer. Replies arrive in your Zoho inbox.</p>
         <?php if (!$enabled): ?>
             <div class="alert alert--error"><strong>Email is switched off.</strong> Put your Zoho password (or a Zoho app password) in <code>secrets.php</code> under <code>'mail' =&gt; ['password' =&gt; '...']</code>. Emails wait in the queue until then.</div>
         <?php endif; ?>
