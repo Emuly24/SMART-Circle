@@ -238,6 +238,14 @@ final class App
                     $this->session->forget('practice_admin');
                 }
             }
+            // New code waiting for "Update database": keep the site safe until the admin applies it.
+            $pending = $installer->pendingUpdates();
+            if ($pending !== []) {
+                $gate = $this->updateGate($request, $pending);
+                if ($gate !== null) {
+                    return $gate;
+                }
+            }
         } elseif ($request->path !== '/install') {
             return Response::redirect('/install');
         }
@@ -780,6 +788,32 @@ final class App
         }
 
         return Response::html($html, $status);
+    }
+
+    /**
+     * While database updates are pending, pages may need tables that do not exist yet. Only signing
+     * in and out and the update itself run normally; the admin sees the update button, everyone
+     * else a short "being updated" notice (503, so search engines come back later).
+     * @param list<string> $pending
+     */
+    private function updateGate(Request $request, array $pending): ?Response
+    {
+        $allowed = in_array($request->path, ['/login', '/logout'], true)
+            || ($request->path === '/dashboard/database-update' && $request->isPost());
+        if ($allowed) {
+            return null;
+        }
+        if ($this->context->isAdmin()) {
+            return Response::html($this->view->render('errors/update_needed', [
+                'title' => 'Update the database',
+                'pending' => $pending,
+            ], 'layouts/minimal'), 503);
+        }
+
+        return Response::html($this->view->render('errors/updating', [
+            'title' => 'Being updated',
+            'guest' => $this->context->isGuest(),
+        ], 'layouts/minimal'), 503)->withHeader('Retry-After', '600');
     }
 
     private function setupNeededPage(string $message): Response
