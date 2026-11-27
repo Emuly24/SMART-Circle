@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation;
 
+use SmartCircle\Presentation\Controllers\InvitationController;
+use SmartCircle\Application\Partners\InvitationService;
 use SmartCircle\Presentation\Controllers\CommunityController;
 use SmartCircle\Data\Repositories\ChallengeRepository;
 use SmartCircle\Data\Repositories\ProgressRepository;
@@ -668,6 +670,9 @@ final class App
         $r->post('/studio/question-suggestions/{id}', $rolesCtl->decide(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/guest', $rolesCtl->setGuest(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/certificate', $partnersCtl->certificate(...), [$csrf, $tutor]);
+        $invitationsCtl = new InvitationController(new InvitationService($documentService, $settingsService->tutorWhatsapp(...)), $this->context, $this->view);
+        $r->get('/studio/invitations', $invitationsCtl->index(...), [$tutor]);
+        $r->post('/studio/invitations', $invitationsCtl->issue(...), [$csrf, $tutor]);
 
         // Partner teachers check notes and sign
         $r->get('/partner/reviews', $reviewCtl->queue(...), [$partner]);

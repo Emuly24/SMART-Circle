@@ -1139,3 +1139,22 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .wall-card--featured { border: 2px solid var(--amber); }
 .challenge-card { margin-bottom: 12px; }
 .moderation-photo { display: inline-block; vertical-align: middle; width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-small); margin-right: 8px; }
+
+/* Written text across the site wears the brand, as notes do (brand/README.md): the About story and pages,
+   policies, message previews and quoted messages. Letters get the same rules in print.css. */
+.prose h2, .template-preview h2 { color: var(--link); padding-bottom: 6px; position: relative; }
+.prose h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 4px; border-radius: 2px; background: var(--green); }
+.prose h3 { color: var(--green-text); }
+.prose strong, .template-preview strong, .quote strong, .real-life__card strong, .story__signature strong { color: var(--link); }
+.prose em, .template-preview em, .quote em { color: var(--green-text); }
+.prose li::marker, .goals li::marker { color: var(--green); font-weight: 700; }
+.prose blockquote { margin: 14px 0; padding: 12px 14px; background: var(--amber-tint); border-left: 5px solid var(--amber); border-radius: var(--radius-small); color: var(--ink); }
+.prose a { font-weight: 600; }
+.story__text .eyebrow { color: var(--green-text); }
+.story__signature { color: var(--ink); }
+.template-preview { border-left: 5px solid var(--blue); }
+.quote--plain { border-left-color: var(--blue); background: var(--blue-tint); }
+.principles li::marker, .pledge__vows li::marker, .section-card ul li::marker, .two-col li::marker { color: var(--green); font-weight: 700; }
+.principles strong, .pledge__vows strong, .two-col strong, .section-card p strong { color: var(--link); }
+.identity-card h2, .section-card > h2, .section-card > .h3 { color: var(--link); }
+.two-col h2 { color: var(--link); }
