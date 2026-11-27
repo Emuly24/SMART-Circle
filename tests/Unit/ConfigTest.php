@@ -57,7 +57,9 @@ final class ConfigTest extends TestCase
 
     public function testFileThatDoesNotReturnSettings(): void
     {
+        ob_start();
         $c = $this->load("db name = abc\n");
+        self::assertSame('', ob_get_clean(), 'the file\'s text (passwords) is never printed');
         self::assertStringContainsString('must start with <?php', $c->secretsError);
         self::assertStringNotContainsString('abc', $c->secretsError);
     }
