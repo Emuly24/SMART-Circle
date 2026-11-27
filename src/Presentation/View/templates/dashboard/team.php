@@ -8,6 +8,7 @@ $names = \SmartCircle\Support\Subjects::NAMES;
         <p class="eyebrow">SMART Circle Team</p>
         <h1>Welcome, <?= e(explode(' ', (string) ($user['full_name'] ?? ''))[0]) ?></h1>
         <p class="lead">Your subjects: <?= e(implode(', ', array_map(static fn (string $s): string => $names[$s] ?? $s, $ctx->subjects() ?? []))) ?>. Everything below shows only these subjects.</p>
+        <?php if (!empty($attention)): ?><?= $view->partial('summary_tiles', ['m' => $attention]) ?><?php endif; ?>
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/lab"><h2>Recording studio</h2><p>Teach on the board, then upload the lesson from the Replay tab.</p><span class="tag tag--ready">Open the board</span></a>
             <a class="tile tile--link" href="/studio/lessons"><h2>My lessons</h2><p>Add the real-life sections and publish to students.</p><span class="tag tag--ready">Manage</span></a>

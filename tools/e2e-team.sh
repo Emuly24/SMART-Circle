@@ -47,15 +47,21 @@ login "$TJ" 0999123456 correct-horse-1 >/dev/null; login "$J1" 0988000001 studen
 
 echo "Role-aware home pages and menus"
 G=$(curl -s "$BASE/")
-check "guests see the public home page"    "Apply" "$G"
+check "guests see the public home page"    "How SMART Circle works" "$G"
+check "  with the application buttons"     'href="/apply/status"' "$G"
 check "  with About in the menu"           'href="/about"' "$(nav <<<"$G")"
 A=$(curl -s -b "$TJ" "$BASE/")
-check "admin home: what needs you"         "Here is what needs you today" "$A"
+check "admin sees the same home page"      "How SMART Circle works" "$A"
+check "  with Open my dashboard"           "Open my dashboard" "$A"
+refute "  no application buttons"          'href="/apply/status"' "$A"
+check "  admin summary on the dashboard"   "dashboard-summary" "$(curl -s -b "$TJ" "$BASE/dashboard")"
 check "  admin menu: Try as"               "Try as" "$(nav <<<"$A")"
 refute "  no About in the admin menu"      'href="/about"' "$(nav <<<"$A")"
 refute "  no student Topics link"          'href="/topics"' "$(nav <<<"$A")"
 SH=$(curl -s -b "$J1" "$BASE/")
-check "student home"                       "Pick up where you left off" "$SH"
+check "student sees the same home page"    "How SMART Circle works" "$SH"
+check "  with Open my dashboard"           "Open my dashboard" "$SH"
+refute "  no Apply button"                 'href="/apply"' "$SH"
 check "  student menu: Notes"              'href="/notes"' "$(nav <<<"$SH")"
 refute "  no admin links"                  "/studio/" "$(nav <<<"$SH")"
 
@@ -78,7 +84,8 @@ check "  agrees"                           "303" "$(post "$MJ" /team/agreement /
 check "  active, version recorded"         "active 2026-11" "$(sql "SELECT status, agreement_version FROM team_profiles WHERE user_id=$MID")"
 D=$(curl -s -b "$MJ" "$BASE/dashboard")
 check "team dashboard"                     "Your subjects: Physics" "$D"
-check "team home page"                     "You teach Physics" "$(curl -s -b "$MJ" "$BASE/")"
+check "team home page"                     "Open my dashboard" "$(curl -s -b "$MJ" "$BASE/")"
+check "  team summary on the dashboard"    "dashboard-summary" "$D"
 check "  team menu: My lessons"            "My lessons" "$(curl -s -b "$MJ" "$BASE/" | nav)"
 
 echo "Team tutors work only in their subjects"
@@ -153,7 +160,7 @@ check "  a taught topic is open"           "Taught at your school" "$(curl -s -b
 check "  admin pages closed"               "403" "$(code -b "$TJ" "$BASE/studio/students")"
 check "  cannot jump to another account"   "403" "$(post "$TJ" /dashboard /studio/practice/enter --data-urlencode as=team | cut -c1-3)"
 check "back to admin"                      "303" "$(post "$TJ" /dashboard /practice/leave | cut -c1-3)"
-check "  admin again"                      "Here is what needs you today" "$(curl -s -b "$TJ" "$BASE/")"
+check "  admin again"                      "dashboard-summary" "$(curl -s -b "$TJ" "$BASE/dashboard")"
 refute "  no practice bar"                 "Practice mode" "$(curl -s -b "$TJ" "$BASE/dashboard")"
 post "$TJ" /studio/practice /studio/practice/enter --data-urlencode as=partner >/dev/null
 check "as a partner teacher"               "Practice Secondary School" "$(curl -s -b "$TJ" "$BASE/dashboard")"

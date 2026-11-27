@@ -37,13 +37,12 @@ final class PageController
 
     public function home(Request $request): Response
     {
-        // Signed in: a home page made for that person (admin, team tutor, student, teacher or alumnus).
+        // The same home page for everyone; signed-in people get "Open my dashboard" instead of
+        // the application buttons. Their own summary lives on the dashboard.
         $member = $this->memberHome !== null ? ($this->memberHome)() : null;
-        if ($member !== null) {
-            return Response::html($this->view->render('pages/home_member', ['title' => 'Home', 'm' => $member]));
-        }
 
         return Response::html($this->view->render('pages/home', [
+            'member' => $member,
             'title' => 'Free science, maths and English support for Forms 1–4',
             'subjects' => self::subjects(),
             'chart' => $this->seatChart !== null ? ($this->seatChart)() : null,

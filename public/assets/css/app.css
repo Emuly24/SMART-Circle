@@ -1035,3 +1035,4 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .clarity-scale .choice { min-width: 0; }
 .offline-save { margin: 0 0 12px; }
 .offline-save[hidden] { display: none; }
+.dashboard-summary { margin: 4px 0 16px; }
