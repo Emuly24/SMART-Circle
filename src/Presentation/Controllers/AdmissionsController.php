@@ -7,8 +7,10 @@ namespace SmartCircle\Presentation\Controllers;
 use SmartCircle\Application\Admissions\AdmissionException;
 use SmartCircle\Application\Admissions\ApplicationForm;
 use SmartCircle\Application\Admissions\ApplicationService;
+use SmartCircle\Application\Admissions\DecisionEmail;
 use SmartCircle\Application\Admissions\DocumentService;
 use SmartCircle\Application\Admissions\ReviewService;
+use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
@@ -27,6 +29,8 @@ final class AdmissionsController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?MailService $mail = null,
+        private readonly string $siteUrl = '',
     ) {
     }
 
@@ -78,6 +82,11 @@ final class AdmissionsController
         } catch (AdmissionException $e) {
             $this->session->flash('error', $e->getMessage());
             return Response::redirect('/studio/admissions/' . $app['id']);
+        }
+
+        $email = DecisionEmail::build($app, $result['status'], $this->siteUrl, $result['letter_code']);
+        if ($email !== null && $this->mail !== null && (string) ($app['email'] ?? '') !== '') {
+            $this->mail->queue((string) $app['email'], (string) $app['full_name'], $email['subject'], $email['text'], 'decision_' . $result['status'], 'application', (int) $app['id'], (int) $this->context->userId());
         }
 
         if ($result['setup_code'] !== null) {

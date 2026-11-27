@@ -6,6 +6,7 @@ namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Guardians\GuardianMessages;
 use SmartCircle\Application\Guardians\GuardianService;
+use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
@@ -21,6 +22,7 @@ final class GuardianController
         private readonly Context $context,
         private readonly Session $session,
         private readonly View $view,
+        private readonly ?MailService $mail = null,
     ) {
     }
 
@@ -106,6 +108,19 @@ final class GuardianController
         $this->session->flash('success', 'Saved to the contact log.');
 
         return Response::redirect($request->input('back') === 'list' ? '/studio/guardians' : '/studio/guardians/' . $id);
+    }
+
+    public function email(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        if ($this->mail === null) {
+            throw new HttpException(404);
+        }
+        $error = $this->guardians->emailGuardian($id, $request->input('what') === 'monthly' ? 'monthly' : 'admission',
+            (string) ($this->context->user()['full_name'] ?? 'the SMART Circle tutor'), (int) $this->context->userId(), $this->mail);
+        $this->session->flash(...($error === '' ? ['success', 'Email queued. It goes out within a few minutes (see Settings, Email).'] : ['error', $error]));
+
+        return Response::redirect('/studio/guardians/' . $id);
     }
 
     /** @param array<string, string> $errors @param array<string, string> $old */

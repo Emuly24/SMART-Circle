@@ -85,6 +85,11 @@ final class UserRepository
     }
 
     /** When a member's photo was saved, or null if they have none. */
+    public function setEmailSettings(int $userId, ?string $email, bool $notifications): void
+    {
+        $this->db->run('UPDATE users SET email = ?, email_notifications = ? WHERE id = ?', [$email, $notifications ? 1 : 0, $userId]);
+    }
+
     public function avatarAt(int $userId): ?string
     {
         $v = $this->db->scalar('SELECT avatar_at FROM users WHERE id = ?', [$userId]);

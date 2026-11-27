@@ -2,6 +2,7 @@
 /**
  * @var array<string, mixed> $user
  * @var string|null $error
+ * @var string|null $emailError
  */
 $roles = ['tutor' => 'Admin', 'team' => 'SMART Circle Team', 'student' => 'Student', 'partner' => 'Partner teacher', 'alumni' => 'Alumni'];
 ?>
@@ -27,6 +28,15 @@ $roles = ['tutor' => 'Admin', 'team' => 'SMART Circle Team', 'student' => 'Stude
         <?php if (!empty($user['avatar_at'])): ?>
             <form method="post" action="/profile/photo/remove" class="inline-form"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--ghost">Remove my picture</button></form>
         <?php endif; ?>
+        <form method="post" action="/profile/email" class="form card" id="email">
+            <?= $csrf->field() ?>
+            <h2 class="h3">Email</h2>
+            <label class="field"><span class="field__label">Email address <span class="muted">(optional)</span></span>
+                <input type="email" name="email" value="<?= e($user['email'] ?? '') ?>" autocomplete="email" maxlength="190">
+                <?php if (!empty($emailError)): ?><span class="field__error"><?= e($emailError) ?></span><?php endif; ?></label>
+            <label class="choice choice--block"><input type="checkbox" name="email_notifications" value="1" <?= (int) ($user['email_notifications'] ?? 1) === 1 ? 'checked' : '' ?>> Also send my notifications to this email</label>
+            <div class="form-actions"><button type="submit" class="btn btn--small">Save</button></div>
+        </form>
     </div>
 </section>
 <script src="<?= e($asset('js/photo.js')) ?>" defer></script>

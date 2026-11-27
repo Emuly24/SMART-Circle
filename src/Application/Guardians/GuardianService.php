@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Guardians;
 
+use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Application\Notifications\NotificationService;
 use SmartCircle\Data\Repositories\GuardianRepository;
 use SmartCircle\Data\Repositories\OverviewRepository;
@@ -147,6 +148,31 @@ final class GuardianService
     {
         $this->guardians->confirm($userId, 'call');
         $this->contacts->logContact($userId, 'phone', '[Guardian] Confirmed on a call that they know the student and will support them', $tutorId);
+    }
+
+    /**
+     * Emails the welcome message or this month's update to the guardian through the site's email queue.
+     * @return string error ('' when queued)
+     */
+    public function emailGuardian(int $userId, string $what, string $tutorName, int $tutorId, MailService $mail): string
+    {
+        $kit = $this->kit($userId, $tutorName);
+        $email = $kit === null ? '' : (string) ($kit['g']['guardian_email'] ?? '');
+        if ($kit === null || $email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return 'This guardian has no email address.';
+        }
+        if (!$mail->enabled()) {
+            return 'Email is not set up yet: add the Zoho password to secrets.php.';
+        }
+        $first = explode(' ', trim((string) $kit['g']['full_name']))[0];
+        $subject = $what === 'monthly'
+            ? 'SMART Circle: ' . $first . ($kit['lang'] === 'ny' ? '' : ' – monthly update')
+            : GuardianMessages::admissionSubject($kit['lang'], $first);
+        $mail->queue($email, (string) ($kit['g']['guardian_name'] ?? ''), $subject, $what === 'monthly' ? $kit['monthly'] : $kit['admission'],
+            'guardian_' . $what, 'user', $userId, $tutorId);
+        $this->logSent($userId, $what, 'email', $tutorId);
+
+        return '';
     }
 
     /** Records that a message went out (the tutor sends it from their own phone). */

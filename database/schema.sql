@@ -1918,11 +1918,27 @@ CREATE TABLE note_reviews (
     CONSTRAINT fk_note_reviews_reviewer FOREIGN KEY (reviewer_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------------------
+-- Migration 0021_email
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: email goes out through Zoho SMTP from a queue, a few at a time on normal page visits
+-- (no cron on InfinityFree). Failed sends are retried later; people choose whether to get notifications by email.
+
+ALTER TABLE mail_queue
+    ADD COLUMN next_try_at DATETIME NULL COMMENT 'Retry after a failure' AFTER attempts,
+    ADD KEY idx_mail_queue_due (status, next_try_at);
+
+ALTER TABLE users
+    ADD COLUMN email_notifications TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Also send my notifications by email (when I have an email address)' AFTER email;
+
+INSERT INTO scheduled_jobs (name, interval_minutes) VALUES ('mail', 2)
+    ON DUPLICATE KEY UPDATE interval_minutes = VALUES(interval_minutes);
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews'), ('0021_email');
 
 SET FOREIGN_KEY_CHECKS = 1;
