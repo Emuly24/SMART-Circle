@@ -9,7 +9,7 @@
     <div class="container narrow-wide">
         <div class="page-head">
             <h1>Messages</h1>
-            <a class="btn btn--small" href="/messages/new"><?= $role === 'tutor' ? 'New message or announcement' : 'Write to the tutor' ?></a>
+            <a class="btn btn--small" href="/messages/new"><?= in_array($role, ['tutor', 'team'], true) ? 'New message or announcement' : 'Write to the tutor' ?></a>
         </div>
         <?php if ($role === 'student'): ?>
             <p class="muted">You can write to the tutor about your studies. For something private, use the <a href="/support">private room</a>.</p>
@@ -25,7 +25,7 @@
                                 <span class="inbox-row__subject"><?php if ($c['kind'] === 'announcement'): ?><span class="chip chip--planned">Announcement</span> <?php endif; ?><?= e($c['subject']) ?></span>
                                 <span class="muted inbox-row__when"><?= e(date('j M, H:i', (int) strtotime((string) $c['last_message_at']))) ?></span>
                             </span>
-                            <span class="inbox-row__who muted"><?= e($c['kind'] === 'announcement' && $role === 'tutor' ? 'To: ' . ($c['audience'] === 'students' ? 'all students' : ($c['audience'] === 'partners' ? 'all partners' : ($c['audience'] === 'alumni' ? 'all alumni' : 'Form ' . substr((string) $c['audience'], 5)))) : 'With: ' . ($c['others'] ?? '')) ?></span>
+                            <span class="inbox-row__who muted"><?= e($c['kind'] === 'announcement' && (int) $c['created_by'] === $me ? 'To: ' . ($c['audience'] === 'students' ? 'all students' : ($c['audience'] === 'partners' ? 'all partners' : ($c['audience'] === 'alumni' ? 'all alumni' : (str_starts_with((string) $c['audience'], 'subject:') ? 'students taking ' . substr((string) $c['audience'], 8) : 'Form ' . substr((string) $c['audience'], 5))))) : 'With: ' . ($c['others'] ?? '')) ?></span>
                             <span class="inbox-row__last"><?= e(((int) $c['last_author'] === $me ? 'You: ' : '') . mb_strimwidth((string) $c['last_body'], 0, 110, '…')) ?></span>
                             <?php if ($unread): ?><span class="bell__count inbox-row__count" aria-label="<?= e($c['unread']) ?> unread"><?= e($c['unread']) ?></span><?php endif; ?>
                         </a>

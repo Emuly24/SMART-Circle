@@ -16,7 +16,7 @@ final class UserRepository
     public function findById(int $id): ?array
     {
         return $this->db->one(
-            'SELECT id, role, full_name, phone, email, gender, status, must_change_password, last_login_at, created_at
+            'SELECT id, role, full_name, phone, email, gender, status, is_practice, must_change_password, last_login_at, created_at
              FROM users WHERE id = ?',
             [$id]
         );

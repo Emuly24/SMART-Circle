@@ -96,7 +96,7 @@
         <div>
             <h2>A small, serious class</h2>
             <p>
-                24 places: six per form, three girls and three boys, from different schools. Day scholars,
+                <?= e(isset($chart) && $chart !== null ? $chart->totalSeats() : 24) ?> places across Forms 1–4, with seats kept for both girls and boys in every form, from different schools. Day scholars,
                 boarders, self-boarders and evening-class students are all welcome.
                 It costs no money: students pay with discipline.
             </p>

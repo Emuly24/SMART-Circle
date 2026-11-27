@@ -33,5 +33,6 @@ $user = $ctx->user() ?? [];
                 <p class="note">Your invitation letter: <a href="/letters/<?= e($summary['letters'][0]['code']) ?>">open and print</a>.</p>
             <?php endif; ?>
         <?php endif; ?>
+        <?= $view->partial('community') ?>
     </div>
 </section>

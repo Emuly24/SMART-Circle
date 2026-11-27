@@ -16,8 +16,16 @@ final class PageController
     /** @var (\Closure(): ?array)|null */
     private ?\Closure $openIntake = null;
 
+    /** @var (\Closure(): ?array)|null what a signed-in person's home page shows */
+    private ?\Closure $memberHome = null;
+
     public function __construct(private readonly View $view)
     {
+    }
+
+    public function setMemberHome(\Closure $memberHome): void
+    {
+        $this->memberHome = $memberHome;
     }
 
     /** The home page shows the live seat chart and whether applications are open. */
@@ -29,6 +37,12 @@ final class PageController
 
     public function home(Request $request): Response
     {
+        // Signed in: a home page made for that person (admin, team tutor, student, teacher or alumnus).
+        $member = $this->memberHome !== null ? ($this->memberHome)() : null;
+        if ($member !== null) {
+            return Response::html($this->view->render('pages/home_member', ['title' => 'Home', 'm' => $member]));
+        }
+
         return Response::html($this->view->render('pages/home', [
             'title' => 'Free science, maths and English support for Forms 1–4',
             'subjects' => self::subjects(),

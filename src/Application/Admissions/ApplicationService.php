@@ -39,7 +39,7 @@ final class ApplicationService
     {
         $intake = $this->intakes->current();
 
-        return $intake === null ? null : new SeatChart((int) $intake['seats_per_group'], $this->applications->seatCounts((int) $intake['id']));
+        return $intake === null ? null : SeatChart::fromIntake($intake, $this->applications->seatCounts((int) $intake['id']));
     }
 
     /**

@@ -42,6 +42,45 @@ final class Context
 
     private bool $needsOnboarding = false;
 
+    /** @var list<string>|null subjects a team tutor may work in; null = no limit */
+    private ?array $subjects = null;
+
+    private ?int $practiceAdmin = null;
+
+    /** @param list<string>|null $subjects */
+    public function setSubjects(?array $subjects): void
+    {
+        $this->subjects = $subjects;
+    }
+
+    /** @return list<string>|null null = every subject (the admin) */
+    public function subjects(): ?array
+    {
+        return $this->subjects;
+    }
+
+    /** May the signed-in person work in this subject (team tutors: only their own)? */
+    public function canTeach(?string $subject): bool
+    {
+        return $this->subjects === null || ($subject !== null && in_array($subject, $this->subjects, true));
+    }
+
+    /** The admin's own id while they are trying the site as a practice account. */
+    public function setPracticeAdmin(?int $adminId): void
+    {
+        $this->practiceAdmin = $adminId;
+    }
+
+    public function practiceAdmin(): ?int
+    {
+        return $this->practiceAdmin;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role() === 'tutor';
+    }
+
     public function setNeedsOnboarding(bool $needs): void
     {
         $this->needsOnboarding = $needs;

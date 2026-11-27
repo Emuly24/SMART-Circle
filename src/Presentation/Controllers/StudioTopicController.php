@@ -6,6 +6,7 @@ namespace SmartCircle\Presentation\Controllers;
 
 use SmartCircle\Application\Topics\RequestService;
 use SmartCircle\Application\Topics\TopicService;
+use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\HttpException;
 use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
@@ -21,6 +22,7 @@ final class StudioTopicController
         private readonly RequestService $requests,
         private readonly Session $session,
         private readonly View $view,
+        private readonly Context $context = new Context(),
     ) {
     }
 
@@ -30,15 +32,16 @@ final class StudioTopicController
     {
         $filter = [
             'form' => (int) $request->query('form', '0'),
-            'subject' => isset(Subjects::NAMES[$request->query('subject')]) ? $request->query('subject') : '',
+            'subject' => isset(Subjects::NAMES[$request->query('subject')]) && $this->context->canTeach($request->query('subject')) ? $request->query('subject') : '',
             'status' => in_array($request->query('status', 'active'), ['active', 'open', 'planned', 'recorded', 'closed', 'all'], true)
                 ? $request->query('status', 'active') : 'active',
         ];
 
         return Response::html($this->view->render('studio/requests/index', [
             'title' => 'Topic requests',
-            'rows' => $this->requests->ranked(array_merge($filter, ['status' => $filter['status'] === 'all' ? '' : $filter['status']])),
-            'ready' => $this->requests->readyToRecord($filter),
+            'rows' => array_values(array_filter($this->requests->ranked(array_merge($filter, ['status' => $filter['status'] === 'all' ? '' : $filter['status']])),
+                fn (array $r): bool => $this->context->canTeach((string) $r['subject']))),
+            'ready' => array_values(array_filter($this->requests->readyToRecord($filter), fn (array $r): bool => $this->context->canTeach(isset($r['subject']) ? (string) $r['subject'] : null))),
             'filter' => $filter,
             'names' => Subjects::NAMES,
             'short' => RequestService::STRUGGLES_SHORT,

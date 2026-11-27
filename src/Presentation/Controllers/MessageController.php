@@ -53,7 +53,7 @@ final class MessageController
     public function announce(Request $request): Response
     {
         $in = ['audience' => $request->input('audience'), 'subject' => $request->input('subject'), 'body' => $request->input('body')];
-        $result = $this->messages->announce($this->uid(), $in['audience'], $in['subject'], $in['body']);
+        $result = $this->messages->announce($this->uid(), $in['audience'], $in['subject'], $in['body'], $this->context->subjects());
         if ($result['errors'] !== []) {
             return $this->form($result['errors'], $in + ['mode' => 'announce'], 422);
         }
@@ -113,8 +113,8 @@ final class MessageController
         return Response::html($this->view->render('messages/new', [
             'title' => 'New message',
             'recipients' => $this->messages->recipients($this->uid(), $this->role()),
-            'audiences' => MessageService::AUDIENCES,
-            'isTutor' => $this->role() === 'tutor',
+            'audiences' => MessageService::audiencesFor($this->context->subjects()),
+            'isTutor' => in_array($this->role(), ['tutor', 'team'], true),
             'errors' => $errors,
             'old' => $old,
         ]), $status);

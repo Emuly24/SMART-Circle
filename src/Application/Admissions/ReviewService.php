@@ -39,7 +39,7 @@ final class ReviewService
 
     public function seatChart(array $intake): SeatChart
     {
-        return new SeatChart((int) $intake['seats_per_group'], $this->applications->seatCounts((int) $intake['id']));
+        return SeatChart::fromIntake($intake, $this->applications->seatCounts((int) $intake['id']));
     }
 
     /**
@@ -144,13 +144,16 @@ final class ReviewService
         return $code;
     }
 
-    public function updateIntake(int $id, string $name, ?string $closesAt, int $seats, bool $active): void
+    /** @param array<int|string, array<string, mixed>>|null $plan seats per form and gender (the admin can enrol more students) */
+    public function updateIntake(int $id, string $name, ?string $closesAt, int $seats, bool $active, ?array $plan = null): void
     {
-        $this->intakes->update($id, mb_substr(trim($name), 0, 100) ?: 'Intake', $closesAt, max(1, min(10, $seats)), $active);
+        $seats = max(1, min(SeatChart::MAX_PER_CELL, $seats));
+        $this->intakes->update($id, mb_substr(trim($name), 0, 100) ?: 'Intake', $closesAt, $seats, $active,
+            $plan !== null ? json_encode(SeatChart::planFrom($plan, $seats), JSON_THROW_ON_ERROR) : null);
     }
 
     public function newIntake(string $name, int $seats): int
     {
-        return $this->intakes->create(mb_substr(trim($name), 0, 100) ?: 'New intake', max(1, min(10, $seats)));
+        return $this->intakes->create(mb_substr(trim($name), 0, 100) ?: 'New intake', max(1, min(SeatChart::MAX_PER_CELL, $seats)));
     }
 }

@@ -76,15 +76,45 @@ final class SupportService
         return $this->messages->supportRooms();
     }
 
-    /** @return array<string, mixed>|null */
-    public function forTutor(int $conversationId, int $tutorId): ?array
+    /**
+     * The room for the admin, or for a team tutor the admin has added to it.
+     * @return array<string, mixed>|null
+     */
+    public function forTutor(int $conversationId, int $tutorId, string $role = 'tutor'): ?array
     {
         $c = $this->messages->conversation($conversationId);
         if ($c === null || $c['kind'] !== 'support') {
             return null;
         }
 
-        return $this->service->open($conversationId, $tutorId, 'tutor');
+        return $this->service->open($conversationId, $tutorId, $role);
+    }
+
+    /** A team tutor added to the room replies. @return string|null error */
+    public function replyAsTeam(int $conversationId, int $userId, string $body): ?string
+    {
+        return $this->service->reply($conversationId, $userId, 'team', $body);
+    }
+
+    /** The admin adds a team tutor to a student's room (the student sees who is in it). */
+    public function addMember(int $conversationId, int $userId): bool
+    {
+        $c = $this->messages->conversation($conversationId);
+        $isTeam = in_array($userId, array_map(static fn (array $p): int => (int) $p['id'], $this->messages->people('team')), true);
+        if ($c === null || $c['kind'] !== 'support' || !$isTeam) {
+            return false;
+        }
+        $this->messages->addMember($conversationId, $userId);
+        $this->notifications->notify([$userId], 'support', 'You have been added to a private room', 'The admin asked you to help with a student’s private room.', '/studio/support/' . $conversationId);
+        $this->notifications->notify([(int) $c['student_id']], 'support', 'A team tutor has joined your private room', null, '/support');
+
+        return true;
+    }
+
+    /** @return list<array<string, mixed>> active team tutors who could be added */
+    public function teamTutors(): array
+    {
+        return $this->messages->people('team');
     }
 
     public function guardianNotified(int $conversationId): void

@@ -138,6 +138,11 @@ final class MessageRepository
     /** @return list<array<string, mixed>> active users who may receive messages, by role */
     public function people(string $role): array
     {
+        if ($role === 'team') {
+            return $this->db->all("SELECT u.id, u.full_name FROM users u JOIN team_profiles t ON t.user_id = u.id
+                                   WHERE u.role = 'team' AND u.status = 'active' AND t.status = 'active' ORDER BY u.full_name");
+        }
+
         return $this->db->all("SELECT id, full_name FROM users WHERE role = ? AND status = 'active' ORDER BY full_name", [$role]);
     }
 }

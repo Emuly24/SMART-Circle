@@ -32,8 +32,8 @@ final class StudioNoteController
     {
         return Response::html($this->view->render('studio/notes/index', [
             'title' => 'Notes & slides',
-            'notes' => $this->notes->all(),
-            'names' => Subjects::NAMES,
+            'notes' => array_values(array_filter($this->notes->all(), fn (array $n): bool => $this->context->canTeach((string) $n['subject']))),
+            'names' => $this->subjectNames(),
             'kinds' => NoteService::KINDS,
         ]));
     }
@@ -41,7 +41,7 @@ final class StudioNoteController
     public function create(Request $request): Response
     {
         if (!$request->isPost()) {
-            return $this->detailsPage(['id' => null, 'kind' => 'notes', 'form' => 1, 'subject' => 'mathematics'], []);
+            return $this->detailsPage(['id' => null, 'kind' => 'notes', 'form' => 1, 'subject' => array_key_first($this->subjectNames())], []);
         }
         $input = $this->input($request);
         $r = $this->notes->save(null, $input, (int) $this->context->userId());
@@ -168,7 +168,7 @@ final class StudioNoteController
             'note' => $note,
             'blocks' => $this->notes->blocksForEditor((int) $note['id']),
             'errors' => $errors,
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'kinds' => NoteService::KINDS,
             'topicOptions' => $this->topicOptions((int) $note['form'], (string) $note['subject']),
         ]), $status);
@@ -181,7 +181,7 @@ final class StudioNoteController
             'title' => 'New notes or slides',
             'note' => $note,
             'errors' => $errors,
-            'names' => Subjects::NAMES,
+            'names' => $this->subjectNames(),
             'kinds' => NoteService::KINDS,
             'allTopics' => $this->topics->options(),
         ]), $status);
@@ -208,5 +208,13 @@ final class StudioNoteController
     private function noteOr404(Request $request): array
     {
         return $this->notes->find((int) $request->param('id')) ?? throw new HttpException(404);
+    }
+
+    /** Subjects this person may choose (team tutors: only their own). @return array<string, string> */
+    private function subjectNames(): array
+    {
+        $scope = $this->context->subjects();
+
+        return $scope === null ? Subjects::NAMES : array_intersect_key(Subjects::NAMES, array_flip($scope));
     }
 }

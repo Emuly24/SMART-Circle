@@ -12,6 +12,7 @@
  * @var string $path
  * @var callable|null $unreadCount
  * @var callable|null $messageCount
+ * @var callable|null $community
  */
 $user = $ctx->user();
 ?>
@@ -41,26 +42,33 @@ $user = $ctx->user();
             <span class="nav-toggle__bars" aria-hidden="true"></span><span class="nav-toggle__label">Menu</span>
         </button>
         <nav class="site-nav" id="site-nav" aria-label="Main">
-            <a href="/" <?= ($path ?? '') === '/' ? 'aria-current="page"' : '' ?>>Home</a>
-            <a href="/about" <?= ($path ?? '') === '/about' ? 'aria-current="page"' : '' ?>>About</a>
             <?php if ($user === null): ?>
+                <a href="/" <?= ($path ?? '') === '/' ? 'aria-current="page"' : '' ?>>Home</a>
+                <a href="/about" <?= ($path ?? '') === '/about' ? 'aria-current="page"' : '' ?>>About</a>
                 <a class="btn btn--small" href="/login">Log in</a>
-            <?php else: ?>
+            <?php else: $role = (string) $user['role']; ?>
+                <a href="/" <?= ($path ?? '') === '/' ? 'aria-current="page"' : '' ?>>Home</a>
                 <a href="/dashboard" <?= ($path ?? '') === '/dashboard' ? 'aria-current="page"' : '' ?>>Dashboard</a>
-                <?php if ($user['role'] === 'partner'): ?>
+                <?php if ($role === 'tutor'): ?>
+                    <a href="/studio/students" <?= str_starts_with($path ?? '', '/studio/students') ? 'aria-current="page"' : '' ?>>Students</a>
+                    <a href="/studio/marking" <?= str_starts_with($path ?? '', '/studio/marking') ? 'aria-current="page"' : '' ?>>Marking</a>
+                    <a href="/studio/practice" <?= str_starts_with($path ?? '', '/studio/practice') ? 'aria-current="page"' : '' ?>>Try as</a>
+                <?php elseif ($role === 'team'): ?>
+                    <a href="/studio/lessons" <?= str_starts_with($path ?? '', '/studio/lessons') ? 'aria-current="page"' : '' ?>>My lessons</a>
+                    <a href="/studio/notes" <?= str_starts_with($path ?? '', '/studio/notes') ? 'aria-current="page"' : '' ?>>Notes</a>
+                    <a href="/studio/marking" <?= str_starts_with($path ?? '', '/studio/marking') ? 'aria-current="page"' : '' ?>>Marking</a>
+                <?php elseif ($role === 'partner'): ?>
                     <a href="/partner/coverage" <?= str_starts_with($path ?? '', '/partner/coverage') ? 'aria-current="page"' : '' ?>>Topics taught</a>
                     <a href="/partner/textbooks" <?= str_starts_with($path ?? '', '/partner/textbooks') ? 'aria-current="page"' : '' ?>>Textbooks</a>
                     <a href="/partner/calendar" <?= str_starts_with($path ?? '', '/partner/calendar') ? 'aria-current="page"' : '' ?>>Calendar</a>
-                <?php elseif ($user['role'] === 'alumni'): ?>
+                <?php elseif ($role === 'alumni'): ?>
                     <a href="/alumni/community" <?= str_starts_with($path ?? '', '/alumni/community') ? 'aria-current="page"' : '' ?>>Community</a>
                     <a href="/results/mine" <?= str_starts_with($path ?? '', '/results') ? 'aria-current="page"' : '' ?>>Results</a>
                     <a href="/office-hours" <?= str_starts_with($path ?? '', '/office-hours') ? 'aria-current="page"' : '' ?>>Office hours</a>
                 <?php else: ?>
                     <a href="/topics" <?= str_starts_with($path ?? '', '/topics') ? 'aria-current="page"' : '' ?>>Topics</a>
-                    <?php if ($user['role'] === 'student'): ?>
-                        <a href="/notes" <?= str_starts_with($path ?? '', '/notes') ? 'aria-current="page"' : '' ?>>Notes</a>
-                        <a href="/assessments" <?= str_starts_with($path ?? '', '/assessments') ? 'aria-current="page"' : '' ?>>Exams</a>
-                    <?php endif; ?>
+                    <a href="/notes" <?= str_starts_with($path ?? '', '/notes') ? 'aria-current="page"' : '' ?>>Notes</a>
+                    <a href="/assessments" <?= str_starts_with($path ?? '', '/assessments') ? 'aria-current="page"' : '' ?>>Exams</a>
                 <?php endif; ?>
                 <?php $msgs = isset($messageCount) ? $messageCount() : 0; ?>
                 <a href="/messages" <?= str_starts_with($path ?? '', '/messages') ? 'aria-current="page"' : '' ?>>Messages<?php if ($msgs > 0): ?> <span class="nav-count" aria-label="<?= e($msgs) ?> unread"><?= e($msgs > 99 ? '99+' : $msgs) ?></span><?php endif; ?></a>
@@ -88,6 +96,14 @@ $user = $ctx->user();
     </div>
 </header>
 
+<?php if ($ctx->practiceAdmin() !== null): ?>
+    <div class="practice-bar" role="status">
+        <div class="container practice-bar__inner">
+            <span><strong>Practice mode:</strong> you are seeing SMART Circle as <?= e($user['full_name'] ?? '') ?>. Anything you do here is practice data.</span>
+            <form method="post" action="/practice/leave" class="inline-form"><?= $csrf->field() ?><button type="submit" class="btn btn--small">Back to admin</button></form>
+        </div>
+    </div>
+<?php endif; ?>
 <main id="main" class="site-main">
     <?php foreach ($flashes() as $flash): ?>
         <div class="container">

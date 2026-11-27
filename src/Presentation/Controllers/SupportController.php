@@ -70,11 +70,13 @@ final class SupportController
     public function reply(Request $request): Response
     {
         $id = (int) $request->param('id');
-        $thread = $this->support->forTutor($id, (int) $this->context->userId());
+        $thread = $this->support->forTutor($id, (int) $this->context->userId(), (string) $this->context->role());
         if ($thread === null) {
             throw new HttpException(404);
         }
-        $r = $this->support->invite((int) $this->context->userId(), (int) $thread['conversation']['student_id'], $request->input('body'));
+        $r = $this->context->isAdmin()
+            ? $this->support->invite((int) $this->context->userId(), (int) $thread['conversation']['student_id'], $request->input('body'))
+            : ['error' => $this->support->replyAsTeam($id, (int) $this->context->userId(), $request->input('body')), 'id' => $id];
         if ($r['error'] !== null) {
             return $this->tutorPage($id, $request->input('body'), $r['error'], 422);
         }
@@ -107,13 +109,23 @@ final class SupportController
         return Response::redirect('/studio/support/' . (int) $request->param('id'));
     }
 
+    public function addMember(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $ok = $this->support->addMember($id, (int) $request->input('user_id'));
+        $this->session->flash(...($ok ? ['success', 'Team tutor added. The student has been told who joined.'] : ['error', 'Could not add that person.']));
+
+        return Response::redirect('/studio/support/' . $id);
+    }
+
     private function tutorPage(int $id, string $draft, ?string $error = null, int $status = 200): Response
     {
-        $thread = $this->support->forTutor($id, (int) $this->context->userId());
+        $thread = $this->support->forTutor($id, (int) $this->context->userId(), (string) $this->context->role());
         if ($thread === null) {
             throw new HttpException(404);
         }
-        $student = $this->students->one((int) $thread['conversation']['student_id']);
+        $isAdmin = $this->context->isAdmin();
+        $student = $isAdmin ? $this->students->one((int) $thread['conversation']['student_id']) : null;
         $guardianLink = null;
         if ($student !== null && ($g = PhoneNumber::normalize((string) ($student['guardian_phone'] ?? ''))) !== null) {
             $guardianLink = 'https://wa.me/' . ltrim($g, '+') . '?text='
@@ -128,6 +140,9 @@ final class SupportController
             'me' => (int) $this->context->userId(),
             'draft' => $draft,
             'error' => $error,
+            'isAdmin' => $isAdmin,
+            'team' => $isAdmin ? array_values(array_filter($this->support->teamTutors(),
+                static fn (array $p): bool => !in_array((int) $p['id'], array_map(static fn (array $m): int => (int) $m['user_id'], $thread['members']), true))) : [],
         ]), $status);
     }
 }

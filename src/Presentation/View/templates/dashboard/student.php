@@ -45,5 +45,6 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/support"><h2>Talk privately</h2><p>Something affecting your studies? A private, kept room with the tutor.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/notifications"><h2>Notifications</h2><p>Find out when a lesson you asked for is planned or ready.</p><span class="tag tag--ready">Open</span></a>
         </div>
+        <?= $view->partial('community') ?>
     </div>
 </section>

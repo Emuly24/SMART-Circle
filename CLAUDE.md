@@ -4,8 +4,8 @@ These rules apply to every change, by humans or AI assistants.
 
 ## 1. What SMART Circle is
 
-A free, **replay-based** support programme for **24 Form 1–4 students** in Malawi
-(6 per form: 3 girls, 3 boys) in **Mathematics, Physics, Chemistry, Biology and English grammar**.
+A free, **replay-based** support programme for Form 1–4 students in Malawi (by default **24**: 3 girls and
+3 boys per form; the admin can raise the seats per form and gender) in **Mathematics, Physics, Chemistry, Biology and English grammar**.
 Students request topics their school has covered; the tutor records lessons on an iPad board;
 every lesson answers "why does this matter / where is it used in real life?".
 Admitted students get everything; the public gets free PDF handouts from each lesson.
@@ -18,6 +18,9 @@ Admitted students get everything; the public gets free PDF handouts from each le
 - No live streaming. No attendance or discipline features.
 - **Honesty rule:** a topic, its lessons, requests and (later) exercises open to a student only when
   their own school has taught it (`AccessService`). Never bypass it; early access is a tutor decision.
+- **Roles:** `tutor` (the admin), `team` (volunteer tutors: only their own subjects, enforced by `SubjectGuard`;
+  they agree to `TeamAgreement` first), `student`, `partner` (school teachers), `alumni`. Pages and menus follow the
+  signed-in role. Practice accounts (`users.is_practice`) exist only for the admin's "Try as" test mode.
 - Brand: logo, colours and typography in `brand/README.md` — use them everywhere.
 
 ## 2. Layout and layers
@@ -81,7 +84,7 @@ Only `Request::fromGlobals()` reads superglobals; only `Session` touches `$_SESS
 - Work on a branch (`v2/...`); never commit to `main` directly.
 - Before committing: `composer lint` and `composer test` (PHPUnit), plus `tools/e2e.sh`,
   `tools/e2e-lessons.sh`, `tools/e2e-admissions.sh`,
-  `tools/e2e-topics.sh`, `tools/e2e-partners.sh`, `tools/e2e-honesty.sh`, `tools/e2e-assessments.sh`, `tools/e2e-notes.sh`, `tools/e2e-grades.sh`, `tools/e2e-support.sh` and `tools/e2e-maneb.sh` when a database is available (ideally also against
+  `tools/e2e-topics.sh`, `tools/e2e-partners.sh`, `tools/e2e-honesty.sh`, `tools/e2e-assessments.sh`, `tools/e2e-notes.sh`, `tools/e2e-grades.sh`, `tools/e2e-support.sh`, `tools/e2e-maneb.sh` and `tools/e2e-team.sh` when a database is available (ideally also against
   Apache, which honours the .htaccess files).
 - After adding a migration, run `php tools/build-schema.php` to refresh `database/schema.sql`
   (a unit test fails if it is out of date). See `docs/database.md`.

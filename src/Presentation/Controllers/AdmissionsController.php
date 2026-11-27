@@ -129,6 +129,7 @@ final class AdmissionsController
         return Response::html($this->view->render('studio/admissions/intake', [
             'title' => 'Intake settings',
             'intake' => $this->review->currentIntake(),
+            'chart' => ($i = $this->review->currentIntake()) !== null ? $this->review->seatChart($i) : null,
         ]));
     }
 
@@ -144,7 +145,9 @@ final class AdmissionsController
         $closes = trim($request->input('closes_at'));
         $closesAt = preg_match('/^\d{4}-\d{2}-\d{2}$/', $closes) ? $closes . ' 23:59:59' : null;
         $active = $request->input('is_open') === '1';
-        $this->review->updateIntake((int) $intake['id'], $request->input('name'), $active ? $closesAt : date('Y-m-d H:i:s'), (int) $request->input('seats_per_group', '3'), true);
+        $plan = $request->allInput()['plan'] ?? null;
+        $this->review->updateIntake((int) $intake['id'], $request->input('name'), $active ? $closesAt : date('Y-m-d H:i:s'),
+            (int) $request->input('seats_per_group', '3'), true, is_array($plan) ? $plan : null);
         $this->session->flash('success', $active ? 'Intake saved. Applications are open.' : 'Intake saved. Applications are now closed.');
 
         return Response::redirect('/studio/admissions');
