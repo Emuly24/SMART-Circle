@@ -15,7 +15,7 @@ final class MessageService
 {
     public const MAX_LENGTH = 4000;
     public const PER_HOUR = 30;
-    public const AUDIENCES = ['students' => 'All students', 'form:1' => 'Form 1', 'form:2' => 'Form 2', 'form:3' => 'Form 3', 'form:4' => 'Form 4', 'partners' => 'All partner teachers'];
+    public const AUDIENCES = ['students' => 'All students', 'form:1' => 'Form 1', 'form:2' => 'Form 2', 'form:3' => 'Form 3', 'form:4' => 'Form 4', 'alumni' => 'All alumni', 'partners' => 'All partner teachers'];
 
     public function __construct(
         private readonly MessageRepository $messages,
@@ -44,7 +44,7 @@ final class MessageService
     {
         if ($role === 'tutor') {
             $out = [];
-            foreach (['student', 'partner', 'tutor'] as $r) {
+            foreach (['student', 'alumni', 'partner', 'tutor'] as $r) {
                 foreach ($this->messages->people($r) as $p) {
                     if ((int) $p['id'] !== $userId) {
                         $out[] = $p + ['role' => $r];
@@ -123,8 +123,8 @@ final class MessageService
     /** @return list<int> */
     private function audienceIds(string $audience): array
     {
-        if ($audience === 'partners') {
-            return array_map(static fn (array $p): int => (int) $p['id'], $this->messages->people('partner'));
+        if ($audience === 'partners' || $audience === 'alumni') {
+            return array_map(static fn (array $p): int => (int) $p['id'], $this->messages->people($audience === 'partners' ? 'partner' : 'alumni'));
         }
         $form = str_starts_with($audience, 'form:') ? (int) substr($audience, 5) : null;
         $ids = [];
@@ -245,6 +245,12 @@ final class MessageService
         return $this->messages->sentInLastHour($userId) >= self::PER_HOUR
             ? 'You have sent a lot of messages in the last hour. Please wait a little before sending more.'
             : null;
+    }
+
+    /** @return list<array<string, mixed>> active alumni */
+    public function alumni(): array
+    {
+        return $this->messages->people('alumni');
     }
 
     /** @return list<array<string, mixed>> */

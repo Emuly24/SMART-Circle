@@ -89,6 +89,8 @@ $mine = $request !== null && !empty($request['joined']);
                 <?php elseif ($state === 'self_unverified' || $state === 'self_confirmed'): ?>
                     <p>You told us your class has covered this topic.<?= $state === 'self_unverified' ? ' The tutor will check with your school.' : '' ?></p>
                     <?php if ($state === 'self_unverified'): ?><p class="access-card__actions"><?= $reportForm('clear', 'Undo: we haven’t covered it', 'btn btn--small btn--ghost') ?></p><?php endif; ?>
+                <?php elseif ($state === 'revision'): ?>
+                    <p>Open for your MANEB revision: the whole exam syllabus opens three weeks before the exam. <a href="/revision">Your revision plan</a></p>
                 <?php elseif ($state === 'exception'): ?>
                     <p>The tutor opened this topic early for you.</p>
                 <?php elseif ($state === 'class_not_yet'): ?>

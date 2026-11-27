@@ -8,7 +8,7 @@
 $views = $report['views'];
 $total = array_sum($views);
 $pct = static fn (int $n): string => $total > 0 ? (string) round(100 * $n / $total) . '%' : '—';
-$labels = ['school' => 'School had taught the topic', 'self' => 'Student’s class had covered it', 'exception' => 'Opened early by the tutor', 'untagged' => 'Older lesson without a topic', 'unknown' => 'Before this report existed'];
+$labels = ['school' => 'School had taught the topic', 'self' => 'Student’s class had covered it', 'exception' => 'Opened early by the tutor', 'revision' => 'MANEB revision (3 weeks before the exam)', 'untagged' => 'Older lesson without a topic', 'unknown' => 'Before this report existed'];
 $r = $report['reports'];
 ?>
 <section class="section section--tight">

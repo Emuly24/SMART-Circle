@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Application\Topics;
 
+use SmartCircle\Application\Calendar\RevisionMode;
 use SmartCircle\Data\Repositories\StudentRepository;
 use SmartCircle\Data\Repositories\TextbookRepository;
 use SmartCircle\Data\Repositories\TopicRepository;
@@ -19,6 +20,7 @@ final class TopicService
         private readonly TopicRepository $topics,
         private readonly StudentRepository $students,
         private readonly ?TextbookRepository $textbooks = null,
+        private readonly RevisionMode $revision = new RevisionMode(),
     ) {
     }
 
@@ -40,7 +42,7 @@ final class TopicService
     /** @return array<string, mixed>|null the student's profile (form, track, school) */
     public function studentProfile(int $userId): ?array
     {
-        return $this->students->profile($userId);
+        return $this->revision->apply($this->students->profile($userId));
     }
 
     /**
@@ -63,7 +65,9 @@ final class TopicService
             return true;
         }
 
-        return (int) $profile['form'] === $form && in_array($subject, self::subjectsFor($profile), true);
+        $forms = isset($profile['forms']) ? array_map('intval', (array) $profile['forms']) : [(int) $profile['form']];
+
+        return in_array($form, $forms, true) && in_array($subject, self::subjectsFor($profile), true);
     }
 
     /**

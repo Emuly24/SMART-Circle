@@ -51,6 +51,10 @@ $user = $ctx->user();
                     <a href="/partner/coverage" <?= str_starts_with($path ?? '', '/partner/coverage') ? 'aria-current="page"' : '' ?>>Topics taught</a>
                     <a href="/partner/textbooks" <?= str_starts_with($path ?? '', '/partner/textbooks') ? 'aria-current="page"' : '' ?>>Textbooks</a>
                     <a href="/partner/calendar" <?= str_starts_with($path ?? '', '/partner/calendar') ? 'aria-current="page"' : '' ?>>Calendar</a>
+                <?php elseif ($user['role'] === 'alumni'): ?>
+                    <a href="/alumni/community" <?= str_starts_with($path ?? '', '/alumni/community') ? 'aria-current="page"' : '' ?>>Community</a>
+                    <a href="/results/mine" <?= str_starts_with($path ?? '', '/results') ? 'aria-current="page"' : '' ?>>Results</a>
+                    <a href="/office-hours" <?= str_starts_with($path ?? '', '/office-hours') ? 'aria-current="page"' : '' ?>>Office hours</a>
                 <?php else: ?>
                     <a href="/topics" <?= str_starts_with($path ?? '', '/topics') ? 'aria-current="page"' : '' ?>>Topics</a>
                     <?php if ($user['role'] === 'student'): ?>
@@ -97,7 +101,7 @@ $user = $ctx->user();
     <div class="container site-footer__inner">
         <img src="<?= e($asset('brand/logo-horizontal-dark.svg')) ?>" alt="" width="180" height="46">
         <p><?= e($tagline) ?> Free support for Form 1–4 students in Malawi.</p>
-        <p class="site-footer__links"><a href="/about">About &amp; our story</a> · <a href="/safeguarding">Safeguarding &amp; privacy</a> · <a href="/verify">Verify a document</a></p>
+        <p class="site-footer__links"><a href="/about">About &amp; our story</a> · <a href="/results">MANEB results</a> · <a href="/safeguarding">Safeguarding &amp; privacy</a> · <a href="/verify">Verify a document</a></p>
         <p class="site-footer__small">&copy; <?= e(date('Y')) ?> <?= e($appName) ?> · Free, always. No favours of any kind.</p>
     </div>
 </footer>

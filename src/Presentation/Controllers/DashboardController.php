@@ -36,6 +36,7 @@ final class DashboardController
         $template = match ($role) {
             'tutor' => 'dashboard/tutor',
             'partner' => 'dashboard/partner',
+            'alumni' => 'dashboard/alumni',
             default => 'dashboard/student',
         };
 

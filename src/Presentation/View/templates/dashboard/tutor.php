@@ -27,6 +27,10 @@ $user = $ctx->user() ?? [];
         <div class="tile-grid">
             <a class="tile tile--link" href="/studio/students"><h2>Students</h2><p>Activity, gentle early-warning flags, and one-tap call, WhatsApp, SMS or email.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/messages"><h2>Messages</h2><p>Write to students and partner teachers, or send an announcement.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/office-hours"><h2>Office hours</h2><p>Offer call times; students book with what they are stuck on.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/results"><h2>MANEB</h2><p>Who is in revision now, and the results students have shared.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/alumni"><h2>Alumni</h2><p>What former students are doing, the help they need, and mentors.</p><span class="tag tag--ready">Open</span></a>
+            <a class="tile tile--link" href="/studio/year-end"><h2>End of the year</h2><p>Move students up a form, or into the alumni after Form 4.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/support"><h2>Private rooms</h2><p>Kept, private conversations about things affecting a student’s studies.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/requests"><h2>Topic requests</h2><p>Ranked by form and subject, with where students struggle.</p><span class="tag tag--ready">See the ranking</span></a>
             <a class="tile tile--link" href="/studio/checks"><h2>Checks</h2><p>Early-access requests and students’ “my class has covered it” reports.</p><span class="tag tag--ready">Review</span></a>
