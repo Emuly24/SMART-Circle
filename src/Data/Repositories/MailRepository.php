@@ -96,6 +96,11 @@ final class MailRepository
         )->rowCount() === 1;
     }
 
+    public function touchJob(string $name): void
+    {
+        $this->db->run('UPDATE scheduled_jobs SET last_run_at = NOW() WHERE name = ?', [$name]);
+    }
+
     public function jobResult(string $name, string $result): void
     {
         $this->db->run('UPDATE scheduled_jobs SET last_result = ? WHERE name = ?', [mb_substr($result, 0, 500), $name]);

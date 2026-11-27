@@ -1934,11 +1934,41 @@ ALTER TABLE users
 INSERT INTO scheduled_jobs (name, interval_minutes) VALUES ('mail', 2)
     ON DUPLICATE KEY UPDATE interval_minutes = VALUES(interval_minutes);
 
+-- ---------------------------------------------------------------------
+-- Migration 0022_engagement
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: keeping seats alive and people informed.
+--  * seat_checks: every nudge, pause and released seat for students who have gone quiet (decisions are kept).
+--  * notes.published_at: when notes first went out (for the weekly digest).
+--  * Two lazy jobs (no cron): daily seat checks, and the weekly digest (Mondays; at least 6 days apart).
+
+CREATE TABLE seat_checks (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id    INT UNSIGNED NOT NULL,
+    action     VARCHAR(10)  NOT NULL COMMENT 'nudge | pause | released',
+    note       VARCHAR(500) NULL,
+    until      DATE         NULL COMMENT 'pause: no checks before this day',
+    created_by INT UNSIGNED NULL COMMENT 'NULL = automatic',
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_seat_checks_user (user_id, created_at),
+    CONSTRAINT fk_seat_checks_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_seat_checks_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE notes
+    ADD COLUMN published_at DATETIME NULL AFTER status;
+
+UPDATE notes SET published_at = updated_at WHERE status = 'published' AND published_at IS NULL;
+
+INSERT INTO scheduled_jobs (name, interval_minutes) VALUES ('seat_checks', 1440), ('digest', 8640)
+    ON DUPLICATE KEY UPDATE interval_minutes = VALUES(interval_minutes);
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews'), ('0021_email');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews'), ('0021_email'), ('0022_engagement');
 
 SET FOREIGN_KEY_CHECKS = 1;

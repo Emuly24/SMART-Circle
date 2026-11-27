@@ -21,7 +21,8 @@ $ago = static function (?string $at): string {
         <h1>Students</h1>
         <p class="filters">
             <a href="/studio/students" <?= $filter !== 'flagged' ? 'aria-current="page"' : '' ?>>All (<?= e($total) ?>)</a> ·
-            <a href="/studio/students?show=flagged" <?= $filter === 'flagged' ? 'aria-current="page"' : '' ?>>Worth a check-in (<?= e($flagged) ?>)</a>
+            <a href="/studio/students?show=flagged" <?= $filter === 'flagged' ? 'aria-current="page"' : '' ?>>Worth a check-in (<?= e($flagged) ?>)</a> ·
+            <a href="/studio/seats">Seat activity</a>
         </p>
         <?php if ($students === []): ?>
             <div class="card"><p class="muted"><?= $filter === 'flagged' ? 'Nobody needs a check-in right now.' : 'No active students yet.' ?></p></div>

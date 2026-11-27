@@ -19,6 +19,7 @@ $err = static fn (string $f): string => isset($errors[$f]) ? '<span class="field
                 <span class="field__hint">Leave empty until the community exists. Once added, students, teachers, alumni and the team see a “Join” card.</span></label>
             <div class="form-actions"><button type="submit" class="btn btn--small">Save</button></div>
         </form>
+        <a class="card section-card community-card" href="/studio/templates"><span><strong>Message templates</strong><br><span class="muted">Change the wording of guardian messages, decision emails and the nudge to quiet students.</span></span></a>
         <a class="card section-card community-card" href="/studio/mail"><span><strong>Email</strong><br><span class="muted">See emails waiting and sent, send them now, or send yourself a test.</span></span></a>
         <?php $assets = $siteAssets(); ?>
         <div class="card section-card" id="signature">

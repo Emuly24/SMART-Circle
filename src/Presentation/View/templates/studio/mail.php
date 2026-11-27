@@ -4,6 +4,7 @@
  * @var array<string, int> $counts
  * @var list<array<string, mixed>> $recent
  * @var array<string, mixed>|null $job
+ * @var array<string, mixed>|null $digest
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
  */
 $labels = ['queued' => 'Waiting', 'sent' => 'Sent', 'failed' => 'Failed'];
@@ -34,6 +35,12 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
                 <div class="form-actions"><button type="submit" class="btn btn--small">Send test</button></div>
             </form>
         </div>
+        <div class="card section-card" id="digest">
+            <h2 class="h3">Weekly digest</h2>
+            <p>Every Monday each student gets “Your week at SMART Circle” (new lessons and notes open to them, work due, feedback ready) and you get a summary of what is waiting. It arrives in the bell, and by email for those who want it.</p>
+            <?php if ($digest !== null && $digest['last_run_at'] !== null): ?><p class="muted">Last sent <?= e($when((string) $digest['last_run_at'])) ?><?= $digest['last_result'] ? ' · ' . e($digest['last_result']) : '' ?></p><?php endif; ?>
+            <form method="post" action="/studio/digest/send" class="inline-form js-confirm" data-confirm="Send this week’s digest to every student now?"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--ghost">Send the digest now</button></form>
+        </div>
         <h2>Recent emails</h2>
         <?php if ($recent === []): ?><div class="card"><p>No emails yet.</p></div><?php else: ?>
             <div class="table-wrap"><table class="table">
@@ -48,3 +55,4 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
         <?php endif; ?>
     </div>
 </section>
+<script src="<?= e($asset('js/confirm.js')) ?>" defer></script>

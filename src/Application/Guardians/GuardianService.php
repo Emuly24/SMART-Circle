@@ -6,6 +6,7 @@ namespace SmartCircle\Application\Guardians;
 
 use SmartCircle\Application\Mail\MailService;
 use SmartCircle\Application\Notifications\NotificationService;
+use SmartCircle\Application\Templates\TemplateService;
 use SmartCircle\Data\Repositories\GuardianRepository;
 use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Support\PhoneNumber;
@@ -23,7 +24,16 @@ final class GuardianService
         private readonly string $baseUrl,
         /** @var \Closure(): ?string */
         private readonly \Closure $tutorPhone,
+        private readonly ?TemplateService $templates = null,
     ) {
+    }
+
+    /** The admin's wording for a template, or null for the default. */
+    private function wording(string $key, string $field = 'body'): ?string
+    {
+        $t = $this->templates?->current($key);
+
+        return $t !== null && $t['custom'] ? (string) $t[$field] : null;
     }
 
     /** @return list<array<string, mixed>> every active student's guardian, with status */
@@ -72,8 +82,8 @@ final class GuardianService
             'tutor_phone' => ($p = ($this->tutorPhone)()) !== null ? PhoneNumber::display($p) : '',
         ];
         [$lessons, $work] = $this->guardians->monthStats($userId, date('Y-m-01 00:00:00'), date('Y-m-d H:i:s', strtotime('first day of next month 00:00')));
-        $admission = GuardianMessages::admission($lang, $d);
-        $monthly = GuardianMessages::monthly($lang, $d, $lessons, $work, (int) date('n'));
+        $admission = GuardianMessages::admission($lang, $d, $this->wording('guardian_admission_' . $lang));
+        $monthly = GuardianMessages::monthly($lang, $d, $lessons, $work, (int) date('n'), $this->wording('guardian_monthly_' . $lang));
 
         return [
             'g' => $g + ['status' => self::status($g)],
@@ -81,7 +91,7 @@ final class GuardianService
             'admission' => $admission,
             'monthly' => $monthly,
             'call' => GuardianMessages::callScript($lang, $first),
-            'links' => self::links($g, $admission, $monthly, GuardianMessages::admissionSubject($lang, $first)),
+            'links' => self::links($g, $admission, $monthly, GuardianMessages::admissionSubject($lang, $first, $this->wording('guardian_admission_' . $lang, 'subject'))),
             'stats' => ['lessons' => $lessons, 'work' => $work],
         ];
     }
@@ -166,8 +176,8 @@ final class GuardianService
         }
         $first = explode(' ', trim((string) $kit['g']['full_name']))[0];
         $subject = $what === 'monthly'
-            ? 'SMART Circle: ' . $first . ($kit['lang'] === 'ny' ? '' : ' – monthly update')
-            : GuardianMessages::admissionSubject($kit['lang'], $first);
+            ? TemplateService::fill($this->wording('guardian_monthly_' . $kit['lang'], 'subject') ?? (string) TemplateService::DEFAULTS['guardian_monthly_' . $kit['lang']]['subject'], ['child_first' => $first])
+            : GuardianMessages::admissionSubject($kit['lang'], $first, $this->wording('guardian_admission_' . $kit['lang'], 'subject'));
         $mail->queue($email, (string) ($kit['g']['guardian_name'] ?? ''), $subject, $what === 'monthly' ? $kit['monthly'] : $kit['admission'],
             'guardian_' . $what, 'user', $userId, $tutorId);
         $this->logSent($userId, $what, 'email', $tutorId);
