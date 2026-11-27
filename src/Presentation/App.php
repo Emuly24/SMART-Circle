@@ -16,6 +16,9 @@ use SmartCircle\Application\Notes\NoteService;
 use SmartCircle\Application\Auth\AuthService;
 use SmartCircle\Application\Calendar\CalendarService;
 use SmartCircle\Application\Grades\GradeService;
+use SmartCircle\Application\Messages\MessageService;
+use SmartCircle\Application\Messages\SupportService;
+use SmartCircle\Application\Students\StudentOverviewService;
 use SmartCircle\Application\Install\InstallService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Lessons\UploadService;
@@ -37,6 +40,8 @@ use SmartCircle\Data\Repositories\AccessRepository;
 use SmartCircle\Data\Repositories\AuditLogRepository;
 use SmartCircle\Data\Repositories\CalendarRepository;
 use SmartCircle\Data\Repositories\GradeRepository;
+use SmartCircle\Data\Repositories\MessageRepository;
+use SmartCircle\Data\Repositories\OverviewRepository;
 use SmartCircle\Data\Repositories\CoverageRepository;
 use SmartCircle\Data\Repositories\NoteRepository;
 use SmartCircle\Data\Repositories\PartnerRepository;
@@ -61,6 +66,9 @@ use SmartCircle\Presentation\Controllers\StudioAssessmentController;
 use SmartCircle\Presentation\Controllers\AuthController;
 use SmartCircle\Presentation\Controllers\CalendarController;
 use SmartCircle\Presentation\Controllers\GradesController;
+use SmartCircle\Presentation\Controllers\MessageController;
+use SmartCircle\Presentation\Controllers\StudentsController;
+use SmartCircle\Presentation\Controllers\SupportController;
 use SmartCircle\Presentation\Controllers\DocumentController;
 use SmartCircle\Presentation\Controllers\DashboardController;
 use SmartCircle\Presentation\Controllers\HonestyController;
@@ -200,6 +208,12 @@ final class App
             return $userId === null ? 0 : $this->notifications($db)->unreadCount($userId);
         });
 
+        $this->view->share('messageCount', function () use ($db): int {
+            $userId = $this->context->userId();
+
+            return $userId === null ? 0 : (new MessageRepository($db))->unreadConversations($userId);
+        });
+
         $router = $this->routes($auth, $installer, $db);
 
         return $router->dispatch($request);
@@ -260,6 +274,12 @@ final class App
         $schoolService = new SchoolService(new SchoolRepository($db), new CoverageRepository($db), new TextbookRepository($db), $topicService, $accessService, $calendarService);
         $gradeService = new GradeService(new GradeRepository($db), $calendarService, $accessService, $documentService, $this->notifications($db));
         $calendarCtl = new CalendarController($calendarService, $partnerService, $this->context, $this->session, $this->view);
+        $messageService = new MessageService(new MessageRepository($db), $this->notifications($db), $accessService->allStudents(...));
+        $supportService = new SupportService(new MessageRepository($db), $messageService, $this->notifications($db));
+        $overviewService = new StudentOverviewService(new OverviewRepository($db), $gradeService, $calendarService);
+        $messagesCtl = new MessageController($messageService, $this->context, $this->session, $this->view);
+        $supportCtl = new SupportController($supportService, $overviewService, $this->context, $this->session, $this->view);
+        $studentsCtl = new StudentsController($overviewService, $this->context, $this->session, $this->view);
         $gradesCtl = new GradesController($gradeService, $calendarService, $this->context, $this->session, $this->view);
         $assessmentService = new AssessmentService(new QuestionRepository($db), new AssessmentRepository($db), new SubmissionRepository($db), $this->notifications($db), $accessService);
         $examService = new ExamService(new AssessmentRepository($db), new SubmissionRepository($db), new StudentRepository($db), $accessService, $this->notifications($db));
@@ -420,6 +440,24 @@ final class App
         $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $tutor]);
         $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $tutor]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $tutor]);
+
+        // Messages, the private room and the student overview
+        $r->get('/messages', $messagesCtl->index(...), [$member, $onboarded]);
+        $r->get('/messages/new', $messagesCtl->create(...), [$member, $onboarded]);
+        $r->post('/messages', $messagesCtl->store(...), [$csrf, $member, $onboarded]);
+        $r->post('/messages/announce', $messagesCtl->announce(...), [$csrf, $tutor]);
+        $r->get('/messages/{id}', $messagesCtl->show(...), [$member, $onboarded]);
+        $r->post('/messages/{id}/reply', $messagesCtl->reply(...), [$csrf, $member, $onboarded]);
+        $r->get('/support', $supportCtl->mine(...), [$student, $onboarded]);
+        $r->post('/support', $supportCtl->send(...), [$csrf, $student, $onboarded]);
+        $r->get('/studio/support', $supportCtl->index(...), [$tutor]);
+        $r->get('/studio/support/{id}', $supportCtl->show(...), [$tutor]);
+        $r->post('/studio/support/{id}', $supportCtl->reply(...), [$csrf, $tutor]);
+        $r->post('/studio/support/{id}/guardian', $supportCtl->guardianNotified(...), [$csrf, $tutor]);
+        $r->get('/studio/students', $studentsCtl->index(...), [$tutor]);
+        $r->get('/studio/students/{id}', $studentsCtl->show(...), [$tutor]);
+        $r->post('/studio/students/{id}/contact', $studentsCtl->logContact(...), [$csrf, $tutor]);
+        $r->post('/studio/students/{id}/invite', $supportCtl->invite(...), [$csrf, $tutor]);
 
         // Grades and the academic calendar
         $r->get('/grades', $gradesCtl->mine(...), [$student, $onboarded]);
