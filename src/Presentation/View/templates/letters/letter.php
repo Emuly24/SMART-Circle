@@ -123,8 +123,9 @@ $date = date('j F Y', strtotime((string) $doc['issued_at']));
 
     <div class="letter__sign">
         <p>Yours sincerely,</p>
-        <div class="letter__signature" aria-hidden="true"></div>
-        <p><strong>The Tutor</strong><br>SMART Circle</p>
+        <?php $sig = isset($siteAssets) ? $siteAssets()['signature'] : null; ?>
+        <?php if ($sig !== null): ?><img class="letter__signature-img" src="/site/signature?v=<?= e($sig) ?>" alt="Signature of Blessings Emulyn"><?php else: ?><div class="letter__signature" aria-hidden="true"></div><?php endif; ?>
+        <p><strong>Blessings Emulyn</strong><br>Founder and tutor, SMART Circle</p>
     </div>
 
     <footer class="letter__foot">

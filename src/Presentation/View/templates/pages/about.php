@@ -38,7 +38,8 @@ use SmartCircle\Support\Identity;
 
 <section class="section">
     <div class="container story">
-        <div class="story__photo" aria-hidden="true"><span>BE</span></div>
+        <?php $photo = isset($siteAssets) ? $siteAssets()['photo'] : null; ?>
+        <?php if ($photo !== null): ?><img class="story__photo story__photo--img" src="/site/photo?v=<?= e($photo) ?>" alt="Blessings Emulyn, founder and tutor of SMART Circle" width="170" height="170"><?php else: ?><div class="story__photo" aria-hidden="true"><span>BE</span></div><?php endif; ?>
         <div class="story__text prose">
             <p class="eyebrow">Why I started SMART Circle</p>
             <h2>My story</h2>
