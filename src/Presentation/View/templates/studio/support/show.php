@@ -29,8 +29,8 @@ $c = $t['conversation'];
                 <?php endif; ?>
             </div>
         <?php endif; ?>
-        <?= $view->partial('thread', ['t' => $t, 'me' => $me]) ?>
-        <?= $view->partial('reply_form', ['action' => '/studio/support/' . $c['id'], 'draft' => $draft, 'error' => $error, 'label' => 'Reply']) ?>
+        <?= $view->partial('thread', ['t' => $t, 'me' => $me, 'canQuote' => true]) ?>
+        <?= $view->partial('reply_form', ['action' => '/studio/support/' . $c['id'], 'draft' => $draft, 'error' => $error, 'label' => 'Reply', 'quoteId' => $quoteId ?? 0, 'messages' => $t['messages']]) ?>
         <?php if ($isAdmin && $team !== []): ?>
             <form method="post" action="/studio/support/<?= e($c['id']) ?>/members" class="form card">
                 <?= $csrf->field() ?>

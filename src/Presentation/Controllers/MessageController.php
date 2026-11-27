@@ -73,14 +73,14 @@ final class MessageController
             return Response::redirect($this->role() === 'tutor' ? '/studio/support/' . $id : '/support');
         }
 
-        return $this->thread($thread, '');
+        return $this->thread($thread, '', null, 200, (int) $request->query('quote', '0'));
     }
 
     public function reply(Request $request): Response
     {
         $id = (int) $request->param('id');
         $body = $request->input('body');
-        $error = $this->messages->reply($id, $this->uid(), $this->role(), $body);
+        $error = $this->messages->reply($id, $this->uid(), $this->role(), $body, ($request->input('quote_id') !== '' ? (int) $request->input('quote_id') : null));
         if ($error !== null) {
             $thread = $this->messages->open($id, $this->uid(), $this->role());
             if ($thread === null) {
@@ -94,7 +94,7 @@ final class MessageController
     }
 
     /** @param array<string, mixed> $thread */
-    private function thread(array $thread, string $draft, ?string $error = null, int $status = 200): Response
+    private function thread(array $thread, string $draft, ?string $error = null, int $status = 200, int $quoteId = 0): Response
     {
         return Response::html($this->view->render('messages/show', [
             'title' => (string) $thread['conversation']['subject'],
@@ -104,6 +104,7 @@ final class MessageController
             'draft' => $draft,
             'error' => $error,
             'action' => '/messages/' . $thread['conversation']['id'] . '/reply',
+            'quoteId' => $quoteId,
         ]), $status);
     }
 

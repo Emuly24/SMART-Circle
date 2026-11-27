@@ -30,6 +30,14 @@ final class DashboardController
     ) {
     }
 
+    /** @var (\Closure(int): list<array<string, mixed>>)|null private rooms this person is in, newest first */
+    private ?\Closure $rooms = null;
+
+    public function setRooms(\Closure $rooms): void
+    {
+        $this->rooms = $rooms;
+    }
+
     public function index(Request $request): Response
     {
         $role = $this->context->role() ?? 'student';
@@ -48,6 +56,7 @@ final class DashboardController
             'pledge' => $role === 'student' && $this->studentPledge !== null ? ($this->studentPledge)((int) $this->context->userId()) : null,
             'feedback' => $role === 'student' && $this->studentFeedback !== null ? ($this->studentFeedback)((int) $this->context->userId()) : [],
             'calendar' => $this->calendarInfo !== null ? ($this->calendarInfo)((int) $this->context->userId(), $role) : null,
+            'rooms' => in_array($role, ['student', 'tutor'], true) && $this->rooms !== null ? ($this->rooms)((int) $this->context->userId()) : [],
         ]));
     }
 

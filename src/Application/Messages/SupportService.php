@@ -30,14 +30,14 @@ final class SupportService
     }
 
     /** The student opens the room with a first message. @return string|null error */
-    public function openByStudent(int $studentId, string $studentName, string $body): ?string
+    public function openByStudent(int $studentId, string $studentName, string $body, ?int $quoteId = null): ?string
     {
         if (($e = MessageService::checkBody($body)) !== null) {
             return $e;
         }
         $room = $this->messages->supportRoom($studentId);
         if ($room !== null) {
-            return $this->service->reply((int) $room['id'], $studentId, 'student', $body);
+            return $this->service->reply((int) $room['id'], $studentId, 'student', $body, $quoteId);
         }
         $tutors = array_map(static fn (array $t): int => (int) $t['id'], $this->messages->people('tutor'));
         $id = $this->messages->createConversation('support', 'Private room', $studentId, [$studentId, ...$tutors], null, $studentId, 'student');
@@ -51,14 +51,14 @@ final class SupportService
      * The tutor invites a student into the room with a first message.
      * @return array{error: string|null, id: int|null}
      */
-    public function invite(int $tutorId, int $studentId, string $body): array
+    public function invite(int $tutorId, int $studentId, string $body, ?int $quoteId = null): array
     {
         if (($e = MessageService::checkBody($body)) !== null) {
             return ['error' => $e, 'id' => null];
         }
         $room = $this->messages->supportRoom($studentId);
         if ($room !== null) {
-            $e = $this->service->reply((int) $room['id'], $tutorId, 'tutor', $body);
+            $e = $this->service->reply((int) $room['id'], $tutorId, 'tutor', $body, $quoteId);
 
             return ['error' => $e, 'id' => (int) $room['id']];
         }
@@ -91,9 +91,9 @@ final class SupportService
     }
 
     /** A team tutor added to the room replies. @return string|null error */
-    public function replyAsTeam(int $conversationId, int $userId, string $body): ?string
+    public function replyAsTeam(int $conversationId, int $userId, string $body, ?int $quoteId = null): ?string
     {
-        return $this->service->reply($conversationId, $userId, 'team', $body);
+        return $this->service->reply($conversationId, $userId, 'team', $body, $quoteId);
     }
 
     /** The admin adds a team tutor to a student's room (the student sees who is in it). */

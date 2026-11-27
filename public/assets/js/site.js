@@ -39,4 +39,24 @@
     document.querySelectorAll('[data-theme-choice]').forEach((b) => b.addEventListener('click', () => apply(b.dataset.themeChoice)));
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', sync);
     sync();
+
+    // ----- Gentle entrance: cards ease in as they scroll into view -----
+    const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!calm && 'IntersectionObserver' in window && !root.hasAttribute('data-theme-fixed')) {
+        const items = document.querySelectorAll('.site-main .tile, .site-main .section-card, .site-main .student-row, .site-main .inbox-row, .site-main .card');
+        if (items.length > 0) {
+            root.classList.add('js-reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        io.unobserve(entry.target);
+                    }
+                });
+            }, { rootMargin: '0px 0px -5% 0px' });
+            items.forEach((item) => { item.classList.add('reveal-item'); io.observe(item); });
+            // Never leave anything hidden (e.g. printing, or an observer that does not fire).
+            window.setTimeout(() => items.forEach((item) => item.classList.add('is-visible')), 2500);
+        }
+    }
 })();

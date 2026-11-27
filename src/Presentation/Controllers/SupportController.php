@@ -28,14 +28,14 @@ final class SupportController
 
     public function mine(Request $request): Response
     {
-        return $this->studentPage('');
+        return $this->studentPage('', null, 200, (int) $request->query('quote', '0'));
     }
 
     public function send(Request $request): Response
     {
         $body = $request->input('body');
         $user = $this->context->user() ?? [];
-        $error = $this->support->openByStudent((int) $this->context->userId(), (string) ($user['full_name'] ?? ''), $body);
+        $error = $this->support->openByStudent((int) $this->context->userId(), (string) ($user['full_name'] ?? ''), $body, ($request->input('quote_id') !== '' ? (int) $request->input('quote_id') : null));
         if ($error !== null) {
             return $this->studentPage($body, $error, 422);
         }
@@ -43,7 +43,7 @@ final class SupportController
         return Response::redirect('/support#latest');
     }
 
-    private function studentPage(string $draft, ?string $error = null, int $status = 200): Response
+    private function studentPage(string $draft, ?string $error = null, int $status = 200, int $quoteId = 0): Response
     {
         return Response::html($this->view->render('support/mine', [
             'title' => 'Private room',
@@ -51,6 +51,7 @@ final class SupportController
             'me' => (int) $this->context->userId(),
             'draft' => $draft,
             'error' => $error,
+            'quoteId' => $quoteId,
         ]), $status);
     }
 
@@ -64,7 +65,7 @@ final class SupportController
 
     public function show(Request $request): Response
     {
-        return $this->tutorPage((int) $request->param('id'), '');
+        return $this->tutorPage((int) $request->param('id'), '', null, 200, (int) $request->query('quote', '0'));
     }
 
     public function reply(Request $request): Response
@@ -75,8 +76,8 @@ final class SupportController
             throw new HttpException(404);
         }
         $r = $this->context->isAdmin()
-            ? $this->support->invite((int) $this->context->userId(), (int) $thread['conversation']['student_id'], $request->input('body'))
-            : ['error' => $this->support->replyAsTeam($id, (int) $this->context->userId(), $request->input('body')), 'id' => $id];
+            ? $this->support->invite((int) $this->context->userId(), (int) $thread['conversation']['student_id'], $request->input('body'), ($request->input('quote_id') !== '' ? (int) $request->input('quote_id') : null))
+            : ['error' => $this->support->replyAsTeam($id, (int) $this->context->userId(), $request->input('body'), ($request->input('quote_id') !== '' ? (int) $request->input('quote_id') : null)), 'id' => $id];
         if ($r['error'] !== null) {
             return $this->tutorPage($id, $request->input('body'), $r['error'], 422);
         }
@@ -118,7 +119,7 @@ final class SupportController
         return Response::redirect('/studio/support/' . $id);
     }
 
-    private function tutorPage(int $id, string $draft, ?string $error = null, int $status = 200): Response
+    private function tutorPage(int $id, string $draft, ?string $error = null, int $status = 200, int $quoteId = 0): Response
     {
         $thread = $this->support->forTutor($id, (int) $this->context->userId(), (string) $this->context->role());
         if ($thread === null) {
@@ -141,6 +142,7 @@ final class SupportController
             'draft' => $draft,
             'error' => $error,
             'isAdmin' => $isAdmin,
+            'quoteId' => $quoteId,
             'team' => $isAdmin ? array_values(array_filter($this->support->teamTutors(),
                 static fn (array $p): bool => !in_array((int) $p['id'], array_map(static fn (array $m): int => (int) $m['user_id'], $thread['members']), true))) : [],
         ]), $status);

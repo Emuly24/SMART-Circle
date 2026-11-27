@@ -970,3 +970,41 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .suggestion { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .suggestion:last-child { border-bottom: 0; }
 .suggestion p { margin: 0 0 6px; overflow-wrap: anywhere; }
+
+/* Quotes, private-room card, tours and gentle effects (Phase I) */
+.msg__quote { margin: 0 0 6px; padding: 6px 10px; border-left: 3px solid var(--link); background: var(--mist); border-radius: 6px; font-size: .9rem; color: var(--slate); overflow-wrap: anywhere; }
+.msg--mine .msg__quote { background: var(--surface); }
+.msg__quote-who { font-weight: 700; color: var(--ink); }
+.msg__quote-btn { display: inline-block; margin-top: 4px; font-size: .85rem; }
+.reply-quote { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.reply-quote .msg__quote { flex: 1 1 220px; min-width: 0; }
+.reply-quote.is-empty { display: none; }
+.room-card { border-left: 4px solid var(--link); }
+.room-card--unread { border-left-color: var(--amber); background: var(--amber-tint); }
+.room-card__head { display: flex; align-items: center; gap: 10px; }
+.room-card__head h2 { margin: 0; }
+.room-card__icon { color: var(--link); flex: 0 0 auto; }
+.room-card__help { font-size: .85rem; margin-bottom: 0; }
+.tour-start { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 10px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: .9rem; cursor: pointer; }
+.tour-start[hidden] { display: none; }
+.tour-start:hover { border-color: var(--link); }
+.tour-target { position: relative; z-index: 40; outline: 3px solid var(--amber); outline-offset: 4px; border-radius: var(--radius-small); box-shadow: 0 0 0 9999px rgba(12, 18, 26, .35); }
+.tour-panel { position: fixed; z-index: 60; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 16px 18px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 40px rgba(12, 18, 26, .3); }
+.tour-panel__count { margin: 0; font-size: .8rem; color: var(--slate); }
+.tour-panel__title { margin: 2px 0 6px; font-size: 1.15rem; }
+.tour-panel__text { margin: 0 0 12px; }
+.tour-panel__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Effects: things respond to touch, and cards ease in as you scroll. Off for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+    .btn { transition: transform .12s ease, background-color .15s ease, box-shadow .15s ease; }
+    .btn:active { transform: scale(.97); }
+    a.tile, a.card, .tile--link { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    a.tile:hover, a.card:hover { transform: translateY(-3px); box-shadow: 0 6px 22px rgba(20, 33, 61, .12); }
+    .progress__bar, .progress-mini__bar, .meter span { transition: width .8s ease; }
+    html.js-reveal .reveal-item { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
+    html.js-reveal .reveal-item.is-visible { opacity: 1; transform: none; }
+    .site-main { animation: page-in .35s ease both; }
+    @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+    .nav-count, .bell__count { animation: pop .4s ease both; }
+    @keyframes pop { 0% { transform: scale(.4); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+}

@@ -20,9 +20,9 @@ foreach ($t['members'] as $p) {
         <p class="crumbs"><a href="/messages">Messages</a></p>
         <h1><?= e($c['subject']) ?></h1>
         <p class="muted"><?php if ($c['kind'] === 'announcement'): ?>Announcement<?= $role === 'tutor' ? ' · sent to ' . e(count($t['members']) - 1) . ' people' : '' ?><?php else: ?>Between <?= e(implode(', ', array_map(static fn (array $p): string => (int) $p['user_id'] === $me ? 'you' : (string) $p['full_name'], $t['members']))) ?><?php endif; ?></p>
-        <?= $view->partial('thread', ['t' => $t, 'me' => $me]) ?>
+        <?= $view->partial('thread', ['t' => $t, 'me' => $me, 'canQuote' => $t['can_reply']]) ?>
         <?php if ($t['can_reply']): ?>
-            <?= $view->partial('reply_form', ['action' => $action, 'draft' => $draft, 'error' => $error, 'label' => $c['kind'] === 'announcement' ? 'Add to this announcement' : 'Reply']) ?>
+            <?= $view->partial('reply_form', ['action' => $action, 'draft' => $draft, 'error' => $error, 'label' => $c['kind'] === 'announcement' ? 'Add to this announcement' : 'Reply', 'quoteId' => $quoteId ?? 0, 'messages' => $t['messages']]) ?>
         <?php else: ?>
             <?php if ($error !== null): ?><div class="alert alert--error" role="alert"><?= e($error) ?></div><?php endif; ?>
             <?php if ($c['kind'] === 'announcement' && $tutorId !== null): ?>

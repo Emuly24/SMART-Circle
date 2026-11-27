@@ -29,9 +29,13 @@ final class MessageRepository
         });
     }
 
-    public function addMessage(int $conversationId, int $userId, string $body): int
+    public function addMessage(int $conversationId, int $userId, string $body, ?int $quoteId = null): int
     {
-        $id = $this->db->insert('INSERT INTO messages (conversation_id, user_id, body) VALUES (?, ?, ?)', [$conversationId, $userId, $body]);
+        // A quote must be an earlier message in the same conversation; anything else is dropped.
+        if ($quoteId !== null && $this->db->scalar('SELECT 1 FROM messages WHERE id = ? AND conversation_id = ?', [$quoteId, $conversationId]) === null) {
+            $quoteId = null;
+        }
+        $id = $this->db->insert('INSERT INTO messages (conversation_id, user_id, body, quote_id) VALUES (?, ?, ?, ?)', [$conversationId, $userId, $body, $quoteId]);
         $this->db->run('UPDATE conversations SET last_message_at = NOW() WHERE id = ?', [$conversationId]);
         $this->markRead($conversationId, $userId);
 
@@ -76,7 +80,9 @@ final class MessageRepository
     public function messages(int $conversationId): array
     {
         return $this->db->all(
-            'SELECT msg.*, u.full_name, u.role, u.avatar_at FROM messages msg LEFT JOIN users u ON u.id = msg.user_id
+            'SELECT msg.*, u.full_name, u.role, u.avatar_at, q.body AS quote_body, qu.full_name AS quote_name, q.user_id AS quote_user_id
+             FROM messages msg LEFT JOIN users u ON u.id = msg.user_id
+             LEFT JOIN messages q ON q.id = msg.quote_id LEFT JOIN users qu ON qu.id = q.user_id
              WHERE msg.conversation_id = ? ORDER BY msg.created_at, msg.id',
             [$conversationId]
         );
