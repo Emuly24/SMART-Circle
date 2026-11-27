@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation;
 
+use SmartCircle\Presentation\Controllers\CommunityController;
+use SmartCircle\Data\Repositories\ChallengeRepository;
+use SmartCircle\Data\Repositories\ProgressRepository;
+use SmartCircle\Data\Repositories\DiscussionRepository;
+use SmartCircle\Application\Community\ChallengeService;
+use SmartCircle\Application\Community\ProgressService;
+use SmartCircle\Application\Community\DiscussionService;
 use SmartCircle\Data\Repositories\ContributionStatsRepository;
 use SmartCircle\Application\Partners\ContributionCertificateService;
 use SmartCircle\Presentation\Controllers\LessonReviewController;
@@ -354,7 +361,11 @@ final class App
         );
         $guestTeachers = new GuestTeacherService(new GuestRepository($db), $this->notifications($db));
         $lessonReviews = new LessonReviewService(new LessonReviewRepository($db), new ReviewRepository($db), $this->notifications($db), $this->storage(''));
-        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService, $guestTeachers, $lessonReviews);
+        $discussionService = new DiscussionService(new DiscussionRepository($db), $lessonService, $accessService, $topicService, $this->notifications($db));
+        $progressService = new ProgressService(new ProgressRepository($db), $this->notifications($db));
+        $lessons = new LessonController($lessonService, $this->context, $this->session, $this->view, $topicService, $accessService, $guestTeachers, $lessonReviews, $discussionService, $progressService);
+        $communityCtl = new CommunityController($discussionService, new ChallengeService(new ChallengeRepository($db), new DiscussionRepository($db), new StudentRepository($db), $accessService,
+            new TopicRepository($db), $this->notifications($db), $this->storage('')), $progressService, $topicService, $this->context, $this->session, $this->view);
         $lessonReviewCtl = new LessonReviewController($lessonReviews, $lessonService, $this->context, $this->session, $this->view);
         $topicsCtl = new TopicController($topicService, $requestService, $this->context, $this->session, $this->view, $accessService);
         $studioTopics = new StudioTopicController($topicService, $requestService, $this->session, $this->view, $this->context);
@@ -624,6 +635,29 @@ final class App
         $r->post('/studio/notes/{id}/review', $reviewCtl->request(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/library/{action}', $studioLibrary->note(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+
+        // Community: lesson discussions, exit tickets, challenges, the wall, tags, badges
+        $talker = new RequireRole($this->context, $this->session, ['tutor', 'student']);
+        $r->post('/lessons/{id}/comments', $communityCtl->comment(...), [$csrf, $talker, $onboarded]);
+        $r->post('/lessons/{id}/follow', $communityCtl->follow(...), [$csrf, $talker, $onboarded]);
+        $r->post('/lessons/{id}/exit-ticket', $communityCtl->exitTicket(...), [$csrf, $student, $onboarded]);
+        $r->post('/comments/{id}/react', $communityCtl->react(...), [$csrf, $talker, $onboarded]);
+        $r->post('/comments/{id}/report', $communityCtl->report(...), [$csrf, $student, $onboarded]);
+        $r->post('/comments/{id}/{action}', $communityCtl->moderateComment(...), [$csrf, $tutor]);
+        $r->get('/community', $communityCtl->hub(...), [$student, $onboarded]);
+        $r->get('/community/challenges/{id}', $communityCtl->challenge(...), [$talker, $onboarded]);
+        $r->post('/community/challenges/{id}', $communityCtl->answer(...), [$csrf, $student, $onboarded]);
+        $r->get('/community/wall', $communityCtl->wall(...), [$talker, $onboarded]);
+        $r->post('/community/wall', $communityCtl->postWall(...), [$csrf, $student, $onboarded]);
+        $r->get('/community/wall/{id}/photo', $communityCtl->wallPhoto(...), [$talker, $onboarded]);
+        $r->post('/community/wall/{id}/report', $communityCtl->reportWall(...), [$csrf, $student, $onboarded]);
+        $r->get('/community/tags/{tag}', $communityCtl->tag(...), [$talker, $onboarded]);
+        $r->get('/studio/community', $communityCtl->studio(...), [$tutor]);
+        $r->post('/studio/community/challenges', $communityCtl->createChallenge(...), [$csrf, $tutor]);
+        $r->post('/studio/community/challenges/{id}/explain', $communityCtl->explain(...), [$csrf, $tutor]);
+        $r->post('/studio/community/challenges/{id}/delete', $communityCtl->deleteChallenge(...), [$csrf, $tutor]);
+        $r->post('/studio/community/wall/{id}/{action}', $communityCtl->moderateWall(...), [$csrf, $tutor]);
+        $r->post('/studio/community/reports/{id}/keep', $communityCtl->keepReport(...), [$csrf, $tutor]);
 
         // Question Contributor and Guest Teacher
         $rolesCtl = new TeacherRolesController(new QuestionSuggestionService(new QuestionSuggestionRepository($db), new QuestionRepository($db), new ReviewRepository($db), new TopicRepository($db), $this->notifications($db)),

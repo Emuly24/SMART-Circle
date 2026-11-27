@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Community\DiscussionService;
+use SmartCircle\Application\Community\ProgressService;
 use SmartCircle\Application\Lessons\LessonService;
 use SmartCircle\Application\Partners\GuestTeacherService;
 use SmartCircle\Application\Reviews\LessonReviewService;
@@ -32,6 +34,8 @@ final class LessonController
         private readonly ?AccessService $access = null,
         private readonly ?GuestTeacherService $guests = null,
         private readonly ?LessonReviewService $reviews = null,
+        private readonly ?DiscussionService $discussion = null,
+        private readonly ?ProgressService $progress = null,
     ) {
     }
 
@@ -95,6 +99,8 @@ final class LessonController
             'topic' => !empty($lesson['topic_id']) ? $this->topics?->find((int) $lesson['topic_id']) : null,
             'guestCredit' => $this->guests?->credit((int) $lesson['id']),
             'approval' => $this->reviews?->approval((int) $lesson['id']),
+            'thread' => in_array($this->context->role(), ['tutor', 'student'], true) ? $this->discussion?->thread((int) $lesson['id'], (int) $this->context->userId(), (string) $this->context->role()) : null,
+            'ticket' => $this->context->role() === 'student' ? ['saved' => $this->progress?->ticket((int) $lesson['id'], (int) $this->context->userId())] : null,
         ]));
     }
 
@@ -213,6 +219,7 @@ final class LessonController
             'guestCredit' => $this->isGuest() ? null : $this->guests?->credit((int) $lesson['id']),
             'review' => $this->isGuest() ? null : $this->reviews?->state((int) $lesson['id']),
             'reviewHistory' => $this->isGuest() ? [] : ($this->reviews?->history((int) $lesson['id']) ?? []),
+            'tickets' => $this->isGuest() ? null : $this->progress?->summary((int) $lesson['id']),
             'errors' => $errors,
             'missing' => $missing,
             'subjects' => $this->context->subjects() === null ? LessonService::SUBJECTS

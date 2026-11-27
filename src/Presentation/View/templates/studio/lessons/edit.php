@@ -117,6 +117,14 @@ $hints = [
                 <?php if (!empty($reviewHistory)): ?><?= $view->partial('review_history', ['history' => $reviewHistory]) ?><?php endif; ?>
             </div>
         <?php endif; ?>
+        <?php if (!empty($tickets) && $tickets['count'] > 0): ?>
+            <div class="card section-card" id="exit-tickets">
+                <h2 class="h3">Exit tickets (<?= e($tickets['count']) ?>)</h2>
+                <p>Average understanding: <strong><?= e($tickets['average']) ?> / 5</strong></p>
+                <?php if ($tickets['unclear'] !== []): ?><p class="field__label">Still unclear</p><ul><?php foreach ($tickets['unclear'] as $t): ?><li><?= e($t['still_unclear']) ?> <span class="muted">· <?= e(explode(' ', (string) $t['full_name'])[0]) ?>, <?= e($t['understanding']) ?>/5</span></li><?php endforeach; ?></ul><?php endif; ?>
+                <?php if ($tickets['uses'] !== []): ?><details><summary>Real-life uses students gave (<?= e(count($tickets['uses'])) ?>)</summary><ul><?php foreach ($tickets['uses'] as $t): ?><li><?= e($t['real_life_use']) ?></li><?php endforeach; ?></ul></details><?php endif; ?>
+            </div>
+        <?php endif; ?>
         <div class="card library-box" id="handout">
             <h2>PDF handout <span class="muted">(optional)</span></h2>
             <p>Attach a handout you made elsewhere (for example in Word, saved as PDF). Up to 9 MB.</p>
