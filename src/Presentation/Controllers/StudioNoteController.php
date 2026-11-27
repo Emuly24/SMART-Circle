@@ -82,7 +82,7 @@ final class StudioNoteController
     public function addImage(Request $request): Response
     {
         $note = $this->noteOr404($request);
-        $this->flash($this->notes->addImage((int) $note['id'], $request->file('image'), $request->input('caption')), 'Picture added.');
+        $this->flash($this->notes->addImage((int) $note['id'], $request->file('image'), $request->input('caption'), $request->input('align', 'center')), 'Picture added.');
 
         return Response::redirect('/studio/notes/' . $note['id'] . '#add');
     }
@@ -100,6 +100,14 @@ final class StudioNoteController
     {
         $note = $this->noteOr404($request);
         $this->flash($this->notes->updateBlock((int) $note['id'], (int) $request->param('block'), $request->input('body')), 'Saved.');
+
+        return Response::redirect('/studio/notes/' . $note['id'] . '#block-' . (int) $request->param('block'));
+    }
+
+    public function alignBlock(Request $request): Response
+    {
+        $note = $this->noteOr404($request);
+        $this->flash($this->notes->setAlign((int) $note['id'], (int) $request->param('block'), $request->input('align')), 'Saved.');
 
         return Response::redirect('/studio/notes/' . $note['id'] . '#block-' . (int) $request->param('block'));
     }

@@ -38,4 +38,25 @@ final class NoteMarkupTest extends TestCase
         self::assertStringNotContainsString('<img', $html);
         self::assertStringContainsString('&lt;script&gt;', $html);
     }
+
+    public function testEquationLinesAreCentredAndGrouped(): void
+    {
+        $html = NoteMarkup::render("Find v:\n= v = u + at\n= v = 0 + 9.8 * 2\n= v = 19.6 m/s\nDone.");
+        self::assertStringContainsString('<div class="note-calc"><p class="note-eq">v = u + at</p><p class="note-eq">v = 0 + 9.8 × 2</p><p class="note-eq">v = 19.6 m/s</p></div>', $html);
+        self::assertStringContainsString('<p>Find v:</p>', $html);
+        self::assertStringContainsString('<p>Done.</p>', $html);
+        // Two groups when separated by text.
+        self::assertSame(2, substr_count(NoteMarkup::render("= a = 1\ntext\n= b = 2"), 'note-calc'));
+    }
+
+    public function testMathSymbolsAndSafety(): void
+    {
+        self::assertStringContainsString('x ≥ 0, y ≤ 3, a ≠ b, ±2, √9', NoteMarkup::inline('x >= 0, y <= 3, a != b, +-2, sqrt9'));
+        self::assertStringContainsString('<sup>2</sup>', NoteMarkup::render('= x^2 + 1 = 5'));
+        $evil = NoteMarkup::render('= <script>alert(1)</script> * 2');
+        self::assertStringNotContainsString('<script>', $evil);
+        self::assertStringContainsString('&lt;script&gt;', $evil);
+        // Outside equation lines, * still means italics.
+        self::assertStringContainsString('<em>very</em>', NoteMarkup::render('It is *very* important'));
+    }
 }

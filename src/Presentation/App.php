@@ -551,6 +551,7 @@ final class App
         $r->post('/studio/notes/{id}/checkpoint', $studioNotes->addCheckpoint(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->get('/studio/notes/{id}/images/{block}', $studioNotes->image(...), [$teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}', $studioNotes->updateBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
+        $r->post('/studio/notes/{id}/blocks/{block}/align', $studioNotes->alignBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/delete', $studioNotes->deleteBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/blocks/{block}/move', $studioNotes->moveBlock(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/{action}', $studioNotes->action(...), [$csrf, $teacher, $onboarded, $guard('note')]);

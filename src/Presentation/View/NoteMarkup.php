@@ -14,7 +14,10 @@ namespace SmartCircle\Presentation\View;
  *   **bold**   *italic*
  *   H_2O  CO_{2}  x^2  10^{-3}  (subscript / superscript)
  *   ->  →     <-  ←     <=>  ⇌  (reaction arrows)
- * A blank line starts a new paragraph.
+ *   <=  ≤   >=  ≥   !=  ≠   +-  ±   sqrt  √
+ *   = v = u + at        a line starting with "= " is an equation or calculation step:
+ *                       it is centred, and consecutive steps line up together
+ * A blank line starts a new paragraph. Paragraphs stay left-aligned (easier to read).
  */
 final class NoteMarkup
 {
@@ -25,6 +28,17 @@ final class NoteMarkup
         $para = [];
         $list = null;   // 'ul' | 'ol'
         $items = [];
+        $calc = [];     // consecutive "= " lines
+
+        $flushCalc = static function () use (&$calc, &$html): void {
+            if ($calc !== []) {
+                $html[] = '<div class="note-calc">' . implode('', array_map(
+                    static fn (string $l): string => '<p class="note-eq">' . self::math($l) . '</p>',
+                    $calc
+                )) . '</div>';
+                $calc = [];
+            }
+        };
 
         $flushPara = static function () use (&$para, &$html): void {
             if ($para !== []) {
@@ -41,6 +55,13 @@ final class NoteMarkup
 
         foreach ($lines as $line) {
             $t = rtrim($line);
+            if (preg_match('/^=\s+(.+)$/', $t, $m)) {
+                $flushPara();
+                $flushList();
+                $calc[] = $m[1];
+                continue;
+            }
+            $flushCalc();
             if (trim($t) === '') {
                 $flushPara();
                 $flushList();
@@ -74,17 +95,24 @@ final class NoteMarkup
                 $para[] = $t;
             }
         }
+        $flushCalc();
         $flushPara();
         $flushList();
 
         return implode("\n", $html);
     }
 
+    /** An equation line: inline patterns, plus * as a times sign (no bold/italic there). */
+    public static function math(string $text): string
+    {
+        return self::inline(str_replace('*', '×', $text));
+    }
+
     /** Inline patterns on ESCAPED text. */
     public static function inline(string $text): string
     {
         $s = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $s = str_replace(['&lt;=&gt;', '-&gt;', '&lt;-'], ['⇌', '→', '←'], $s);
+        $s = str_replace(['&lt;=&gt;', '-&gt;', '&lt;-', '&lt;=', '&gt;=', '!=', '+-', 'sqrt'], ['⇌', '→', '←', '≤', '≥', '≠', '±', '√'], $s);
         $s = (string) preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $s);
         $s = (string) preg_replace('/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/u', '<em>$1</em>', $s);
         $s = (string) preg_replace('/\^\{([^}]{1,20})\}/u', '<sup>$1</sup>', $s);

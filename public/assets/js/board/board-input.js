@@ -37,6 +37,9 @@ export class BoardInput {
         this.redoStack = [];
 
         this.onChange = () => {};
+        /** Called with a page point when the Type tool is tapped; the page shows a text box. */
+        this.onTextRequest = () => {};
+        this.textCentred = true;
         this.bind();
     }
 
@@ -89,6 +92,11 @@ export class BoardInput {
             // The pointer may already be gone (very quick taps); drawing still works without capture.
         }
         const p = this.point(e, null);
+
+        if (this.tool === 'text') {
+            this.onTextRequest(p, e.clientX, e.clientY);
+            return;
+        }
 
         if (this.tool === 'eraser') {
             this.active.set(e.pointerId, { type: 'eraser' });
@@ -143,6 +151,27 @@ export class BoardInput {
         }
         this.emit(stroke);
         this.redraw();
+    }
+
+    /** Adds typed text (or an equation) at a page point; centred on the page when textCentred is on. */
+    addText(text, p) {
+        const clean = String(text).replace(/\s+/g, ' ').trim().slice(0, 200);
+        if (clean === '') return;
+        const size = this.penWidth <= 4 ? 30 : this.penWidth >= 12 ? 60 : 42;
+        const item = {
+            type: 'text',
+            id: newId(),
+            t: Math.round(this.clock()),
+            x: this.textCentred ? PAGE_W / 2 : round1(p[0]),
+            y: round1(clamp(p[1], size, PAGE_H - 10)),
+            text: clean,
+            size,
+            color: this.color,
+            align: this.textCentred ? 'center' : 'left',
+        };
+        this.history.push(item.id);
+        this.redoStack = [];
+        this.commit(item);
     }
 
     eraseAt(p) {
