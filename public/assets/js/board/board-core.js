@@ -272,13 +272,18 @@ function mid(a, b) {
  * Typed text and equations. A light, safe notation (the same as in notes):
  *   x^2  x^{n+1}  H_2O  CO_{2}   superscript / subscript
  *   ->  =>  <=  >=  !=  +-  sqrt  *   become  →  ⇒  ≤  ≥  ≠  ±  √  ×
+ *   \alpha \Delta \deg \pi \therefore ...   symbols;  frac{a}{b}  becomes (a)/(b)
  * During replay the text appears letter by letter from the moment it was typed.
  */
 const TYPE_MS_PER_CHAR = 35;
 const SYMBOLS = [['<=>', '⇌'], ['->', '→'], ['=>', '⇒'], ['<=', '≤'], ['>=', '≥'], ['!=', '≠'], ['+-', '±'], ['sqrt', '√'], ['*', '×'], ['deg', '°']];
 
+/** \alpha → α, \deg → °, ... The same list as src/Support/Symbols.php (WORDS). */
+export const SYMBOL_WORDS = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', theta: 'θ', lambda: 'λ', mu: 'μ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ', phi: 'φ', omega: 'ω', eta: 'η', Delta: 'Δ', Sigma: 'Σ', Omega: 'Ω', Theta: 'Θ', Phi: 'Φ', Pi: 'Π', Lambda: 'Λ', times: '×', div: '÷', pm: '±', neq: '≠', approx: '≈', equiv: '≡', leq: '≤', geq: '≥', infty: '∞', propto: '∝', sqrt: '√', cbrt: '∛', deg: '°', angle: '∠', perp: '⊥', parallel: '∥', therefore: '∴', because: '∵', triangle: '△', sum: 'Σ', cdot: '·', in: '∈', notin: '∉', subset: '⊂', union: '∪', intersect: '∩', empty: '∅', xi: 'ξ', half: '½', third: '⅓', quarter: '¼', prime: '′', to: '→', gets: '←', rightarrow: '→', leftarrow: '←', eqm: '⇌', implies: '⇒', iff: '⇔', up: '↑', down: '↓', plus: '⁺', minus: '⁻', ohm: 'Ω', micro: 'µ', celsius: '°C', tick: '✓', star: '★', para: '¶', section: '§', ldquo: '“', rdquo: '”', dash: '—' };
+
 export function prettify(text) {
-    let s = text;
+    let s = text.indexOf('\\') === -1 ? text : text.replace(/\\([A-Za-z]+)/g, (m, w) => (Object.prototype.hasOwnProperty.call(SYMBOL_WORDS, w) ? SYMBOL_WORDS[w] : m));
+    s = s.replace(/frac\{([^{}]{1,40})\}\{([^{}]{1,40})\}/g, '($1)/($2)');
     for (const [from, to] of SYMBOLS) s = s.split(from).join(to);
     return s;
 }

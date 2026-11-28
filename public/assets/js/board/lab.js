@@ -5,7 +5,7 @@
 
 import { BoardState, COLORS, PAGE_H, PAGE_W, Renderer, drawShape } from './board-core.js';
 import { buildShape, GROUPS, STAMPS, SUBJECTS } from './board-stamps.js';
-import { canvasMeasure, layout, noteLines } from './board-notes.js';
+import { canvasMeasure, emptyTablePages, layout, noteLines, tablePages } from './board-notes.js';
 import { BoardInput } from './board-input.js';
 import { LessonClock, VoiceRecorder } from './recorder.js';
 import { decodeLesson, encodeLesson, listLocal, loadLocal, saveLocal, deleteLocal } from './lesson-file.js';
@@ -201,19 +201,64 @@ $('#notes-put').addEventListener('click', async () => {
     if (!id) return;
     try {
         const note = await getJson(`/studio/notes/${encodeURIComponent(id)}/board`);
-        const pages = layout(noteLines(note.title, note.blocks), canvasMeasure());
-        const used = input.state.strokes.some((st) => !input.state.removed.has(st.id));
-        const start = used ? input.state.pages.length : input.state.pageIndex;
-        const made = input.addPages(pages, start);
-        input.goToPage(start);
-        pageCount = Math.max(pageCount, start + pages.length);
-        if (!recording) notesPrelude.push(...made);
+        putPages(layout(noteLines(note.title, note.blocks), canvasMeasure()), note.title);
         $('#notes-panel').hidden = true;
-        const n = pages.length;
-        status(`“${note.title}” is on ${n} board page${n === 1 ? '' : 's'} (▶ for the next).${recording ? '' : ' Press Record when ready.'}`);
     } catch {
         status('Those notes could not be put on the board. Please try again.');
     }
+});
+
+/** Puts laid-out pages on the board: on this page if it is empty, else after the last page. */
+function putPages(pages, title) {
+    const used = input.state.strokes.some((st) => !input.state.removed.has(st.id));
+    const start = used ? input.state.pages.length : input.state.pageIndex;
+    const made = input.addPages(pages, start);
+    input.goToPage(start);
+    pageCount = Math.max(pageCount, start + pages.length);
+    if (!recording) notesPrelude.push(...made);
+    const n = pages.length;
+    const shownTitle = title.replace(/[\^_]\{([^}]*)\}/g, '$1').replace(/[\^_]/g, '');
+    status(`“${shownTitle}” is on ${n} board page${n === 1 ? '' : 's'}${n > 1 ? ' (▶ for the next)' : ''}.${recording ? '' : ' Press Record when ready.'}`);
+}
+
+// Tables: standard reference tables (enthalpies, periodic table, formulas, ...) or an empty table to fill in.
+let tablesLoaded = false;
+const SUBJECT_NAMES = { mathematics: 'Mathematics', physics: 'Physics', chemistry: 'Chemistry', biology: 'Biology', english: 'English grammar' };
+$('#tables-open').addEventListener('click', async () => {
+    openPanel('tables-panel');
+    if (tablesLoaded) return;
+    const select = $('#tables-select');
+    try {
+        const data = await getJson('/studio/reference');
+        select.innerHTML = '';
+        for (const [subject, list] of Object.entries(data.tables)) {
+            const group = document.createElement('optgroup');
+            group.label = SUBJECT_NAMES[subject] || subject;
+            for (const [key, title] of Object.entries(list)) group.append(new Option(title, key));
+            select.append(group);
+        }
+        tablesLoaded = true;
+    } catch {
+        select.innerHTML = '';
+        select.append(new Option('The tables could not be loaded', ''));
+    }
+});
+$('#tables-put').addEventListener('click', async () => {
+    const key = $('#tables-select').value;
+    if (!key) return;
+    try {
+        const table = await getJson(`/studio/reference/${encodeURIComponent(key)}`);
+        putPages(tablePages(table, canvasMeasure()), table.title);
+        $('#tables-panel').hidden = true;
+    } catch {
+        status('That table could not be put on the board. Please try again.');
+    }
+});
+$('#tables-empty').addEventListener('click', () => {
+    const cols = Math.max(1, Math.min(8, Number($('#tables-cols').value) || 3));
+    const rows = Math.max(1, Math.min(12, Number($('#tables-rows').value) || 4));
+    putPages(emptyTablePages(cols, rows), `Empty ${cols} × ${rows} table`);
+    $('#tables-panel').hidden = true;
 });
 
 // Full screen: the board fills the screen (the top bar hides; the tools stay).

@@ -154,6 +154,7 @@ use SmartCircle\Presentation\Controllers\ReviewController;
 use SmartCircle\Presentation\Controllers\NotificationController;
 use SmartCircle\Presentation\Controllers\StudioLibraryController;
 use SmartCircle\Presentation\Controllers\StudioNoteController;
+use SmartCircle\Presentation\Controllers\ReferenceController;
 use SmartCircle\Presentation\Controllers\PartnerController;
 use SmartCircle\Presentation\Controllers\SchoolController;
 use SmartCircle\Presentation\Controllers\StudioTopicController;
@@ -861,6 +862,9 @@ final class App
 
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [...$recorder, $onboarded, $guard()]);
+        $referenceCtl = new ReferenceController();
+        $r->get('/studio/reference', $referenceCtl->index(...), [...$recorder]);
+        $r->get('/studio/reference/{key}', $referenceCtl->show(...), [...$recorder]);
         $r->get('/studio/lessons', $lessons->manage(...), [...$recorder, $onboarded, $guard()]);
         $r->get('/studio/lessons/{id}', $lessons->edit(...), [...$recorder, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);

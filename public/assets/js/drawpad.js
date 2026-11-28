@@ -34,6 +34,41 @@
         thin.addEventListener('click', function () { width = 3; });
         thick.addEventListener('click', function () { width = 9; });
         rub.addEventListener('click', function () { erasing = true; mark(rub); });
+        // Shapes: the board's ready-made illustrations and structural formulas, placed with a tap.
+        var stamp = null, stamps = null;
+        var shapeSel = el('select', 'drawpad__shapes');
+        shapeSel.setAttribute('aria-label', 'Add a shape');
+        shapeSel.appendChild(el('option', null, 'Shape…'));
+        var sizeSel = el('select', 'drawpad__size');
+        sizeSel.setAttribute('aria-label', 'Shape size');
+        [['160', 'Small'], ['260', 'Medium'], ['400', 'Large']].forEach(function (o) {
+            var opt = el('option', null, o[1]);
+            opt.value = o[0];
+            if (o[0] === '260') { opt.selected = true; }
+            sizeSel.appendChild(opt);
+        });
+        bar.appendChild(shapeSel);
+        bar.appendChild(sizeSel);
+        import('/assets/js/board/board-stamps.js').then(function (mod) {
+            stamps = mod;
+            mod.GROUPS.forEach(function (g) {
+                var og = document.createElement('optgroup');
+                og.label = g;
+                Object.keys(mod.STAMPS).forEach(function (k) {
+                    if (mod.STAMPS[k].group === g) {
+                        var opt = el('option', null, mod.STAMPS[k].name);
+                        opt.value = k;
+                        og.appendChild(opt);
+                    }
+                });
+                shapeSel.appendChild(og);
+            });
+        }).catch(function () { shapeSel.hidden = true; sizeSel.hidden = true; });
+        shapeSel.addEventListener('change', function () {
+            stamp = shapeSel.value && stamps ? shapeSel.value : null;
+            if (stamp) { erasing = false; msg.textContent = 'Tap the drawing where the shape should go.'; }
+        });
+
         var undo = el('button', 'drawpad__tool', 'Undo'), clear = el('button', 'drawpad__tool', 'Clear');
         [undo, clear].forEach(function (b) { b.type = 'button'; bar.appendChild(b); });
         undo.addEventListener('click', function () { strokes.pop(); draw(); });
@@ -80,6 +115,27 @@
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, W, H);
             strokes.forEach(function (s) {
+                if (s.shape) {
+                    ctx.save();
+                    ctx.strokeStyle = s.color;
+                    ctx.fillStyle = s.color;
+                    ctx.lineWidth = s.width;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    s.shape.paths.forEach(function (path) {
+                        ctx.beginPath();
+                        path.forEach(function (pt, i) { if (i === 0) { ctx.moveTo(pt[0], pt[1]); } else { ctx.lineTo(pt[0], pt[1]); } });
+                        ctx.stroke();
+                    });
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    s.shape.labels.forEach(function (l) {
+                        ctx.font = '700 ' + l.size + 'px Inter, system-ui, sans-serif';
+                        ctx.fillText(l.text, l.x, l.y);
+                    });
+                    ctx.restore();
+                    return;
+                }
                 ctx.strokeStyle = s.erase ? '#FFFFFF' : s.color;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -102,6 +158,16 @@
         canvas.addEventListener('pointerdown', function (e) {
             e.preventDefault();
             try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* quick taps */ }
+            if (stamp && stamps) {
+                var p = pos(e);
+                var built = stamps.buildShape(stamp, p[0], p[1], Number(sizeSel.value), color, Math.max(2, Math.round(width * 0.6)), 'd' + strokes.length, 0);
+                if (built) { strokes.push({ shape: built, color: color, width: Math.max(2, Math.round(width * 0.6)), points: [] }); }
+                stamp = null;
+                shapeSel.value = shapeSel.options[0].value;
+                msg.textContent = '';
+                draw();
+                return;
+            }
             current = { color: color, width: width, erase: erasing, points: [pos(e)] };
             strokes.push(current);
             draw();

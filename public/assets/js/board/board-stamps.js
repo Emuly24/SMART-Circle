@@ -45,6 +45,29 @@ const wave = (x1, x2, y, amp, cycles, n = 64, phase = 0) => {
 const backDash = (pts) => pts.reduce((acc, p, i, a) => (i % 2 === 0 && a[i + 1] ? acc.concat([[p, a[i + 1]]]) : acc), []);
 const flat = (pts, cy, k = 0.3) => pts.map(([x, y]) => [x, cy + (y - cy) * k]);
 const L = (x, y, text, size = 12) => ({ x, y, text, size });
+
+/**
+ * A structural formula: atoms [[x, y, 'C'], ...] and bonds [[i, j, order]]. Bond lines stop short of the
+ * atom letters; double and triple bonds are drawn as parallel lines.
+ */
+const struct = (atoms, bonds, extra = [], extraLabels = []) => {
+    const paths = [];
+    for (const [i, j, order = 1] of bonds) {
+        const [x1, y1] = atoms[i];
+        const [x2, y2] = atoms[j];
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        const ux = (x2 - x1) / len;
+        const uy = (y2 - y1) / len;
+        const gap1 = atoms[i][2] ? 7 : 0;
+        const gap2 = atoms[j][2] ? 7 : 0;
+        const offsets = order === 1 ? [0] : order === 2 ? [-2.6, 2.6] : [-4, 0, 4];
+        for (const o of offsets) {
+            paths.push([[x1 + ux * gap1 - uy * o, y1 + uy * gap1 + ux * o], [x2 - ux * gap2 - uy * o, y2 - uy * gap2 + ux * o]]);
+        }
+    }
+    return { paths: [...paths, ...extra], labels: [...atoms.filter((a) => a[2]).map(([x, y, t]) => L(x, y, t, t.length > 1 ? 11 : 13)), ...extraLabels] };
+};
+const SF = 'Chemistry · Structural formulas';
 const meter = (letter) => ({ paths: [[[0, 50], [32, 50]], circle(50, 50, 18), [[68, 50], [100, 50]]], labels: [L(50, 51, letter, 20)] });
 const tag = (word) => ({ paths: [rect(4, 34, 96, 66)], labels: [L(50, 50, word, word.length > 9 ? 12 : 15)] });
 const axes2 = [[[6, 50], [94, 50]], head(94, 50, 0), [[50, 94], [50, 6]], head(50, 6, -90)];
@@ -162,8 +185,22 @@ export const STAMPS = {
     gas: { group: `${C} · Particles and reactions`, name: 'Particles: gas', paths: [rect(14, 14, 86, 86), ...[[28, 26], [70, 30], [46, 54], [24, 74], [74, 72]].map(([x, y]) => circle(x, y, 7, 16)), ...arrow(34, 30, 44, 36, 5), ...arrow(64, 36, 56, 44, 5), ...arrow(52, 60, 60, 68, 5)] },
     covalent: { group: `${C} · Particles and reactions`, name: 'Covalent bond (shared pair)', paths: [circle(36, 50, 24), circle(64, 50, 24)], labels: [L(24, 50, 'H', 14), L(76, 50, 'H', 14), L(50, 44, '•', 14), L(50, 57, '×', 12)] },
     ionic: { group: `${C} · Particles and reactions`, name: 'Ions (ionic bond)', paths: [circle(28, 50, 20), circle(72, 50, 22), [[4, 24], [2, 24], [2, 76], [4, 76]], [[46, 24], [48, 24], [48, 76], [46, 76]], [[52, 22], [50, 22], [50, 78], [52, 78]], [[96, 22], [98, 22], [98, 78], [96, 78]]], labels: [L(28, 50, 'Na', 12), L(72, 50, 'Cl', 12), L(46, 18, '+', 11), L(96, 16, '−', 11)] },
-    methane: { group: `${C} · Particles and reactions`, name: 'Structural formula (CH₄)', paths: [[[50, 40], [50, 18]], [[50, 60], [50, 82]], [[40, 50], [18, 50]], [[60, 50], [82, 50]]], labels: [L(50, 50, 'C', 16), L(50, 10, 'H', 14), L(50, 90, 'H', 14), L(10, 50, 'H', 14), L(90, 50, 'H', 14)] },
-    ring: { group: `${C} · Particles and reactions`, name: 'Hexagon ring', paths: [poly(50, 50, 36, 6, 30), circle(50, 50, 22)] },
+    methane: { group: SF, name: 'Methane CH₄', ...struct([[50, 50, 'C'], [50, 22, 'H'], [50, 78, 'H'], [22, 50, 'H'], [78, 50, 'H']], [[0, 1], [0, 2], [0, 3], [0, 4]]) },
+    ethane: { group: SF, name: 'Ethane C₂H₆', ...struct([[38, 50, 'C'], [62, 50, 'C'], [38, 24, 'H'], [38, 76, 'H'], [12, 50, 'H'], [62, 24, 'H'], [62, 76, 'H'], [88, 50, 'H']], [[0, 1], [0, 2], [0, 3], [0, 4], [1, 5], [1, 6], [1, 7]]) },
+    propane: { group: SF, name: 'Propane C₃H₈', ...struct([[28, 50, 'C'], [50, 50, 'C'], [72, 50, 'C'], [28, 26, 'H'], [28, 74, 'H'], [6, 50, 'H'], [50, 26, 'H'], [50, 74, 'H'], [72, 26, 'H'], [72, 74, 'H'], [94, 50, 'H']], [[0, 1], [1, 2], [0, 3], [0, 4], [0, 5], [1, 6], [1, 7], [2, 8], [2, 9], [2, 10]]) },
+    ethene: { group: SF, name: 'Ethene C₂H₄', ...struct([[38, 50, 'C'], [62, 50, 'C'], [20, 30, 'H'], [20, 70, 'H'], [80, 30, 'H'], [80, 70, 'H']], [[0, 1, 2], [0, 2], [0, 3], [1, 4], [1, 5]]) },
+    propene: { group: SF, name: 'Propene C₃H₆', ...struct([[22, 50, 'C'], [46, 50, 'C'], [70, 50, 'C'], [8, 32, 'H'], [8, 68, 'H'], [46, 26, 'H'], [70, 26, 'H'], [70, 74, 'H'], [94, 50, 'H']], [[0, 1, 2], [1, 2], [0, 3], [0, 4], [1, 5], [2, 6], [2, 7], [2, 8]]) },
+    ethyne: { group: SF, name: 'Ethyne C₂H₂', ...struct([[10, 50, 'H'], [36, 50, 'C'], [64, 50, 'C'], [90, 50, 'H']], [[0, 1], [1, 2, 3], [2, 3]]) },
+    methanol: { group: SF, name: 'Methanol CH₃OH', ...struct([[36, 50, 'C'], [36, 24, 'H'], [36, 76, 'H'], [10, 50, 'H'], [62, 50, 'O'], [88, 50, 'H']], [[0, 1], [0, 2], [0, 3], [0, 4], [4, 5]]) },
+    ethanol: { group: SF, name: 'Ethanol C₂H₅OH', ...struct([[26, 50, 'C'], [48, 50, 'C'], [70, 50, 'O'], [92, 50, 'H'], [26, 26, 'H'], [26, 74, 'H'], [4, 50, 'H'], [48, 26, 'H'], [48, 74, 'H']], [[0, 1], [1, 2], [2, 3], [0, 4], [0, 5], [0, 6], [1, 7], [1, 8]]) },
+    ethanoic: { group: SF, name: 'Ethanoic acid CH₃COOH', ...struct([[28, 54, 'C'], [52, 54, 'C'], [52, 26, 'O'], [74, 54, 'O'], [94, 54, 'H'], [28, 30, 'H'], [28, 78, 'H'], [6, 54, 'H']], [[0, 1], [1, 2, 2], [1, 3], [3, 4], [0, 5], [0, 6], [0, 7]]) },
+    chloromethane: { group: SF, name: 'Chloromethane CH₃Cl', ...struct([[50, 50, 'C'], [50, 22, 'H'], [50, 78, 'H'], [22, 50, 'H'], [80, 50, 'Cl']], [[0, 1], [0, 2], [0, 3], [0, 4]]) },
+    water: { group: SF, name: 'Water H₂O', ...struct([[50, 42, 'O'], [26, 64, 'H'], [74, 64, 'H']], [[0, 1], [0, 2]]) },
+    ammonia: { group: SF, name: 'Ammonia NH₃', ...struct([[50, 40, 'N'], [24, 58, 'H'], [76, 58, 'H'], [50, 72, 'H']], [[0, 1], [0, 2], [0, 3]]) },
+    co2: { group: SF, name: 'Carbon dioxide CO₂', ...struct([[20, 50, 'O'], [50, 50, 'C'], [80, 50, 'O']], [[0, 1, 2], [1, 2, 2]]) },
+    oxygen: { group: SF, name: 'Oxygen O₂ and nitrogen N₂', ...struct([[16, 50, 'O'], [40, 50, 'O'], [60, 50, 'N'], [84, 50, 'N']], [[0, 1, 2], [2, 3, 3]]) },
+    polyethene: { group: SF, name: 'Poly(ethene) repeat unit', ...struct([[38, 50, 'C'], [62, 50, 'C'], [38, 26, 'H'], [38, 74, 'H'], [62, 26, 'H'], [62, 74, 'H'], [12, 50, ''], [88, 50, '']], [[0, 1], [0, 2], [0, 3], [1, 4], [1, 5], [6, 0], [1, 7]], [[[24, 18], [20, 18], [20, 82], [24, 82]], [[76, 18], [80, 18], [80, 82], [76, 82]]], [L(88, 82, 'n', 12)]) },
+    ring: { group: SF, name: 'Benzene ring (hexagon)', paths: [poly(50, 50, 36, 6, 30), circle(50, 50, 22)] },
     energyProfile: { group: `${C} · Particles and reactions`, name: 'Energy profile (exothermic)', paths: [...axes1, [[14, 40], [30, 40], ...arc(46, 40, 16, 180, 360, 12).slice(1), [62, 40], [62, 40], [70, 66], [92, 66]], ...arrow(80, 40, 80, 64, 6)], labels: [L(94, 97, 'progress', 7), L(10, 4, 'energy', 7), L(20, 34, 'reactants', 7), L(84, 74, 'products', 7)] },
     phScale: { group: `${C} · Particles and reactions`, name: 'pH scale', paths: [rect(4, 40, 96, 60), ...Array.from({ length: 13 }, (_, i) => [[4 + (i + 1) * 92 / 14, 40], [4 + (i + 1) * 92 / 14, 60]])], labels: [L(7, 70, '1', 9), L(50, 70, '7', 9), L(93, 70, '14', 9), L(16, 30, 'acid', 9), L(50, 30, 'neutral', 9), L(85, 30, 'alkali', 9)] },
 

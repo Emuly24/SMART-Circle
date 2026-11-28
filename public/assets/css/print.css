@@ -56,7 +56,7 @@
 .handout .note-figure img { max-height: 120mm; width: auto; max-width: 100%; margin: 0 auto; }
 .handout__foot { margin-top: 18px; }
 .handout h2, .handout h3 { break-after: avoid; }
-.handout .note-callout, .handout .note-calc, .handout .note-figure { break-inside: avoid; }
+.handout .note-callout, .handout .note-calc, .handout .note-figure, .handout .note-table-wrap { break-inside: avoid; }
 @media print {
     .handout { min-height: 0; }
 }
@@ -76,3 +76,6 @@
 .letter__note { background: var(--green-tint); border-left: 4px solid var(--green); padding: 8px 12px; border-radius: 6px; font-style: italic; }
 .letter__title { padding-bottom: 6px; position: relative; }
 .letter__title::after { content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 4px; border-radius: 2px; background: var(--green); }
+.handout .note-table { font-size: 10pt; }
+.handout .note-table th { background: #1D4E89; color: #FFFFFF; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.handout .note-table-wrap { overflow: visible; }

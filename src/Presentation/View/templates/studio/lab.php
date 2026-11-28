@@ -60,6 +60,7 @@
         </label>
         <div class="tool-group">
             <button type="button" class="tool" id="notes-open" title="Put your written notes on the board">📄<span>Notes</span></button>
+            <button type="button" class="tool" id="tables-open" title="Standard tables (enthalpies, periodic table, formulas …) or an empty table">▦<span>Tables</span></button>
             <button type="button" class="tool" id="snapshot" title="Save this page as a picture (for notes)">📷<span>Picture</span></button>
             <button type="button" class="tool" id="fullscreen" title="Make the board fill the screen">⛶<span>Full screen</span></button>
         </div>
@@ -86,7 +87,7 @@
                 <button type="submit" class="btn btn--small">Add to the board</button>
                 <button type="button" class="btn btn--small btn--ghost" id="text-cancel">Cancel</button>
             </div>
-            <p class="text-entry__help">Each line goes under the last. x^2 superscript · H_2O subscript · -&gt; arrow · * times · sqrt √ · &lt;= ≤ · Ctrl/⌘ + Enter adds</p>
+            <p class="text-entry__help">Each line goes under the last. x^2 superscript · H_2O subscript · -&gt; arrow · * times · sqrt √ · &lt;= ≤ · \Delta Δ · \theta θ · \deg ° · \pi π · frac{a}{b} · Ctrl/⌘ + Enter adds</p>
         </form>
 
         <div class="board-panel" id="shapes-panel" hidden>
@@ -99,6 +100,22 @@
                 <span class="muted-light">Lines use the colour and pen size you have chosen. For wires, use the Line tool: it snaps straight.</span>
             </div>
             <div id="shapes-list" class="shapes-list"></div>
+        </div>
+
+        <div class="board-panel" id="tables-panel" hidden>
+            <div class="board-panel__head"><strong>Tables</strong>
+                <button type="button" class="btn btn--small btn--ghost" data-close="tables-panel">Close</button></div>
+            <p class="muted-light">A standard table goes on a new board page (long ones continue on the next page). Write on it while you record.</p>
+            <div class="board-panel__row">
+                <select id="tables-select" aria-label="Standard table"><option value="">Loading the tables…</option></select>
+                <button type="button" class="btn btn--small" id="tables-put">Put on the board</button>
+            </div>
+            <div class="board-panel__row">
+                <span>Or an empty table:</span>
+                <label>Columns <input type="number" id="tables-cols" min="1" max="8" value="3" class="board-num"></label>
+                <label>Rows <input type="number" id="tables-rows" min="1" max="12" value="4" class="board-num"></label>
+                <button type="button" class="btn btn--small btn--ghost" id="tables-empty">Draw it</button>
+            </div>
         </div>
 
         <div class="board-panel" id="notes-panel" hidden>

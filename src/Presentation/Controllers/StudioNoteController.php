@@ -13,6 +13,7 @@ use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
 use SmartCircle\Presentation\Http\Session;
 use SmartCircle\Presentation\View\View;
+use SmartCircle\Support\ReferenceTables;
 use SmartCircle\Support\Subjects;
 
 /** Tutor: write notes and slides, and place checkpoint exercises in them. */
@@ -75,7 +76,7 @@ final class StudioNoteController
         $blocks = [];
         foreach ($this->notes->blocksForEditor((int) $note['id']) as $b) {
             if ($b['type'] === 'text') {
-                $blocks[] = ['type' => 'text', 'body' => (string) $b['body']];
+                $blocks[] = ['type' => 'text', 'body' => ReferenceTables::expand((string) $b['body'])];
             } elseif ($b['type'] === 'image') {
                 $blocks[] = ['type' => 'image', 'caption' => (string) ($b['body'] ?? '')];
             }

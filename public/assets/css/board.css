@@ -149,3 +149,4 @@ body.board-focus .studio-bar { display: none; }
 body.board-focus .board-wrap { padding: 2px; }
 .shape-btn[hidden], .shapes-group[hidden] { display: none; }
 #shapes-search { flex: 1 1 180px; min-width: 0; padding: 8px 10px; border: 1.5px solid #C9D3E3; border-radius: 10px; font: inherit; background: #FFFFFF; color: #14213D; }
+.board-num { width: 4.2rem; padding: 6px 8px; border: 1.5px solid #C9D3E3; border-radius: 8px; font: inherit; }
