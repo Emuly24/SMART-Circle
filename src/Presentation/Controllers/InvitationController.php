@@ -8,6 +8,7 @@ use SmartCircle\Application\Partners\InvitationService;
 use SmartCircle\Presentation\Http\Context;
 use SmartCircle\Presentation\Http\Request;
 use SmartCircle\Presentation\Http\Response;
+use SmartCircle\Presentation\Http\Session;
 use SmartCircle\Presentation\View\View;
 use SmartCircle\Support\Subjects;
 
@@ -18,6 +19,7 @@ final class InvitationController
         private readonly InvitationService $invitations,
         private readonly Context $context,
         private readonly View $view,
+        private readonly ?Session $session = null,
     ) {
     }
 
@@ -32,10 +34,14 @@ final class InvitationController
     {
         $in = ['type' => $request->input('type'), 'title' => $request->input('title'), 'full_name' => $request->input('full_name'),
             'school' => $request->input('school'), 'district' => $request->input('district'), 'note' => $request->input('note'),
-            'subjects' => $request->inputList('subjects')];
+            'subjects' => $request->inputList('subjects'), 'email' => $request->input('email')];
         $r = $this->invitations->issue($in, (int) $this->context->userId());
         if ($r['errors'] !== []) {
             return $this->page($r['errors'], $in, 422);
+        }
+
+        if (($r['emailed'] ?? false) === true) {
+            $this->session?->flash('success', 'The letter is written and an email with its link is in the queue for ' . $r['clean']['email'] . '.');
         }
 
         return Response::redirect('/letters/' . $r['code']);

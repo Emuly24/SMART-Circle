@@ -24,7 +24,13 @@
             <button type="button" class="tool" data-tool="eraser" title="Eraser">🧽<span>Erase</span></button>
             <button type="button" class="tool" data-tool="laser" title="Laser pointer">🔴<span>Laser</span></button>
             <button type="button" class="tool" data-tool="text" title="Type text or an equation">🔤<span>Type</span></button>
-            <button type="button" class="tool" id="shapes-open" title="Science and maths illustrations">🔌<span>Shapes</span></button>
+            <button type="button" class="tool" id="shapes-open" title="Ready-made illustrations for every subject">🔌<span>Shapes</span></button>
+        </div>
+        <div class="tool-group" aria-label="Drag to draw">
+            <button type="button" class="tool" data-tool="line" title="Straight line (wires): drag. Snaps level, upright or 45°">📏<span>Line</span></button>
+            <button type="button" class="tool" data-tool="arrow" title="Arrow: drag">➜<span>Arrow</span></button>
+            <button type="button" class="tool" data-tool="rect" title="Box: drag (nearly square becomes a square)">▭<span>Box</span></button>
+            <button type="button" class="tool" data-tool="ellipse" title="Circle or oval: drag">◯<span>Circle</span></button>
         </div>
         <div class="tool-group" aria-label="Colour">
             <button type="button" class="swatch is-active" data-color="ink" aria-label="Black ink"></button>
@@ -87,8 +93,10 @@
             <div class="board-panel__head"><strong>Shapes</strong><span>Choose one, then tap the board where it should go.</span>
                 <button type="button" class="btn btn--small btn--ghost" data-close="shapes-panel">Close</button></div>
             <div class="board-panel__row">
+                <label>Subject <select id="shapes-subject"><option value="">All subjects</option></select></label>
+                <input type="search" id="shapes-search" placeholder="Find a shape, e.g. ammeter" aria-label="Find a shape" autocomplete="off">
                 <label>Size <select id="stamp-size"><option value="140">Small</option><option value="220" selected>Medium</option><option value="320">Large</option><option value="460">Very large</option></select></label>
-                <span class="muted-light">Lines use the colour and pen size you have chosen.</span>
+                <span class="muted-light">Lines use the colour and pen size you have chosen. For wires, use the Line tool: it snaps straight.</span>
             </div>
             <div id="shapes-list" class="shapes-list"></div>
         </div>

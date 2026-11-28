@@ -106,6 +106,15 @@ export class BoardInput {
             return;
         }
 
+        if (DRAG_TOOLS.includes(this.tool)) {
+            // Line, arrow, box or circle: drag from one corner to the other.
+            const shape = { type: 'shape', id: newId(), t: p[3], key: this.tool, color: this.color, width: Math.max(3, Math.round(this.penWidth * 0.7)), paths: [], labels: [], from: [p[0], p[1]] };
+            this.active.set(e.pointerId, shape);
+            this.state.apply(shape);
+            this.redraw();
+            return;
+        }
+
         if (this.tool === 'eraser') {
             this.active.set(e.pointerId, { type: 'eraser' });
             this.eraseAt(p);
@@ -135,6 +144,12 @@ export class BoardInput {
         e.preventDefault();
         // Coalesced events give the Pencil's full 240 Hz detail where supported.
         const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
+        if (stroke.type === 'shape') {
+            const p = this.point(e, null);
+            stroke.paths = dragPaths(stroke.key, stroke.from, [p[0], p[1]]);
+            this.redraw();
+            return;
+        }
         for (const ev of events.length ? events : [e]) {
             if (stroke.type === 'eraser') {
                 this.eraseAt(this.point(ev, null));
@@ -153,6 +168,23 @@ export class BoardInput {
         if (!stroke) return;
         this.active.delete(e.pointerId);
         if (stroke.type === 'eraser') return;
+        if (stroke.type === 'shape') {
+            const page = this.state.strokes;
+            const [x0, y0] = stroke.from;
+            const extent = stroke.paths.flat().reduce((m, [x, y]) => Math.max(m, Math.abs(x - x0), Math.abs(y - y0)), 0);
+            if (extent < 4) {           // a tap, not a drag: nothing to draw
+                const i = page.indexOf(stroke);
+                if (i >= 0) page.splice(i, 1);
+                this.redraw();
+                return;
+            }
+            delete stroke.from;
+            this.history.push(stroke.id);
+            this.redoStack = [];
+            this.emit(stroke);
+            this.redraw();
+            return;
+        }
         if (stroke.type === 'stroke') {
             this.history.push(stroke.id);
             this.redoStack = [];
@@ -262,6 +294,55 @@ export class BoardInput {
         this.renderer.render(this.state, Infinity, this.clock());
         this.onChange();
     }
+}
+
+/** Tools drawn by dragging, saved as 'shape' events. */
+export const DRAG_TOOLS = ['line', 'arrow', 'rect', 'ellipse'];
+
+/**
+ * The lines of a dragged shape from point a to point b. Lines and arrows snap to level, upright or 45° when
+ * close (tidy circuit wires); a box or ellipse that is nearly square becomes a square or circle. Pure.
+ */
+export function dragPaths(kind, a, b) {
+    let [x1, y1] = a;
+    let [x2, y2] = b;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    if (kind === 'line' || kind === 'arrow') {
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        let ang = Math.atan2(y2 - y1, x2 - x1);
+        const step = Math.PI / 4;
+        const snapped = Math.round(ang / step) * step;
+        if (Math.abs(ang - snapped) < 0.12) ang = snapped;
+        x2 = x1 + len * Math.cos(ang);
+        y2 = y1 + len * Math.sin(ang);
+        const paths = [[[r1(x1), r1(y1)], [r1(x2), r1(y2)]]];
+        if (kind === 'arrow' && len > 1) {
+            const h = Math.min(28, Math.max(14, len * 0.25));
+            const p = (da) => [r1(x2 - h * Math.cos(ang + da)), r1(y2 - h * Math.sin(ang + da))];
+            paths.push([p(0.45), [r1(x2), r1(y2)], p(-0.45)]);
+        }
+        return paths;
+    }
+    let w = x2 - x1;
+    let h = y2 - y1;
+    if (Math.abs(Math.abs(w) - Math.abs(h)) < 0.08 * Math.max(Math.abs(w), Math.abs(h))) {
+        const side = Math.max(Math.abs(w), Math.abs(h));
+        w = Math.sign(w || 1) * side;
+        h = Math.sign(h || 1) * side;
+    }
+    x2 = x1 + w;
+    y2 = y1 + h;
+    if (kind === 'rect') {
+        return [[[r1(x1), r1(y1)], [r1(x2), r1(y1)], [r1(x2), r1(y2)], [r1(x1), r1(y2)], [r1(x1), r1(y1)]]];
+    }
+    const cx = (x1 + x2) / 2;
+    const cy = (y1 + y2) / 2;
+    const pts = [];
+    for (let i = 0; i <= 48; i++) {
+        const t = (i / 48) * Math.PI * 2;
+        pts.push([r1(cx + (w / 2) * Math.cos(t)), r1(cy + (h / 2) * Math.sin(t))]);
+    }
+    return [pts];
 }
 
 function highlighterColor(color) {

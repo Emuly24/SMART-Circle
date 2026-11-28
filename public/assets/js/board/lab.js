@@ -4,7 +4,7 @@
  */
 
 import { BoardState, COLORS, PAGE_H, PAGE_W, Renderer, drawShape } from './board-core.js';
-import { buildShape, GROUPS, STAMPS } from './board-stamps.js';
+import { buildShape, GROUPS, STAMPS, SUBJECTS } from './board-stamps.js';
 import { canvasMeasure, layout, noteLines } from './board-notes.js';
 import { BoardInput } from './board-input.js';
 import { LessonClock, VoiceRecorder } from './recorder.js';
@@ -54,6 +54,7 @@ $$('[data-tool]').forEach((btn) => btn.addEventListener('click', () => {
     input.tool = btn.dataset.tool;
     $$('[data-tool]').forEach((b) => b.classList.toggle('is-active', b === btn));
     $('#shapes-open').classList.remove('is-active');
+    status(btn.title.split(':')[0]);
 }));
 $$('[data-color]').forEach((btn) => btn.addEventListener('click', () => {
     input.color = COLORS[btn.dataset.color];
@@ -113,6 +114,9 @@ input.buildShape = buildShape;
 (function buildShapesList() {
     const list = $('#shapes-list');
     for (const group of GROUPS) {
+        const section = document.createElement('section');
+        section.className = 'shapes-group';
+        section.dataset.subject = group.split(' · ')[0];
         const h = document.createElement('h3');
         h.textContent = group;
         const grid = document.createElement('div');
@@ -122,6 +126,7 @@ input.buildShape = buildShape;
             btn.type = 'button';
             btn.className = 'shape-btn';
             btn.dataset.stamp = key;
+            btn.dataset.find = `${def.name} ${group}`.toLowerCase();
             const cv = document.createElement('canvas');
             cv.width = 128;
             cv.height = 128;
@@ -143,8 +148,27 @@ input.buildShape = buildShape;
             });
             grid.append(btn);
         }
-        list.append(h, grid);
+        section.append(h, grid);
+        list.append(section);
     }
+    const subject = $('#shapes-subject');
+    for (const name of SUBJECTS) subject.append(new Option(name, name));
+    const search = $('#shapes-search');
+    const filter = () => {
+        const want = subject.value;
+        const words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        $$('.shapes-group').forEach((sec) => {
+            let shown = 0;
+            sec.querySelectorAll('.shape-btn').forEach((b) => {
+                const ok = (!want || sec.dataset.subject === want) && words.every((w) => b.dataset.find.includes(w));
+                b.hidden = !ok;
+                if (ok) shown++;
+            });
+            sec.hidden = shown === 0;
+        });
+    };
+    subject.addEventListener('change', filter);
+    search.addEventListener('input', filter);
 })();
 $('#shapes-open').addEventListener('click', () => openPanel('shapes-panel'));
 $('#stamp-size').addEventListener('change', (e) => { input.stampBox = Number(e.target.value); });

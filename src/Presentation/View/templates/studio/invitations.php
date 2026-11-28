@@ -31,6 +31,7 @@ $chosen = (array) ($old['subjects'] ?? []);
             <fieldset class="field"><legend class="field__label">Subjects</legend><div class="choice-grid">
                 <?php foreach ($names as $k => $n): ?><label class="choice"><input type="checkbox" name="subjects[]" value="<?= e($k) ?>" <?= in_array($k, $chosen, true) ? 'checked' : '' ?>> <?= e($n) ?></label><?php endforeach; ?>
             </div><?= $err('subjects') ?></fieldset>
+            <label class="field"><span class="field__label">Their email <span class="muted">(optional: we email them the letter’s link)</span></span><input type="email" name="email" maxlength="190" autocomplete="off" value="<?= e($old['email'] ?? '') ?>"><?= $err('email') ?></label>
             <label class="field"><span class="field__label">A personal note <span class="muted">(optional, e.g. how you know them)</span></span><textarea name="note" rows="3" maxlength="800"><?= e($old['note'] ?? '') ?></textarea><?= $err('note') ?></label>
             <div class="form-actions"><button type="submit" class="btn btn--green">Write the letter</button></div>
         </form>

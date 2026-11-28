@@ -111,4 +111,43 @@ final class MailRepository
     {
         return $this->db->one('SELECT * FROM scheduled_jobs WHERE name = ?', [$name]);
     }
+
+    /**
+     * People in a group who can get an email the tutor writes: an address, an active account (not practice)
+     * and email turned on in their profile. Guardians have no account: those with an email address on file.
+     * @return list<array{email: string, name: string}>
+     */
+    public function audience(string $group, ?int $form = null): array
+    {
+        $formSql = $form !== null ? ' AND sp.form = ?' : '';
+        $params = $form !== null ? [$form] : [];
+        $users = "u.status = 'active' AND u.is_practice = 0 AND u.email IS NOT NULL AND u.email <> '' AND u.email_notifications = 1";
+        $rows = match ($group) {
+            'students' => $this->db->all(
+                "SELECT u.email, u.full_name AS name FROM users u JOIN student_profiles sp ON sp.user_id = u.id
+                 WHERE u.role = 'student' AND sp.status = 'active' AND $users$formSql ORDER BY u.full_name",
+                $params
+            ),
+            'guardians' => $this->db->all(
+                "SELECT sp.guardian_email AS email, COALESCE(sp.guardian_name, '') AS name FROM student_profiles sp JOIN users u ON u.id = sp.user_id
+                 WHERE sp.status = 'active' AND u.status = 'active' AND u.is_practice = 0 AND sp.guardian_email IS NOT NULL AND sp.guardian_email <> ''$formSql
+                 ORDER BY sp.guardian_name",
+                $params
+            ),
+            'partner', 'team', 'alumni' => $this->db->all(
+                "SELECT u.email, u.full_name AS name FROM users u WHERE u.role = ? AND $users ORDER BY u.full_name",
+                [$group]
+            ),
+            default => [],
+        };
+        $out = [];
+        foreach ($rows as $r) {
+            $key = strtolower(trim((string) $r['email']));
+            if ($key !== '' && !isset($out[$key])) {
+                $out[$key] = ['email' => trim((string) $r['email']), 'name' => (string) $r['name']];
+            }
+        }
+
+        return array_values($out);
+    }
 }

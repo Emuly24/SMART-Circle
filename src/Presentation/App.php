@@ -673,7 +673,7 @@ final class App
         $r->post('/studio/question-suggestions/{id}', $rolesCtl->decide(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/guest', $rolesCtl->setGuest(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/certificate', $partnersCtl->certificate(...), [$csrf, $tutor]);
-        $invitationsCtl = new InvitationController(new InvitationService($documentService, $settingsService->tutorWhatsapp(...)), $this->context, $this->view);
+        $invitationsCtl = new InvitationController(new InvitationService($documentService, $settingsService->tutorWhatsapp(...), $this->mail($db), $this->config->string('app.url')), $this->context, $this->view, $this->session);
         $r->get('/studio/invitations', $invitationsCtl->index(...), [$tutor]);
         $r->post('/studio/invitations', $invitationsCtl->issue(...), [$csrf, $tutor]);
 
@@ -770,6 +770,7 @@ final class App
         $r->post('/studio/digest/send', $engagementCtl->digestNow(...), [$csrf, $tutor]);
         $r->get('/studio/mail', $mailCtl->index(...), [$tutor]);
         $r->post('/studio/mail/send', $mailCtl->sendNow(...), [$csrf, $tutor]);
+        $r->post('/studio/mail/compose', $mailCtl->compose(...), [$csrf, $tutor]);
         $r->post('/studio/mail/test', $mailCtl->test(...), [$csrf, $tutor]);
         $r->post('/studio/mail/retry', $mailCtl->retry(...), [$csrf, $tutor]);
         $r->post('/studio/guardians/{id}/email', $guardianCtl->email(...), [$csrf, $tutor]);
