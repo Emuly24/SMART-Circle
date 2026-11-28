@@ -30,5 +30,8 @@ final class ShareLinksTest extends TestCase
         self::assertStringContainsString(base64_encode((string) file_get_contents(dirname(__DIR__, 2) . '/public/assets/brand/share-card.png')), $built,
             'share-worker.js is out of date: run php tools/cloudflare/build.php');
         self::assertStringNotContainsString('__SHARE_CARD_PNG_BASE64__', $built);
+        $lite = (string) file_get_contents($dir . '/share-worker-lite.js');
+        self::assertStringContainsString('raw.githubusercontent.com/Emuly24/SMART-Circle/main/public/assets/brand/share-card.png', $lite);
+        self::assertLessThan(10000, strlen($lite), 'the small Worker stays easy to paste');
     }
 }

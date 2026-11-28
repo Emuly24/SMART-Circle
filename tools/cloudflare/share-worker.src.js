@@ -36,6 +36,8 @@ const PAGES = {
 };
 
 const CARD_BASE64 = '__SHARE_CARD_PNG_BASE64__';
+// The small version (share-worker-lite.js) has no picture inside: it points to this copy of the card instead.
+const CARD_URL = '__CARD_URL__';
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,6 +60,9 @@ function describe(path, title) {
 }
 
 function cardResponse() {
+  if (!CARD_BASE64) {
+    return Response.redirect(CARD_URL, 302);
+  }
   const bytes = Uint8Array.from(atob(CARD_BASE64), (c) => c.charCodeAt(0));
   return new Response(bytes, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=604800' } });
 }
@@ -82,7 +87,7 @@ export default {
     }
 
     const page = describe(path, title);
-    const image = url.origin + '/share-card.png';
+    const image = CARD_BASE64 ? url.origin + '/share-card.png' : CARD_URL;
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>${escapeHtml(page.title)}</title>
 <meta name="description" content="${escapeHtml(page.description)}">
