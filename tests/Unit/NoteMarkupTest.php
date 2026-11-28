@@ -59,4 +59,36 @@ final class NoteMarkupTest extends TestCase
         // Outside equation lines, * still means italics.
         self::assertStringContainsString('<em>very</em>', NoteMarkup::render('It is *very* important'));
     }
+
+    public function testTablesSymbolsAndFractions(): void
+    {
+        $html = NoteMarkup::render("| Metal | With water |\n|---|---|\n| Na | vigorous |\n| <b>Cu</b> | none |");
+        self::assertStringContainsString('<table class="note-table"><thead><tr><th>Metal</th><th>With water</th></tr></thead>', $html);
+        self::assertStringContainsString('<tr><td>Na</td><td>vigorous</td></tr>', $html);
+        self::assertStringContainsString('&lt;b&gt;Cu&lt;/b&gt;', $html, 'cells are escaped');
+        self::assertStringNotContainsString('---', $html);
+        // Short rows are padded so every row has the same cells.
+        self::assertStringContainsString('<tr><td>x</td><td></td></tr>', NoteMarkup::render("| a | b |\n| x |"));
+        self::assertStringContainsString('Δ', NoteMarkup::render('\Delta H is negative'));
+        self::assertStringContainsString('\nope', NoteMarkup::render('\nope stays'));
+        self::assertStringContainsString('<span class="frac"><span class="frac__n">1</span><span class="frac__d">2</span></span>', NoteMarkup::render('= frac{1}{2}'));
+    }
+
+    public function testReferenceTables(): void
+    {
+        $html = NoteMarkup::render("Values:\n[table: bondEnthalpy]");
+        self::assertStringContainsString('<caption>Average bond enthalpies</caption>', $html);
+        self::assertStringContainsString('<td>C–H</td><td>413</td>', $html);
+        self::assertStringContainsString('no such table', NoteMarkup::render('[table: nothing]'));
+        foreach (\SmartCircle\Support\ReferenceTables::all() as $key => $t) {
+            self::assertNotSame('', $t['title'], $key);
+            self::assertContains($t['subject'], ['mathematics', 'physics', 'chemistry', 'biology', 'english'], $key);
+            foreach ($t['rows'] as $i => $row) {
+                self::assertCount(count($t['cols']), $row, "$key row $i has the same number of cells as the heading");
+            }
+        }
+        $expanded = \SmartCircle\Support\ReferenceTables::expand("[table: indicators]");
+        self::assertStringContainsString('## Indicator colours', $expanded);
+        self::assertStringContainsString('| Litmus | red | purple | blue |', $expanded);
+    }
 }

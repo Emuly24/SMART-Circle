@@ -1168,3 +1168,41 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .share__btn--whatsapp, .share__btn--native { background: var(--btn-green); border-color: var(--btn-green); color: var(--on-brand); }
 .share__btn--whatsapp:hover, .share__btn--native:hover { color: var(--on-brand); filter: brightness(1.08); }
 .share__done { margin: 8px 0 0; }
+
+/* ---------- Reading progress bar and ← Back ---------- */
+.scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 20; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.scroll-progress.is-visible { opacity: 1; }
+.scroll-progress__bar { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; background: linear-gradient(90deg, var(--btn-blue), var(--green)); }
+.back-row { padding-top: 14px; }
+.back-link { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--link); text-decoration: none; padding: 6px 2px; min-height: 36px; }
+.back-link:hover, .back-link:focus-visible { text-decoration: underline; }
+@media print { .scroll-progress, .back-row { display: none; } }
+@media (prefers-reduced-motion: reduce) { .scroll-progress { transition: none; } }
+
+/* ---------- Tables, reference tables and fractions in notes ---------- */
+.note-table-wrap { max-width: 100%; overflow-x: auto; margin: 1rem 0 1.25rem; }
+.note-prose, .note-block, .note-blocks > li { min-width: 0; max-width: 100%; }
+.note-table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+.note-table caption { text-align: left; font-weight: 700; color: var(--link); padding: 0 0 6px; font-size: 1.02rem; }
+.note-table th, .note-table td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; word-break: normal; overflow-wrap: normal; }
+.note-table th { background: var(--btn-blue); color: var(--on-brand); font-weight: 700; }
+.note-table tbody tr:nth-child(even) td { background: var(--mist); }
+.note-table__note { font-size: .88rem; color: var(--slate); margin: 6px 0 0; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: .9em; line-height: 1.15; margin: 0 2px; }
+.frac__n { border-bottom: 1.5px solid currentColor; padding: 0 3px; }
+.frac__d { padding: 0 3px; }
+
+/* ---------- Notes editor: Insert toolbar ---------- */
+.insert-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+.insert-bar, .insert-pop { min-width: 0; max-width: 100%; }
+.insert-bar select { flex: 1 1 160px; width: 160px; min-width: 0; max-width: 100%; }
+.insert-pop { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--surface); margin: 0 0 8px; }
+.insert-pop[hidden] { display: none; }
+.insert-pop__group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.insert-pop__group strong { flex: 0 0 100%; font-size: .85rem; color: var(--slate); }
+.insert-pop__sym { min-width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 1.05rem; cursor: pointer; }
+.insert-pop__sym:hover, .insert-pop__sym:focus-visible { border-color: var(--link); }
+.insert-pop__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.insert-pop__row label { display: grid; gap: 2px; font-size: .85rem; }
+.insert-pop__row input { width: 5rem; }
+.drawpad__shapes { flex: 1 1 200px; min-width: 0; max-width: 100%; }

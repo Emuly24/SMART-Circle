@@ -5,9 +5,14 @@
  * @var list<array<string, mixed>> $recent
  * @var array<string, mixed>|null $job
  * @var array<string, mixed>|null $digest
+ * @var array<string, string> $groups
+ * @var array<string, int> $audience
+ * @var array<string, string> $errors
+ * @var array<string, string> $old
  * @var \SmartCircle\Presentation\Http\Csrf $csrf
  */
 $labels = ['queued' => 'Waiting', 'sent' => 'Sent', 'failed' => 'Failed'];
+$err = static fn (string $f): string => isset($errors[$f]) ? '<span class="field__error">' . e($errors[$f]) . '</span>' : '';
 $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime($t)) : '';
 ?>
 <section class="section section--tight">
@@ -34,6 +39,30 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
                 <label class="field"><span class="field__label">Send a test email to</span><input type="email" name="to" required autocomplete="email" placeholder="you@example.com"></label>
                 <div class="form-actions"><button type="submit" class="btn btn--small">Send test</button></div>
             </form>
+        </div>
+        <div class="card section-card" id="write">
+            <h2 class="h3">Write an email</h2>
+            <p>Send your own message to a group. Each person gets their own copy, in the SMART Circle style, from <?= e($contactEmail ?? '') ?>.
+                Only people with an email address (and, for accounts, email turned on in their profile) receive it. Write <code>{name}</code> for each person’s first name.</p>
+            <form method="post" action="/studio/mail/compose" class="form js-confirm" data-confirm="Send this email to everyone in the group you chose?"><?= $csrf->field() ?>
+                <div class="field-row">
+                    <label class="field"><span class="field__label">To</span>
+                        <select name="group" required><?php foreach ($groups as $k => $label): ?><option value="<?= e($k) ?>" <?= ($old['group'] ?? '') === $k ? 'selected' : '' ?>><?= e($label) ?> (<?= e($audience[$k] ?? 0) ?>)</option><?php endforeach; ?></select><?= $err('group') ?></label>
+                    <label class="field field--short"><span class="field__label">Form <span class="muted">(students, guardians)</span></span>
+                        <select name="form"><option value="0">All forms</option><?php for ($f = 1; $f <= 4; $f++): ?><option value="<?= e($f) ?>" <?= (string) ($old['form'] ?? '') === (string) $f ? 'selected' : '' ?>>Form <?= e($f) ?></option><?php endfor; ?></select><?= $err('form') ?></label>
+                </div>
+                <label class="field"><span class="field__label">Subject</span><input type="text" name="subject" maxlength="150" required value="<?= e($old['subject'] ?? '') ?>"><?= $err('subject') ?></label>
+                <label class="field"><span class="field__label">Message</span><textarea name="body" rows="9" maxlength="6000" required><?= e($old['body'] ?? '') ?></textarea>
+                    <span class="field__hint">Leave a blank line between paragraphs. Links become clickable. The SMART Circle footer and the site address are added at the bottom; replies come to your Zoho inbox.</span><?= $err('body') ?></label>
+                <div class="form-actions"><button type="submit" class="btn btn--green">Put in the queue</button></div>
+            </form>
+        </div>
+        <div class="card section-card">
+            <h2 class="h3">Letters and wording</h2>
+            <ul>
+                <li><a href="/studio/templates">Message templates</a>: the wording of admission, guardian, reminder and digest messages.</li>
+                <li><a href="/studio/invitations">Invitation letters</a>: invite a school teacher or a volunteer tutor, and email them the letter.</li>
+            </ul>
         </div>
         <div class="card section-card" id="digest">
             <h2 class="h3">Weekly digest</h2>

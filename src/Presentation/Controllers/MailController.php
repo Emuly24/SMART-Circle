@@ -26,7 +26,33 @@ final class MailController
 
     public function index(Request $request): Response
     {
-        return Response::html($this->view->render('studio/mail', ['title' => 'Email', 'digest' => $this->jobs?->job('digest')] + $this->mail->status()));
+        return $this->page([], ['group' => 'students', 'form' => '0', 'subject' => '', 'body' => "Hello {name},\n\n"]);
+    }
+
+    /** The tutor's own email to a group. */
+    public function compose(Request $request): Response
+    {
+        $in = ['group' => $request->input('group'), 'form' => $request->input('form'), 'subject' => $request->input('subject'), 'body' => $request->input('body')];
+        $r = $this->mail->broadcast($in, (int) $this->context->userId());
+        if ($r['errors'] !== []) {
+            return $this->page($r['errors'], $in, 422);
+        }
+        $this->session->flash('success', 'Your email is in the queue for ' . $r['count'] . ' ' . ($r['count'] === 1 ? 'person' : 'people') . '. It goes out a few at a time, or press “Send waiting emails now”.');
+
+        return Response::redirect('/studio/mail');
+    }
+
+    /** @param array<string, string> $errors @param array<string, string> $old */
+    private function page(array $errors, array $old, int $status = 200): Response
+    {
+        return Response::html($this->view->render('studio/mail', [
+            'title' => 'Email',
+            'digest' => $this->jobs?->job('digest'),
+            'groups' => MailService::GROUPS,
+            'audience' => $this->mail->audienceCounts(),
+            'errors' => $errors,
+            'old' => $old,
+        ] + $this->mail->status()), $status);
     }
 
     public function sendNow(Request $request): Response

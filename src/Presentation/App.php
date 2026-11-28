@@ -154,6 +154,7 @@ use SmartCircle\Presentation\Controllers\ReviewController;
 use SmartCircle\Presentation\Controllers\NotificationController;
 use SmartCircle\Presentation\Controllers\StudioLibraryController;
 use SmartCircle\Presentation\Controllers\StudioNoteController;
+use SmartCircle\Presentation\Controllers\ReferenceController;
 use SmartCircle\Presentation\Controllers\PartnerController;
 use SmartCircle\Presentation\Controllers\SchoolController;
 use SmartCircle\Presentation\Controllers\StudioTopicController;
@@ -625,7 +626,9 @@ final class App
         $r->get('/studio/notes', $studioNotes->index(...), [$teacher, $onboarded, $guard()]);
         $r->get('/studio/notes/new', $studioNotes->create(...), [$teacher, $onboarded, $guard()]);
         $r->post('/studio/notes', $studioNotes->create(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/notes/board-list', $studioNotes->boardList(...), [$teacher, $onboarded, $guard()]);
         $r->get('/studio/notes/{id}', $studioNotes->edit(...), [$teacher, $onboarded, $guard('note')]);
+        $r->get('/studio/notes/{id}/board', $studioNotes->boardNote(...), [$teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}', $studioNotes->update(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/text', $studioNotes->addText(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/image', $studioNotes->addImage(...), [$csrf, $teacher, $onboarded, $guard('note')]);
@@ -671,7 +674,7 @@ final class App
         $r->post('/studio/question-suggestions/{id}', $rolesCtl->decide(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/guest', $rolesCtl->setGuest(...), [$csrf, $tutor]);
         $r->post('/studio/partners/{id}/certificate', $partnersCtl->certificate(...), [$csrf, $tutor]);
-        $invitationsCtl = new InvitationController(new InvitationService($documentService, $settingsService->tutorWhatsapp(...)), $this->context, $this->view);
+        $invitationsCtl = new InvitationController(new InvitationService($documentService, $settingsService->tutorWhatsapp(...), $this->mail($db), $this->config->string('app.url')), $this->context, $this->view, $this->session);
         $r->get('/studio/invitations', $invitationsCtl->index(...), [$tutor]);
         $r->post('/studio/invitations', $invitationsCtl->issue(...), [$csrf, $tutor]);
 
@@ -768,6 +771,7 @@ final class App
         $r->post('/studio/digest/send', $engagementCtl->digestNow(...), [$csrf, $tutor]);
         $r->get('/studio/mail', $mailCtl->index(...), [$tutor]);
         $r->post('/studio/mail/send', $mailCtl->sendNow(...), [$csrf, $tutor]);
+        $r->post('/studio/mail/compose', $mailCtl->compose(...), [$csrf, $tutor]);
         $r->post('/studio/mail/test', $mailCtl->test(...), [$csrf, $tutor]);
         $r->post('/studio/mail/retry', $mailCtl->retry(...), [$csrf, $tutor]);
         $r->post('/studio/guardians/{id}/email', $guardianCtl->email(...), [$csrf, $tutor]);
@@ -858,6 +862,9 @@ final class App
 
         // Tutor: recording studio and lesson management
         $r->get('/studio/lab', $studio->lab(...), [...$recorder, $onboarded, $guard()]);
+        $referenceCtl = new ReferenceController();
+        $r->get('/studio/reference', $referenceCtl->index(...), [...$recorder]);
+        $r->get('/studio/reference/{key}', $referenceCtl->show(...), [...$recorder]);
         $r->get('/studio/lessons', $lessons->manage(...), [...$recorder, $onboarded, $guard()]);
         $r->get('/studio/lessons/{id}', $lessons->edit(...), [...$recorder, $onboarded, $guard('lesson')]);
         $r->post('/studio/lessons/{id}', $lessons->update(...), [$csrf, ...$recorder, $onboarded, $guard('lesson')]);

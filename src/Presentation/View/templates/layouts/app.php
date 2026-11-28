@@ -54,6 +54,7 @@ $user = $ctx->user();
 </head>
 <body data-role="<?= e($user['role'] ?? 'guest') ?>" data-path="<?= e($path ?? '/') ?>">
 <a class="skip-link" href="#main">Skip to content</a>
+<div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar"></span></div>
 <header class="site-header">
     <div class="container site-header__inner">
         <a class="brand" href="/" aria-label="<?= e($appName) ?> home">
@@ -136,6 +137,18 @@ $user = $ctx->user();
     </div>
 <?php endif; ?>
 <main id="main" class="site-main">
+    <?php
+    // ← Back: to the previous page when it was on this site, else up one level.
+    $here = rtrim($path ?? '/', '/') ?: '/';
+    $isHome = in_array($here, ['/', '/dashboard'], true);
+    $up = $isHome ? '/' : (str_replace('\\', '/', dirname($here)) ?: '/');
+    if ($up === '/' && $user !== null) {
+        $up = '/dashboard';
+    }
+    ?>
+    <?php if (!$isHome): ?>
+        <div class="container back-row"><a class="back-link" href="<?= e($up) ?>" data-back>← Back</a></div>
+    <?php endif; ?>
     <?php foreach ($flashes() as $flash): ?>
         <div class="container">
             <div class="alert alert--<?= e($flash['type']) ?>" role="status"><?= e($flash['message']) ?></div>

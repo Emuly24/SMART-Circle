@@ -54,7 +54,7 @@ $user = $ctx->user() ?? [];
             <a class="tile tile--link" href="/studio/calendar"><h2>Academic calendar</h2><p>Terms, MANEB dates and every school’s own dates.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/assessments"><h2>Exams &amp; assignments</h2><p>Question bank, timed exams, automatic marking, your marking and results.</p><span class="tag tag--ready">Open</span></a>
             <a class="tile tile--link" href="/studio/partners"><h2>School partners</h2><p>Invite teachers, see topics covered and textbook pages.</p><span class="tag tag--ready">Partners &amp; schools</span></a>
-            <div class="tile"><h2>Mail &amp; templates</h2><p>Branded letters, invitations and the Zoho email queue.</p><span class="tag">Planned</span></div>
+            <a class="tile tile--link" href="/studio/mail"><h2>Mail &amp; templates</h2><p>Write emails to a group, the Zoho email queue, message templates and invitation letters.</p><span class="tag tag--ready">Open</span></a>
         </div>
     </div>
 </section>

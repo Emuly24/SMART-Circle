@@ -81,6 +81,7 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                         <div class="note-prose"><?= NoteMarkup::render((string) $b['body']) ?></div>
                         <details class="note-block__edit"><summary>Edit text</summary>
                             <form method="post" action="<?= e($base) ?>/blocks/<?= e($bid) ?>" class="form"><?= $csrf->field() ?>
+                                <?= $view->partial('insert_bar') ?>
                                 <textarea name="body" rows="10" class="note-editor"><?= e($b['body']) ?></textarea>
                                 <div class="form-actions"><button type="submit" class="btn btn--small">Save</button></div>
                             </form>
@@ -112,6 +113,7 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
         <div class="card section-card" id="add">
             <h2 class="h3">Add a text section</h2>
             <form method="post" action="<?= e($base) ?>/text" class="form"><?= $csrf->field() ?>
+                <?= $view->partial('insert_bar') ?>
                 <textarea name="body" rows="8" class="note-editor" placeholder="# Density&#10;Density is mass per unit volume: ρ = m / V.&#10;&#10;- Water: 1000 kg/m^3&#10;&#10;> Real life: a dugout canoe floats on Lake Malawi because it is less dense than water."></textarea>
                 <details class="markup-help"><summary>How to format</summary>
                     <ul>
@@ -123,6 +125,9 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
                         <li><code>H_2O</code>, <code>CO_{2}</code> for subscripts; <code>x^2</code>, <code>10^{-3}</code> for powers</li>
                         <li><code>-&gt;</code> becomes →, <code>&lt;=&gt;</code> becomes ⇌</li>
                         <li><code>&gt; Real life: …</code> makes an amber real-life box (also <code>Where it is used:</code>, <code>Why it matters:</code>, <code>Did you know?</code>). <code>&gt; Remember: …</code> or <code>Key idea:</code> makes a blue box, <code>Tip:</code> or <code>Example:</code> a green one, <code>Careful:</code> a warning. Lines that all start with <code>&gt;</code> stay in one box.</li>
+                        <li><code>frac{a}{b}</code> a stacked fraction; <code>\alpha</code>, <code>\Delta</code>, <code>\deg</code>, <code>\therefore</code>, <code>\pi</code> and more give symbols (or use <strong>Ω Symbols</strong>)</li>
+                        <li>A table: one row per line, <code>| Metal | Reacts with water |</code>; the first row is the heading (use <strong>▦ Table</strong> to start one)</li>
+                        <li><code>[table: bondEnthalpy]</code> puts in a standard table (bond enthalpies, enthalpies of formation, the periodic table, physics formulas, food tests, trig values, tenses …): choose one from <strong>Standard table…</strong></li>
                         <li>A blank line starts a new paragraph.</li>
                     </ul>
                 </details>
@@ -167,3 +172,4 @@ $tool = static fn (string $action, string $label, string $class = 'btn btn--smal
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>
 <script src="<?= e($asset('js/drawpad.js')) ?>" defer></script>
+<script src="<?= e($asset('js/notes-insert.js')) ?>" defer></script>

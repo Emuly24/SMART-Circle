@@ -66,6 +66,68 @@ final class MailService
         return $n;
     }
 
+    /** Groups the tutor can write to. */
+    public const GROUPS = [
+        'students' => 'Students',
+        'guardians' => 'Parents and guardians',
+        'partner' => 'Partner teachers',
+        'team' => 'Team tutors',
+        'alumni' => 'Alumni',
+    ];
+
+    /** How many people in each group can get an email. @return array<string, int> */
+    public function audienceCounts(): array
+    {
+        $out = [];
+        foreach (array_keys(self::GROUPS) as $g) {
+            $out[$g] = count($this->mail->audience($g));
+        }
+
+        return $out;
+    }
+
+    /**
+     * The tutor's own email to a group (optionally one form, for students and guardians). "{name}" becomes each
+     * person's first name. Each person gets their own copy (no one sees the other addresses).
+     * @param array<string, mixed> $in
+     * @return array{errors: array<string, string>, count: int}
+     */
+    public function broadcast(array $in, int $createdBy): array
+    {
+        $group = (string) ($in['group'] ?? '');
+        $form = (int) ($in['form'] ?? 0);
+        $subject = trim((string) preg_replace('/\s+/', ' ', (string) ($in['subject'] ?? '')));
+        $body = trim(str_replace("\r\n", "\n", (string) ($in['body'] ?? '')));
+        $errors = [];
+        if (!isset(self::GROUPS[$group])) {
+            $errors['group'] = 'Choose who the email is for.';
+        }
+        if ($form < 0 || $form > 4) {
+            $errors['form'] = 'Choose a form.';
+        }
+        if (mb_strlen($subject) < 3 || mb_strlen($subject) > 150) {
+            $errors['subject'] = 'Write a subject (3 to 150 characters).';
+        }
+        if (mb_strlen($body) < 10 || mb_strlen($body) > 6000) {
+            $errors['body'] = 'Write the message (10 to 6,000 characters).';
+        }
+        if ($errors !== []) {
+            return ['errors' => $errors, 'count' => 0];
+        }
+        $people = $this->mail->audience($group, in_array($group, ['students', 'guardians'], true) && $form > 0 ? $form : null);
+        if ($people === []) {
+            return ['errors' => ['group' => 'No one in that group has an email address with email turned on yet.'], 'count' => 0];
+        }
+        $n = 0;
+        foreach ($people as $p) {
+            $first = explode(' ', trim($p['name']))[0] ?? '';
+            $text = str_replace('{name}', $first !== '' ? $first : 'there', $body);
+            $n += $this->queue($p['email'], $p['name'], $subject, $text, 'broadcast', 'broadcast', null, $createdBy) ? 1 : 0;
+        }
+
+        return ['errors' => [], 'count' => $n];
+    }
+
     /**
      * Sends what is due, within a time budget. Called after page visits (lazily) and by "Send now".
      * @return array{sent: int, failed: int, left: int, error: string}

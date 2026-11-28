@@ -128,6 +128,36 @@ check "applicant gets it"                  "apply again in the next intake" "$B"
 check "  with the library"                 "/library" "$B"
 check "  and their letter"                 "/letters/" "$B"
 
+echo "Writing to a group"
+sql "UPDATE users SET email_notifications = 1 WHERE phone='+265998100001'; UPDATE users SET email_notifications = 0 WHERE phone='+265998100002'"
+P=$(curl -s -b "$TJ" "$BASE/studio/mail")
+check "compose form on the email page"     'action="/studio/mail/compose"' "$P"
+check "  groups with counts"               "Parents and guardians (" "$P"
+check "  links to templates and letters"   'href="/studio/invitations"' "$P"
+check "dashboard tile is open (not planned)" 'href="/studio/mail"><h2>Mail &amp; templates' "$(curl -s -b "$TJ" "$BASE/dashboard")"
+check "subject required"                   "422" "$(post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=students --data-urlencode form=1 --data-urlencode "subject=" --data-urlencode "body=Hello {name}, test message.")"
+check "unknown group refused"              "422" "$(post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=everyone --data-urlencode form=0 --data-urlencode "subject=E2E Hello" --data-urlencode "body=Hello {name}, test message.")"
+check "students cannot send (403)"         "403" "$(post "$SJ" /dashboard /studio/mail/compose --data-urlencode group=students --data-urlencode "subject=E2E X" --data-urlencode "body=Hello there everyone.")"
+check "send to Form 1 students"            "303" "$(post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=students --data-urlencode form=1 --data-urlencode "subject=E2E Form 1 news" --data-urlencode "body=Hello {name},
+
+New lessons are ready.")"
+check "  queued for those who want email"  "wants@example.com" "$(sql "SELECT GROUP_CONCAT(to_email) FROM mail_queue WHERE subject='E2E Form 1 news'")"
+check "  not for those who turned it off"  "0" "$(sql "SELECT COUNT(*) FROM mail_queue WHERE subject='E2E Form 1 news' AND to_email='quiet@example.com'")"
+check "  not for students without an address" "0" "$(sql "SELECT COUNT(*) FROM mail_queue WHERE subject='E2E Form 1 news' AND to_email=''")"
+post "$TJ" /studio/mail /studio/mail/send >/dev/null
+check "  delivered, with the first name"   "Hello Mail," "$(body wants@example.com)"
+post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=guardians --data-urlencode form=0 --data-urlencode "subject=E2E Guardians" --data-urlencode "body=Dear {name}, thank you for your support." >/dev/null
+check "guardians get their own copies"     "guardian.en@example.com guardian.ny@example.com" "$(sql "SELECT GROUP_CONCAT(to_email ORDER BY to_email SEPARATOR ' ') FROM mail_queue WHERE subject='E2E Guardians'")"
+sql "DELETE FROM mail_queue WHERE subject IN ('E2E Form 1 news', 'E2E Guardians')"
+
+echo "Emailing an invitation letter"
+check "bad address refused"                "That email address does not look right" "$(post "$TJ" /studio/invitations /studio/invitations --data-urlencode type=teacher_invitation --data-urlencode title=Mr --data-urlencode "full_name=E2E Mail Teacher" --data-urlencode "school=Mzuzu Secondary" --data-urlencode "subjects[]=physics" --data-urlencode "email=nope" >/dev/null; cat "$WORK/last.html")"
+check "letter written"                     "303" "$(post "$TJ" /studio/invitations /studio/invitations --data-urlencode type=teacher_invitation --data-urlencode title=Mr --data-urlencode "full_name=E2E Mail Teacher" --data-urlencode "school=Mzuzu Secondary" --data-urlencode "subjects[]=physics" --data-urlencode "email=teacher.invite@example.com")"
+post "$TJ" /studio/mail /studio/mail/send >/dev/null
+check "  emailed to the teacher"           "1" "$(inbox teacher.invite@example.com)"
+check "  with the partner-teacher subject" "An invitation to be a SMART Circle partner teacher" "$(subject teacher.invite@example.com)"
+check "  and the letter link"              "/letters/" "$(body teacher.invite@example.com)"
+
 echo "When sending fails"
 sql "INSERT INTO mail_queue (to_email, to_name, subject, html_body, text_body, template_key) VALUES ('broken@example.com', 'Line\nbreak', 'E2E broken', '<p>x</p>', 'x', 'test')"
 post "$TJ" /studio/mail /studio/mail/send >/dev/null
