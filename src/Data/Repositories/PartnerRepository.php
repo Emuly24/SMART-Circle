@@ -25,7 +25,7 @@ final class PartnerRepository
     public function find(int $userId): ?array
     {
         return $this->db->one(
-            "SELECT u.id, u.full_name, u.phone, u.email, u.status, u.last_login_at, u.created_at,
+            "SELECT u.id, u.full_name, u.honorific AS title, u.phone, u.email, u.status, u.last_login_at, u.created_at,
                     pp.school_id, pp.subjects, pp.verified_at, pp.guest_teacher, s.name AS school_name, s.district
              FROM users u JOIN partner_profiles pp ON pp.user_id = u.id
              LEFT JOIN schools s ON s.id = pp.school_id

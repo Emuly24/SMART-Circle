@@ -43,7 +43,7 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
         <div class="card section-card" id="write">
             <h2 class="h3">Write an email</h2>
             <p>Send your own message to a group. Each person gets their own copy, in the SMART Circle style, from <?= e($contactEmail ?? '') ?>.
-                Only people with an email address (and, for accounts, email turned on in their profile) receive it. Write <code>{name}</code> for each person’s first name.</p>
+                Only people with an email address (and, for accounts, email turned on in their profile) receive it. Use the name buttons to greet each person by name.</p>
             <form method="post" action="/studio/mail/compose" class="form js-confirm" data-confirm="Send this email to everyone in the group you chose?"><?= $csrf->field() ?>
                 <div class="field-row">
                     <label class="field"><span class="field__label">To</span>
@@ -52,6 +52,7 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
                         <select name="form"><option value="0">All forms</option><?php for ($f = 1; $f <= 4; $f++): ?><option value="<?= e($f) ?>" <?= (string) ($old['form'] ?? '') === (string) $f ? 'selected' : '' ?>>Form <?= e($f) ?></option><?php endfor; ?></select><?= $err('form') ?></label>
                 </div>
                 <label class="field"><span class="field__label">Subject</span><input type="text" name="subject" maxlength="150" required value="<?= e($old['subject'] ?? '') ?>"><?= $err('subject') ?></label>
+                <?= $view->partial('name_tags', ['guardians' => true]) ?>
                 <label class="field"><span class="field__label">Message</span><textarea name="body" rows="9" maxlength="6000" required><?= e($old['body'] ?? '') ?></textarea>
                     <span class="field__hint">Leave a blank line between paragraphs. Links become clickable. The SMART Circle footer and the site address are added at the bottom; replies come to your Zoho inbox.</span><?= $err('body') ?></label>
                 <div class="form-actions"><button type="submit" class="btn btn--green">Put in the queue</button></div>
@@ -85,3 +86,4 @@ $when = static fn (?string $t): string => $t ? date('j M, H:i', (int) strtotime(
     </div>
 </section>
 <script src="<?= e($asset('js/confirm.js')) ?>" defer></script>
+<script src="<?= e($asset('js/name-tags.js')) ?>" defer></script>

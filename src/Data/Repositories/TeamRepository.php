@@ -22,7 +22,7 @@ final class TeamRepository
     public function find(int $userId): ?array
     {
         return $this->db->one(
-            'SELECT t.*, u.full_name, u.phone, u.email, u.status AS user_status, u.last_login_at, u.is_practice
+            'SELECT t.*, u.full_name, u.honorific AS title, u.phone, u.email, u.status AS user_status, u.last_login_at, u.is_practice
              FROM team_profiles t JOIN users u ON u.id = t.user_id WHERE t.user_id = ?',
             [$userId]
         );

@@ -73,6 +73,10 @@ P=$(curl -s -b "$TJ" "$BASE/studio/team/$MID")
 CODE=$(grep -oE 'class="reference">[^<]+' <<<"$P" | sed 's/.*>//; s/ //g')
 check "  setup code shown"                 "8" "${#CODE}"
 check "  WhatsApp message ready"           "https://wa.me/265989000001?text=Hello%20Mercy" "$P"
+check "  title can be set by the admin"   'action="/studio/people/' "$P"
+post "$TJ" "/studio/team/$MID" "/studio/people/$MID/title" --data-urlencode title=Ms --data-urlencode "back=/studio/team/$MID" >/dev/null
+check "  title saved"                      "Ms" "$(sql "SELECT honorific FROM users WHERE id=$MID")"
+check "  students' titles cannot be set"   "Titles are for teachers and tutors" "$(post "$TJ" "/studio/team/$MID" "/studio/people/$(sql "SELECT id FROM users WHERE role='student' LIMIT 1")/title" --data-urlencode title=Mr --data-urlencode "back=/studio/team/$MID" >/dev/null; curl -s -b "$TJ" "$BASE/studio/team/$MID")"
 check "  role is team, status invited"     "team invited" "$(sql "SELECT u.role, t.status FROM users u JOIN team_profiles t ON t.user_id=u.id WHERE u.id=$MID")"
 check "team tutor sets a password"         "303" "$(setup "$MJ" 0989000001 "$CODE" team-pass-123 | cut -c1-3)"
 check "  must read the agreement first"    "/team/agreement" "$(curl -s -o /dev/null -w '%{redirect_url}' -b "$MJ" "$BASE/studio/lessons")"

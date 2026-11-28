@@ -435,7 +435,7 @@ final class App
             new BackupService(new BackupRepository($db), $audit), $this->context, $this->session, $this->view);
         $guardianCtl = new GuardianController(new GuardianService(new GuardianRepository($db), new OverviewRepository($db), $this->notifications($db),
             $this->config->string('app.url'), $settingsService->tutorWhatsapp(...), $this->engagement($db)['templates']), $this->context, $this->session, $this->view, $this->mail($db));
-        $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view, new EmailSettings($users));
+        $profileCtl = new ProfileController(new AvatarService($users, $this->storage('')), $users->avatarAt(...), $this->context, $this->session, $this->view, new EmailSettings($users), new \SmartCircle\Application\Profile\TitleService($users));
         $contributionService = new ContributionService(new ContributionRepository($db), $calendarService, $topicService, $this->notifications($db),
             $this->storage(''), $settingsService->tutorWhatsapp(...));
         $contribCtl = new ContributionController($contributionService, $partnerService, $this->context, $this->session, $this->view);
@@ -796,6 +796,8 @@ final class App
         $r->get('/profile', $profileCtl->show(...), [$member, $onboarded]);
         $r->post('/profile/photo', $profileCtl->savePhoto(...), [$csrf, $member, $onboarded]);
         $r->post('/profile/email', $profileCtl->saveEmail(...), [$csrf, $member, $onboarded]);
+        $r->post('/profile/title', $profileCtl->saveTitle(...), [$csrf, $member, $onboarded]);
+        $r->post('/studio/people/{id}/title', $profileCtl->setTitleFor(...), [$csrf, $tutor]);
         $r->post('/profile/photo/remove', $profileCtl->removePhoto(...), [$csrf, $member, $onboarded]);
         $r->get('/avatars/{id}', $profileCtl->photo(...), [$member]);
 

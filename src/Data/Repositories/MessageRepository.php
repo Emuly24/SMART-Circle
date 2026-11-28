@@ -70,7 +70,7 @@ final class MessageRepository
     public function members(int $conversationId): array
     {
         return $this->db->all(
-            'SELECT m.user_id, m.last_read_at, u.full_name, u.role FROM conversation_members m JOIN users u ON u.id = m.user_id
+            'SELECT m.user_id, m.last_read_at, u.full_name, u.honorific AS title, u.role FROM conversation_members m JOIN users u ON u.id = m.user_id
              WHERE m.conversation_id = ? ORDER BY u.full_name',
             [$conversationId]
         );
