@@ -24,6 +24,7 @@
             <button type="button" class="tool" data-tool="eraser" title="Eraser">🧽<span>Erase</span></button>
             <button type="button" class="tool" data-tool="laser" title="Laser pointer">🔴<span>Laser</span></button>
             <button type="button" class="tool" data-tool="text" title="Type text or an equation">🔤<span>Type</span></button>
+            <button type="button" class="tool" id="shapes-open" title="Science and maths illustrations">🔌<span>Shapes</span></button>
         </div>
         <div class="tool-group" aria-label="Colour">
             <button type="button" class="swatch is-active" data-color="ink" aria-label="Black ink"></button>
@@ -52,7 +53,9 @@
             <input type="checkbox" id="text-centred" checked> <span>Centre typed lines</span>
         </label>
         <div class="tool-group">
+            <button type="button" class="tool" id="notes-open" title="Put your written notes on the board">📄<span>Notes</span></button>
             <button type="button" class="tool" id="snapshot" title="Save this page as a picture (for notes)">📷<span>Picture</span></button>
+            <button type="button" class="tool" id="fullscreen" title="Make the board fill the screen">⛶<span>Full screen</span></button>
         </div>
         <label class="toggle" title="When off, only the Apple Pencil draws (palm rejection)">
             <input type="checkbox" id="fingers-draw" checked>
@@ -63,11 +66,43 @@
     <div class="board-wrap">
         <canvas id="board" class="board" aria-label="Drawing board"></canvas>
         <form class="text-entry" id="text-entry" hidden>
-            <input type="text" id="text-input" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Text or equation" placeholder="e.g. v = u + at,  x^2 + 3x = 0,  2H_2 + O_2 -> 2H_2O">
-            <button type="submit" class="btn btn--small">Add</button>
-            <button type="button" class="btn btn--small btn--ghost" id="text-cancel">Cancel</button>
-            <p class="text-entry__help">x^2 superscript · H_2O subscript · -&gt; arrow · * times · sqrt √ · &lt;= ≤</p>
+            <textarea id="text-input" rows="5" maxlength="2000" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Text or equations (one per line)"
+                placeholder="Type one or more lines, e.g.&#10;v = u + at&#10;x^2 + 3x = 0&#10;2H_2 + O_2 -> 2H_2O"></textarea>
+            <div class="text-entry__row">
+                <label class="text-entry__size">Size
+                    <select id="text-size">
+                        <option value="0">Pen size</option>
+                        <option value="30">Small</option>
+                        <option value="42">Medium</option>
+                        <option value="56">Large</option>
+                        <option value="72">Huge</option>
+                    </select></label>
+                <button type="submit" class="btn btn--small">Add to the board</button>
+                <button type="button" class="btn btn--small btn--ghost" id="text-cancel">Cancel</button>
+            </div>
+            <p class="text-entry__help">Each line goes under the last. x^2 superscript · H_2O subscript · -&gt; arrow · * times · sqrt √ · &lt;= ≤ · Ctrl/⌘ + Enter adds</p>
         </form>
+
+        <div class="board-panel" id="shapes-panel" hidden>
+            <div class="board-panel__head"><strong>Shapes</strong><span>Choose one, then tap the board where it should go.</span>
+                <button type="button" class="btn btn--small btn--ghost" data-close="shapes-panel">Close</button></div>
+            <div class="board-panel__row">
+                <label>Size <select id="stamp-size"><option value="140">Small</option><option value="220" selected>Medium</option><option value="320">Large</option><option value="460">Very large</option></select></label>
+                <span class="muted-light">Lines use the colour and pen size you have chosen.</span>
+            </div>
+            <div id="shapes-list" class="shapes-list"></div>
+        </div>
+
+        <div class="board-panel" id="notes-panel" hidden>
+            <div class="board-panel__head"><strong>Put notes on the board</strong>
+                <button type="button" class="btn btn--small btn--ghost" data-close="notes-panel">Close</button></div>
+            <p class="muted-light">The text of your notes is laid out on new board pages, so you can explain and write over it while you record.
+                Load them <em>before</em> pressing Record to start the lesson with them. Pictures are listed by caption.</p>
+            <div class="board-panel__row">
+                <select id="notes-select" aria-label="Notes"><option value="">Loading your notes…</option></select>
+                <button type="button" class="btn btn--small" id="notes-put">Put on the board</button>
+            </div>
+        </div>
     </div>
 
     <div class="rec-bar">

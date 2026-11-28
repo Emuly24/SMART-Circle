@@ -1168,3 +1168,13 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .share__btn--whatsapp, .share__btn--native { background: var(--btn-green); border-color: var(--btn-green); color: var(--on-brand); }
 .share__btn--whatsapp:hover, .share__btn--native:hover { color: var(--on-brand); filter: brightness(1.08); }
 .share__done { margin: 8px 0 0; }
+
+/* ---------- Reading progress bar and ← Back ---------- */
+.scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 20; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.scroll-progress.is-visible { opacity: 1; }
+.scroll-progress__bar { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; background: linear-gradient(90deg, var(--btn-blue), var(--green)); }
+.back-row { padding-top: 14px; }
+.back-link { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--link); text-decoration: none; padding: 6px 2px; min-height: 36px; }
+.back-link:hover, .back-link:focus-visible { text-decoration: underline; }
+@media print { .scroll-progress, .back-row { display: none; } }
+@media (prefers-reduced-motion: reduce) { .scroll-progress { transition: none; } }

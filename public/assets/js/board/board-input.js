@@ -40,6 +40,9 @@ export class BoardInput {
         /** Called with a page point when the Type tool is tapped; the page shows a text box. */
         this.onTextRequest = () => {};
         this.textCentred = true;
+        this.textSize = 0;           // 0 = follow the pen size
+        this.stampKey = null;        // the illustration placed by the Shapes tool
+        this.stampBox = 220;         // its width in page units
         this.bind();
     }
 
@@ -98,6 +101,11 @@ export class BoardInput {
             return;
         }
 
+        if (this.tool === 'stamp') {
+            this.addShape(p);
+            return;
+        }
+
         if (this.tool === 'eraser') {
             this.active.set(e.pointerId, { type: 'eraser' });
             this.eraseAt(p);
@@ -153,25 +161,61 @@ export class BoardInput {
         this.redraw();
     }
 
-    /** Adds typed text (or an equation) at a page point; centred on the page when textCentred is on. */
+    /**
+     * Adds typed text (or equations) at a page point; centred on the page when textCentred is on.
+     * Several lines are placed one under another.
+     */
     addText(text, p) {
-        const clean = String(text).replace(/\s+/g, ' ').trim().slice(0, 200);
-        if (clean === '') return;
-        const size = this.penWidth <= 4 ? 30 : this.penWidth >= 12 ? 60 : 42;
-        const item = {
-            type: 'text',
-            id: newId(),
-            t: Math.round(this.clock()),
-            x: this.textCentred ? PAGE_W / 2 : round1(p[0]),
-            y: round1(clamp(p[1], size, PAGE_H - 10)),
-            text: clean,
-            size,
-            color: this.color,
-            align: this.textCentred ? 'center' : 'left',
-        };
-        this.history.push(item.id);
+        const lines = String(text).replace(/\r\n/g, '\n').split('\n').map((l) => l.replace(/\s+/g, ' ').trim().slice(0, 200));
+        const size = this.textSize || (this.penWidth <= 4 ? 30 : this.penWidth >= 12 ? 60 : 42);
+        let y = p[1];
+        for (const clean of lines) {
+            if (clean !== '') {
+                const item = {
+                    type: 'text',
+                    id: newId(),
+                    t: Math.round(this.clock()),
+                    x: this.textCentred ? PAGE_W / 2 : round1(p[0]),
+                    y: round1(clamp(y, size, PAGE_H - 10)),
+                    text: clean,
+                    size,
+                    color: this.color,
+                    align: this.textCentred ? 'center' : 'left',
+                };
+                this.history.push(item.id);
+                this.redoStack = [];
+                this.commit(item);
+            }
+            y += size * 1.45;
+        }
+    }
+
+    /** Places the chosen illustration (Shapes tool) centred on a page point. */
+    addShape(p) {
+        if (!this.stampKey || !this.buildShape) return;
+        const shape = this.buildShape(this.stampKey, p[0], p[1], this.stampBox, this.color, Math.max(3, Math.round(this.penWidth * 0.7)), newId(), Math.round(this.clock()));
+        if (!shape) return;
+        this.history.push(shape.id);
         this.redoStack = [];
-        this.commit(item);
+        this.commit(shape);
+    }
+
+    /** Puts prepared pages (notes) on the board, from page `start`; returns the events made. */
+    addPages(pages, start) {
+        const made = [];
+        pages.forEach((items, i) => {
+            const page = { type: 'page', t: Math.round(this.clock()), index: start + i };
+            this.commit(page);
+            made.push(page);
+            for (const item of items) {
+                const ev = { ...item, id: newId(), t: Math.round(this.clock()) };
+                this.commit(ev);
+                made.push(ev);
+            }
+        });
+        this.history = [];
+        this.redoStack = [];
+        return made;
     }
 
     eraseAt(p) {

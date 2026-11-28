@@ -67,4 +67,34 @@
             if ('caches' in window) { caches.delete('sc-offline-v1'); }
         });
     });
+
+    // ----- ← Back: return to the previous page when it was on this site -----
+    document.querySelectorAll('[data-back]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+            let sameSite = false;
+            try { sameSite = document.referrer !== '' && new URL(document.referrer).origin === location.origin; } catch (err) { /* no referrer */ }
+            if (sameSite && history.length > 1) {
+                e.preventDefault();
+                history.back();
+            }
+        });
+    });
+
+    // ----- Reading progress: the bar at the top fills as you scroll down -----
+    const bar = document.querySelector('.scroll-progress__bar');
+    if (bar) {
+        let queued = false;
+        const update = () => {
+            queued = false;
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            const share = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+            bar.style.transform = `scaleX(${share})`;
+            bar.parentElement.classList.toggle('is-visible', max > 40);
+        };
+        const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+        window.addEventListener('scroll', queue, { passive: true });
+        window.addEventListener('resize', queue);
+        window.addEventListener('load', queue);
+        update();
+    }
 })();

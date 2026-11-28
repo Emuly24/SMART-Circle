@@ -155,6 +155,27 @@ sql "UPDATE submissions SET marked_at = NOW() - INTERVAL 8 DAY, submitted_at = N
 refute "after 7 days: no re-check offer"   "I think my answer deserves another look" "$(curl -s -b "$R1" "$BASE/assessments/$CP1/result")"
 check "  and requests refused"             "within 7 days" "$(post "$R1" "/assessments/$CP1/result" "/assessments/$CP1/recheck" --data-urlencode "question_id=$QS" --data-urlencode "reason=Trying again after the window closed." >/dev/null; curl -s -b "$R1" "$BASE/assessments/$CP1/result")"
 
+echo "Notes on the board"
+BL=$(curl -s -b "$TJ" "$BASE/studio/notes/board-list")
+check "board list has the notes"           "\"title\":\"E2E Cells\"" "$BL"
+check "  as JSON"                          "application/json" "$(curl -s -o /dev/null -D - -b "$TJ" "$BASE/studio/notes/board-list" | tr -d '\r' | grep -i '^content-type')"
+check "students kept out of the list"      "403" "$(code -b "$R1" "$BASE/studio/notes/board-list")"
+BN=$(curl -s -b "$TJ" "$BASE/studio/notes/$NOTE/board")
+check "note text for the board"            "All living things are made of cells" "$BN"
+check "  pictures by caption"              "\"type\":\"image\"" "$BN"
+refute "  checkpoints left out"            "checkpoint" "$BN"
+check "students kept out of the note text" "403" "$(code -b "$R1" "$BASE/studio/notes/$NOTE/board")"
+check "unknown note"                       "404" "$(code -b "$TJ" "$BASE/studio/notes/999999/board")"
+LAB=$(curl -s -b "$TJ" "$BASE/studio/lab")
+check "board has a Notes button"           'id="notes-open"' "$LAB"
+check "  a Shapes panel"                   'id="shapes-panel"' "$LAB"
+check "  a bigger typing box"              '<textarea id="text-input"' "$LAB"
+check "  and full screen"                  'id="fullscreen"' "$LAB"
+SP=$(curl -s -b "$TJ" "$BASE/studio/notes/$NOTE")
+check "back button goes up a level"        'href="/studio/notes" data-back' "$SP"
+check "reading progress bar"               'class="scroll-progress"' "$SP"
+refute "no back button on the home page"   'data-back' "$(curl -s "$BASE/")"
+
 echo "Looking after the notes"
 check "checkpoint with answers kept"       "cannot be deleted" "$(post "$TJ" "$E" "$E/blocks/$B1/delete" >/dev/null; curl -s -b "$TJ" "$BASE$E")"
 post "$TJ" "$E" "$E/unpublish" >/dev/null

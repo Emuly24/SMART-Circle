@@ -11,8 +11,11 @@
  *   { t, type: 'undo', id } / { t, type: 'redo', id }
  *   { t, type: 'clear' }                    wipe the current page
  *   { t, type: 'page', index }              switch to page N (creates it if new)
- *   { t, type: 'text', id, x, y, text, size, color, align }   typed text or an equation
- *                                           (align 'center' = centred on x; 'left' = starts at x)
+ *   { t, type: 'text', id, x, y, text, size, color, align, weight?, instant? }   typed text or an equation
+ *                                           (align 'center' = centred on x; 'left' = starts at x;
+ *                                            instant = shown whole at once in replay, e.g. notes put on the board)
+ *   { t, type: 'shape', id, color, width, paths: [[[x, y], ...], ...], labels: [{ x, y, text, size }] }
+ *                                           a ready-made illustration (circuit symbol, apparatus...), drawn at once
  * t = milliseconds since recording started (paused time excluded).
  */
 
@@ -60,6 +63,7 @@ export class BoardState {
         switch (event.type) {
             case 'stroke':
             case 'text':
+            case 'shape':
                 this.strokes.push(event);
                 break;
             case 'erase':
@@ -137,6 +141,7 @@ export class Renderer {
         for (const stroke of state.strokes) {
             if (state.removed.has(stroke.id)) continue;
             if (stroke.type === 'text') drawText(ctx, stroke, untilT);
+            else if (stroke.type === 'shape') drawShape(ctx, stroke, untilT);
             else drawStroke(ctx, stroke, untilT);
         }
 
@@ -295,10 +300,14 @@ export function textRuns(text) {
     return runs;
 }
 
-function textWidth(ctx, runs, size) {
+function font(size, weight) {
+    return `${weight === 'bold' ? '700 ' : ''}${size}px Inter, system-ui, sans-serif`;
+}
+
+function textWidth(ctx, runs, size, weight) {
     let w = 0;
     for (const r of runs) {
-        ctx.font = `${r.shift ? Math.round(size * 0.62) : size}px Inter, system-ui, sans-serif`;
+        ctx.font = font(r.shift ? Math.round(size * 0.62) : size, weight);
         w += ctx.measureText(r.text).width;
     }
     return w;
@@ -306,7 +315,9 @@ function textWidth(ctx, runs, size) {
 
 export function drawText(ctx, item, untilT = Infinity) {
     let text = prettify(item.text);
-    if (untilT !== Infinity) {
+    if (untilT !== Infinity && item.instant) {
+        if (untilT < item.t) return;
+    } else if (untilT !== Infinity) {
         const shown = Math.floor((untilT - item.t) / TYPE_MS_PER_CHAR) + 1;
         if (shown <= 0) return;
         text = text.slice(0, shown);
@@ -316,13 +327,39 @@ export function drawText(ctx, item, untilT = Infinity) {
     ctx.fillStyle = item.color;
     ctx.textBaseline = 'alphabetic';
     // Centre on the whole text, so it does not shift while it types out during replay.
-    let x = item.align === 'center' ? item.x - textWidth(ctx, textRuns(prettify(item.text)), item.size) / 2 : item.x;
+    let x = item.align === 'center' ? item.x - textWidth(ctx, textRuns(prettify(item.text)), item.size, item.weight) / 2 : item.x;
     for (const r of runs) {
         const size = r.shift ? Math.round(item.size * 0.62) : item.size;
-        ctx.font = `${size}px Inter, system-ui, sans-serif`;
+        ctx.font = font(size, item.weight);
         const dy = r.shift === 1 ? -item.size * 0.42 : r.shift === -1 ? item.size * 0.22 : 0;
         ctx.fillText(r.text, x, item.y + dy);
         x += ctx.measureText(r.text).width;
+    }
+    ctx.restore();
+}
+
+/** A ready-made illustration: all its lines at once, plus any labels (A, V, N, S...). */
+export function drawShape(ctx, shape, untilT = Infinity) {
+    if (untilT !== Infinity && untilT < shape.t) return;
+    ctx.save();
+    ctx.strokeStyle = shape.color;
+    ctx.fillStyle = shape.color;
+    ctx.lineWidth = shape.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const path of shape.paths) {
+        if (path.length === 0) continue;
+        ctx.beginPath();
+        ctx.moveTo(path[0][0], path[0][1]);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i][0], path[i][1]);
+        if (path.length === 1) ctx.lineTo(path[0][0] + 0.1, path[0][1]);
+        ctx.stroke();
+    }
+    for (const label of shape.labels || []) {
+        ctx.font = font(label.size, 'bold');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label.text, label.x, label.y);
     }
     ctx.restore();
 }
@@ -339,6 +376,13 @@ export function hitsStroke(stroke, x, y, radius) {
     if (stroke.type === 'text') {
         const [l, t, r, b] = textBox(stroke);
         return x >= l - radius && x <= r + radius && y >= t - radius && y <= b + radius;
+    }
+    if (stroke.type === 'shape') {
+        const rr = radius + stroke.width / 2;
+        return stroke.paths.some((path) => path.some((a, i) => {
+            const b = path[i + 1] || a;
+            return distToSegment(x, y, a[0], a[1], b[0], b[1]) <= rr;
+        }));
     }
     const r = radius + stroke.width / 2;
     const pts = stroke.points;

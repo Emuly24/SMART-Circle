@@ -3,7 +3,9 @@
  * replay it, export it as a .scl file and open files recorded elsewhere.
  */
 
-import { BoardState, COLORS, PAGE_H, PAGE_W, Renderer } from './board-core.js';
+import { BoardState, COLORS, PAGE_H, PAGE_W, Renderer, drawShape } from './board-core.js';
+import { buildShape, GROUPS, STAMPS } from './board-stamps.js';
+import { canvasMeasure, layout, noteLines } from './board-notes.js';
 import { BoardInput } from './board-input.js';
 import { LessonClock, VoiceRecorder } from './recorder.js';
 import { decodeLesson, encodeLesson, listLocal, loadLocal, saveLocal, deleteLocal } from './lesson-file.js';
@@ -51,6 +53,7 @@ window.addEventListener('resize', () => {
 $$('[data-tool]').forEach((btn) => btn.addEventListener('click', () => {
     input.tool = btn.dataset.tool;
     $$('[data-tool]').forEach((b) => b.classList.toggle('is-active', b === btn));
+    $('#shapes-open').classList.remove('is-active');
 }));
 $$('[data-color]').forEach((btn) => btn.addEventListener('click', () => {
     input.color = COLORS[btn.dataset.color];
@@ -91,7 +94,126 @@ entry.addEventListener('submit', (e) => {
     closeEntry();
 });
 $('#text-cancel').addEventListener('click', closeEntry);
-entryInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEntry(); });
+entryInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeEntry();
+    // Enter starts a new line; Ctrl/Cmd + Enter adds the text.
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); entry.requestSubmit(); }
+});
+$('#text-size').addEventListener('change', (e) => { input.textSize = Number(e.target.value); });
+
+/* ---------------- Panels: Shapes and Notes ---------------- */
+
+const openPanel = (id) => {
+    $$('.board-panel').forEach((panel) => { panel.hidden = panel.id !== id; });
+};
+$$('[data-close]').forEach((b) => b.addEventListener('click', () => { $('#' + b.dataset.close).hidden = true; }));
+
+// Shapes: ready-made illustrations (circuit symbols, apparatus, ...). Pick one, then tap the board.
+input.buildShape = buildShape;
+(function buildShapesList() {
+    const list = $('#shapes-list');
+    for (const group of GROUPS) {
+        const h = document.createElement('h3');
+        h.textContent = group;
+        const grid = document.createElement('div');
+        grid.className = 'shapes-grid';
+        for (const [key, def] of Object.entries(STAMPS).filter(([, d]) => d.group === group)) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'shape-btn';
+            btn.dataset.stamp = key;
+            const cv = document.createElement('canvas');
+            cv.width = 128;
+            cv.height = 128;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 128, 128);
+            drawShape(ctx, buildShape(key, 64, 64, 112, COLORS.ink, 3, key, 0), Infinity);
+            const label = document.createElement('span');
+            label.textContent = def.name;
+            btn.append(cv, label);
+            btn.addEventListener('click', () => {
+                input.stampKey = key;
+                input.tool = 'stamp';
+                $$('[data-tool]').forEach((b) => b.classList.remove('is-active'));
+                $('#shapes-open').classList.add('is-active');
+                $$('.shape-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+                $('#shapes-panel').hidden = true;
+                status(`${def.name}: tap the board where it should go. Choose Pen to draw again.`);
+            });
+            grid.append(btn);
+        }
+        list.append(h, grid);
+    }
+})();
+$('#shapes-open').addEventListener('click', () => openPanel('shapes-panel'));
+$('#stamp-size').addEventListener('change', (e) => { input.stampBox = Number(e.target.value); });
+
+// Notes: lay the text of written notes out on board pages, to record over them.
+let notesPrelude = [];          // notes put on the board before recording: they can start the lesson
+let notesLoaded = false;
+const getJson = async (url) => {
+    const res = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+};
+$('#notes-open').addEventListener('click', async () => {
+    openPanel('notes-panel');
+    if (notesLoaded) return;
+    const select = $('#notes-select');
+    try {
+        const data = await getJson('/studio/notes/board-list');
+        select.innerHTML = '';
+        if (data.notes.length === 0) select.append(new Option('No notes yet: write some in Notes & slides', ''));
+        for (const n of data.notes) select.append(new Option(`Form ${n.form} · ${n.subject} · ${n.title}`, String(n.id)));
+        notesLoaded = true;
+    } catch {
+        select.innerHTML = '';
+        select.append(new Option('Your notes could not be loaded', ''));
+    }
+});
+$('#notes-put').addEventListener('click', async () => {
+    const id = $('#notes-select').value;
+    if (!id) return;
+    try {
+        const note = await getJson(`/studio/notes/${encodeURIComponent(id)}/board`);
+        const pages = layout(noteLines(note.title, note.blocks), canvasMeasure());
+        const used = input.state.strokes.some((st) => !input.state.removed.has(st.id));
+        const start = used ? input.state.pages.length : input.state.pageIndex;
+        const made = input.addPages(pages, start);
+        input.goToPage(start);
+        pageCount = Math.max(pageCount, start + pages.length);
+        if (!recording) notesPrelude.push(...made);
+        $('#notes-panel').hidden = true;
+        const n = pages.length;
+        status(`“${note.title}” is on ${n} board page${n === 1 ? '' : 's'} (▶ for the next).${recording ? '' : ' Press Record when ready.'}`);
+    } catch {
+        status('Those notes could not be put on the board. Please try again.');
+    }
+});
+
+// Full screen: the board fills the screen (the top bar hides; the tools stay).
+const refit = () => {
+    renderer.resize();
+    renderer.render(input.state, Infinity, clock.now());
+};
+$('#fullscreen').addEventListener('click', async () => {
+    const on = !document.body.classList.contains('board-focus');
+    document.body.classList.toggle('board-focus', on);
+    const root = document.documentElement;
+    try {
+        if (on && root.requestFullscreen) await root.requestFullscreen();
+        else if (on && root.webkitRequestFullscreen) root.webkitRequestFullscreen();
+        else if (!on && document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+        // Some tablets do not allow full screen for pages; hiding the top bar still gives more room.
+    }
+    refit();
+});
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) document.body.classList.remove('board-focus');
+    refit();
+});
 $('#text-centred').addEventListener('change', (e) => { input.textCentred = e.target.checked; });
 
 // Save the current page as a picture (to add to notes or share).
@@ -161,11 +283,28 @@ async function startRecording() {
         return;
     }
 
-    // Start from a clean board so the lesson is self-contained.
+    // Start from a clean board so the lesson is self-contained, keeping notes put on the board for it.
+    const keepNotes = notesPrelude.length > 0 && confirm('Start the recording with the notes you put on the board?');
     input.state.reset();
     input.history = [];
     input.redoStack = [];
+    pageCount = 1;
+    if (keepNotes) {
+        // Renumber so the notes start on page 1 of the lesson.
+        const first = Math.min(...notesPrelude.filter((ev) => ev.type === 'page').map((ev) => ev.index));
+        for (const ev of notesPrelude) {
+            const copy = ev.type === 'page' ? { ...ev, t: 0, index: ev.index - first } : { ...ev, t: 0 };
+            input.state.apply(copy);
+            events.push(copy);
+            if (copy.type === 'page') pageCount = Math.max(pageCount, copy.index + 1);
+        }
+        const back = { type: 'page', t: 0, index: 0 };
+        input.state.apply(back);
+        events.push(back);
+    }
+    notesPrelude = [];
     renderer.render(input.state);
+    input.onChange();
 
     clock.start();
     recording = true;

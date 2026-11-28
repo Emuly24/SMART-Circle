@@ -625,7 +625,9 @@ final class App
         $r->get('/studio/notes', $studioNotes->index(...), [$teacher, $onboarded, $guard()]);
         $r->get('/studio/notes/new', $studioNotes->create(...), [$teacher, $onboarded, $guard()]);
         $r->post('/studio/notes', $studioNotes->create(...), [$csrf, $teacher, $onboarded, $guard()]);
+        $r->get('/studio/notes/board-list', $studioNotes->boardList(...), [$teacher, $onboarded, $guard()]);
         $r->get('/studio/notes/{id}', $studioNotes->edit(...), [$teacher, $onboarded, $guard('note')]);
+        $r->get('/studio/notes/{id}/board', $studioNotes->boardNote(...), [$teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}', $studioNotes->update(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/text', $studioNotes->addText(...), [$csrf, $teacher, $onboarded, $guard('note')]);
         $r->post('/studio/notes/{id}/image', $studioNotes->addImage(...), [$csrf, $teacher, $onboarded, $guard('note')]);

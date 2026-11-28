@@ -55,6 +55,35 @@ final class StudioNoteController
         return Response::redirect('/studio/notes/' . $r['id']);
     }
 
+    /** Board: the notes this person may teach, to put on the board (JSON). */
+    public function boardList(Request $request): Response
+    {
+        $list = [];
+        foreach ($this->notes->all() as $n) {
+            if ($this->context->canTeach((string) $n['subject'])) {
+                $list[] = ['id' => (int) $n['id'], 'title' => (string) $n['title'], 'form' => (int) $n['form'], 'subject' => Subjects::NAMES[(string) $n['subject']] ?? (string) $n['subject']];
+            }
+        }
+
+        return Response::json(['notes' => $list]);
+    }
+
+    /** Board: the text of one note (text blocks and picture captions), to lay out on board pages (JSON). */
+    public function boardNote(Request $request): Response
+    {
+        $note = $this->noteOr404($request);
+        $blocks = [];
+        foreach ($this->notes->blocksForEditor((int) $note['id']) as $b) {
+            if ($b['type'] === 'text') {
+                $blocks[] = ['type' => 'text', 'body' => (string) $b['body']];
+            } elseif ($b['type'] === 'image') {
+                $blocks[] = ['type' => 'image', 'caption' => (string) ($b['body'] ?? '')];
+            }
+        }
+
+        return Response::json(['title' => (string) $note['title'], 'blocks' => $blocks]);
+    }
+
     public function edit(Request $request): Response
     {
         return $this->editor($this->noteOr404($request), []);
