@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SmartCircle\Presentation\Controllers;
 
+use SmartCircle\Application\Profile\TitleService;
 use SmartCircle\Application\Mail\EmailSettings;
 use SmartCircle\Application\Profile\AvatarService;
 use SmartCircle\Presentation\Http\Context;
@@ -23,6 +24,7 @@ final class ProfileController
         private readonly Session $session,
         private readonly View $view,
         private readonly ?EmailSettings $emailSettings = null,
+        private readonly ?TitleService $titles = null,
     ) {
     }
 
@@ -44,6 +46,30 @@ final class ProfileController
         $this->session->flash('success', 'Email settings saved.');
 
         return Response::redirect('/profile#email');
+    }
+
+    /** Teachers and tutors: how to address them (Mr, Mrs, Dr ...). */
+    public function saveTitle(Request $request): Response
+    {
+        $error = $this->titles?->save((int) $this->context->userId(), $request->input('title'));
+        if ($error !== null) {
+            return Response::html($this->view->render('profile/show', ['title' => 'My profile', 'user' => $this->context->user(), 'error' => null, 'titleError' => $error]), 422);
+        }
+        $this->session->flash('success', 'Saved. Messages and emails can now greet you by your title.');
+
+        return Response::redirect('/profile#title');
+    }
+
+    /** The tutor sets how a partner teacher or team tutor is addressed (they can change it in their profile). */
+    public function setTitleFor(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $back = $request->input('back');
+        $back = preg_match('#^/studio/(partners|team)/[0-9]+$#', $back) ? $back : '/studio/partners';
+        $error = $this->titles?->saveFor($id, $request->input('title'));
+        $this->session->flash($error === null ? 'success' : 'error', $error ?? 'Title saved.');
+
+        return Response::redirect($back);
     }
 
     public function savePhoto(Request $request): Response

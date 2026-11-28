@@ -85,6 +85,12 @@ final class UserRepository
     }
 
     /** When a member's photo was saved, or null if they have none. */
+    /** How a teacher or tutor is addressed: Mr, Mrs, Ms, Miss, Dr, Prof, or null. */
+    public function setTitle(int $userId, ?string $title): void
+    {
+        $this->db->run('UPDATE users SET honorific = ? WHERE id = ?', [$title, $userId]);
+    }
+
     public function setEmailSettings(int $userId, ?string $email, bool $notifications): void
     {
         $this->db->run('UPDATE users SET email = ?, email_notifications = ? WHERE id = ?', [$email, $notifications ? 1 : 0, $userId]);

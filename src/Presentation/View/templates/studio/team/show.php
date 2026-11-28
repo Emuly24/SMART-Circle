@@ -12,6 +12,7 @@ $wa = $code !== null ? 'https://wa.me/' . ltrim((string) $t['phone'], '+') . '?t
     <div class="container narrow-wide">
         <p class="crumbs"><a href="/studio/team">The SMART Circle Team</a></p>
         <h1><?= e($t['full_name']) ?></h1>
+        <?= $view->partial('title_form', ['id' => (int) $t['user_id'], 'current' => $t['title'] ?? null, 'back' => '/studio/team/' . (int) $t['user_id']]) ?>
         <p class="muted"><?= e(\SmartCircle\Support\PhoneNumber::display((string) $t['phone'])) ?><?= $t['email'] ? ' · ' . e($t['email']) : '' ?> · <?= e($states[$t['status']] ?? $t['status']) ?><?= $t['agreed_at'] ? ' (agreement ' . e($t['agreement_version']) . ', ' . e(date('j M Y', (int) strtotime((string) $t['agreed_at']))) . ')' : '' ?></p>
         <?php if ($code !== null): ?>
             <div class="card section-card setup-code">

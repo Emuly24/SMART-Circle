@@ -26,7 +26,7 @@ final class MailController
 
     public function index(Request $request): Response
     {
-        return $this->page([], ['group' => 'students', 'form' => '0', 'subject' => '', 'body' => "Hello {name},\n\n"]);
+        return $this->page([], ['group' => 'students', 'form' => '0', 'subject' => '', 'body' => "Hello {first_name},\n\n"]);
     }
 
     /** The tutor's own email to a group. */

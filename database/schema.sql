@@ -2030,11 +2030,21 @@ CREATE TABLE lesson_reviews (
 ALTER TABLE challenges
     ADD COLUMN explanation TEXT NULL COMMENT 'Shown with everyone''s answers when the challenge closes' AFTER body;
 
+-- ---------------------------------------------------------------------
+-- Migration 0025_titles
+-- ---------------------------------------------------------------------
+-- SMART Circle v2: how to address teachers and tutors (Mr, Mrs, Ms, Miss, Dr, Prof). Named "honorific"
+-- (not "title") so it never clashes with the many title columns of notes, lessons, topics ... Used by the
+-- one-click name tags in messages and emails ("Title + surname" → "Mr Banda").
+
+ALTER TABLE users
+    ADD COLUMN honorific VARCHAR(10) NULL COMMENT 'Mr | Mrs | Ms | Miss | Dr | Prof (teachers and tutors)' AFTER full_name;
+
 -- Record the migrations above as applied.
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version    VARCHAR(100) NOT NULL PRIMARY KEY,
     applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews'), ('0021_email'), ('0022_engagement'), ('0023_teacher_roles'), ('0024_community');
+INSERT INTO schema_migrations (version) VALUES ('0001_core'), ('0002_lessons'), ('0003_platform'), ('0004_seed'), ('0005_topics'), ('0006_honesty'), ('0007_assessments'), ('0008_identity'), ('0009_notes'), ('0010_calendar_grades'), ('0011_messages'), ('0012_maneb_alumni'), ('0013_team_practice'), ('0014_guardians_profiles'), ('0015_partner_contributions'), ('0016_message_quotes'), ('0017_note_figures'), ('0018_learning'), ('0019_library'), ('0020_reviews'), ('0021_email'), ('0022_engagement'), ('0023_teacher_roles'), ('0024_community'), ('0025_titles');
 
 SET FOREIGN_KEY_CHECKS = 1;

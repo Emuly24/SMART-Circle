@@ -7,6 +7,7 @@ namespace SmartCircle\Application\Mail;
 use SmartCircle\Data\Mail\MailException;
 use SmartCircle\Data\Mail\MailTransport;
 use SmartCircle\Data\Repositories\MailRepository;
+use SmartCircle\Support\NameTags;
 
 /**
  * Email through Zoho SMTP. Nothing is sent while a page is being built: messages wait in a queue and go out
@@ -42,9 +43,10 @@ final class MailService
         }
         $subject = trim((string) preg_replace('/\s+/', ' ', $subject));
         $text = trim(str_replace("\r\n", "\n", $text)) . "\n\n" . self::footerText($this->siteUrl);
+        $subject = NameTags::unmark($subject);
         $this->mail->queue([
             'to_email' => $toEmail, 'to_name' => trim((string) preg_replace('/\s+/', ' ', $toName)), 'subject' => mb_substr($subject, 0, 200),
-            'text' => $text, 'html' => self::html($subject, $text), 'template' => $template,
+            'text' => NameTags::unmark($text), 'html' => self::html($subject, $text), 'template' => $template,
             'related_type' => $relatedType, 'related_id' => $relatedId, 'created_by' => $createdBy,
         ]);
 
@@ -87,8 +89,8 @@ final class MailService
     }
 
     /**
-     * The tutor's own email to a group (optionally one form, for students and guardians). "{name}" becomes each
-     * person's first name. Each person gets their own copy (no one sees the other addresses).
+     * The tutor's own email to a group (optionally one form, for students and guardians). Name tags
+     * ({first_name}, {title_surname}, {student_first_name} ... see Support\NameTags) become each person's names. Each person gets their own copy (no one sees the other addresses).
      * @param array<string, mixed> $in
      * @return array{errors: array<string, string>, count: int}
      */
@@ -120,9 +122,8 @@ final class MailService
         }
         $n = 0;
         foreach ($people as $p) {
-            $first = explode(' ', trim($p['name']))[0] ?? '';
-            $text = str_replace('{name}', $first !== '' ? $first : 'there', $body);
-            $n += $this->queue($p['email'], $p['name'], $subject, $text, 'broadcast', 'broadcast', null, $createdBy) ? 1 : 0;
+            $person = ['full_name' => $p['name'], 'title' => $p['title'] ?? null, 'student_name' => $p['student_name'] ?? null];
+            $n += $this->queue($p['email'], $p['name'], NameTags::fill($subject, $person), NameTags::fill($body, $person, true), 'broadcast', 'broadcast', null, $createdBy) ? 1 : 0;
         }
 
         return ['errors' => [], 'count' => $n];
@@ -193,9 +194,11 @@ final class MailService
         foreach ($paras as $p) {
             $safe = htmlspecialchars($p, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $safe = (string) preg_replace('#(https?://[^\s<]+[^\s<.,;:!?)])#', '<a href="$1" style="color:#1D4E89;font-weight:600">$1</a>', $safe);
+            // Names put in with the one-click name tags: bold, in brand green.
+            $safe = str_replace([NameTags::OPEN, NameTags::CLOSE], ['<strong style="color:' . NameTags::EMAIL_COLOUR . ';font-weight:700">', '</strong>'], $safe);
             $body .= '<p style="margin:0 0 14px;line-height:1.6">' . nl2br($safe, false) . '</p>';
         }
-        $title = htmlspecialchars($subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $title = htmlspecialchars(NameTags::unmark($subject), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . $title . '</title></head>'
             . '<body style="margin:0;padding:0;background:#F4F6FA;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;color:#14213D;font-size:16px">'

@@ -71,6 +71,18 @@ refute "  no reply-all box"                'name="body"' "$AV"
 check "  replying to all refused"          "You cannot reply here" "$(post "$B" "/messages/$ANN" "/messages/$ANN/reply" --data-urlencode "body=to everyone" >/dev/null; cat "$WORK/last.html")"
 check "  bad audience refused"             "Choose who should get it" "$(post "$TJ" /messages/new /messages/announce --data-urlencode audience=everyone --data-urlencode "subject=E2E bad" --data-urlencode "body=x" >/dev/null; cat "$WORK/last.html")"
 
+echo "Name tags"
+check "tutor sees the name buttons"        'data-name-tag="title_surname"' "$(curl -s -b "$TJ" "$BASE/messages/new")"
+refute "  students do not"                 'data-name-tag=' "$(curl -s -b "$A" "$BASE/messages/new")"
+post "$TJ" /messages/new /messages/announce --data-urlencode audience=form:3 --data-urlencode "subject=E2E Names" --data-urlencode "body=Well done {first_name} {surname}!" >/dev/null
+NM=$(sql "SELECT id FROM conversations WHERE subject='E2E Names'")
+check "each student sees their own name"   'Well done <span class="name-tag">Alinafe</span> <span class="name-tag">Support</span>!' "$(curl -s -b "$A" "$BASE/messages/$NM")"
+check "  and the other theirs"             '<span class="name-tag">Bwalo</span>' "$(curl -s -b "$B" "$BASE/messages/$NM")"
+check "  the tutor sees labelled slots"    'name-tag--slot' "$(curl -s -b "$TJ" "$BASE/messages/$NM")"
+check "  inbox preview uses the name"      "Well done Bwalo Support!" "$(curl -s -b "$B" "$BASE/messages")"
+check "  stored once, as tags"             "Well done {first_name} {surname}!" "$(sql "SELECT body FROM messages WHERE conversation_id=$NM")"
+check "a one-to-one reply shows the name to the sender too" '<span class="name-tag">Alinafe</span>' "$(post "$TJ" "/messages/$CID" "/messages/$CID/reply" --data-urlencode "body=Thanks {first_name}." >/dev/null; curl -s -b "$TJ" "$BASE/messages/$CID")"
+
 echo "Private room"
 SP=$(curl -s -b "$A" "$BASE/support")
 check "room explains the rules"            "cannot be deleted" "$SP"

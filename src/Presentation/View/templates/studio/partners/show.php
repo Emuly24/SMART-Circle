@@ -14,6 +14,7 @@ $id = (int) $partner['id'];
         <p class="crumbs"><a href="/studio/partners">School partners</a></p>
         <h1><?= e($partner['full_name']) ?></h1>
         <p class="lead"><?= e($partner['school_name'] ?? '') ?>, <?= e($partner['district'] ?? '') ?></p>
+        <?= $view->partial('title_form', ['id' => $id, 'current' => $partner['title'] ?? null, 'back' => '/studio/partners/' . $id]) ?>
 
         <?php if ($code !== null): ?>
             <div class="card setup-code">

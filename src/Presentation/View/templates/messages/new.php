@@ -25,6 +25,7 @@ $roles = ['student' => 'Students', 'alumni' => 'Alumni', 'partner' => 'Partner t
                     <?php endforeach; ?>
                 </select><?= $err('to') ?></label>
             <label class="field"><span class="field__label">Subject</span><input type="text" name="subject" maxlength="150" required value="<?= e(($old['mode'] ?? '') === 'announce' ? '' : ($old['subject'] ?? '')) ?>"><?= ($old['mode'] ?? '') === 'announce' ? '' : $err('subject') ?></label>
+            <?php if (in_array($ctx->user()['role'] ?? '', ['tutor', 'team'], true)): ?><?= $view->partial('name_tags') ?><?php endif; ?>
             <label class="field"><span class="field__label">Message</span><textarea name="body" rows="6" maxlength="4000" required><?= e(($old['mode'] ?? '') === 'announce' ? '' : ($old['body'] ?? '')) ?></textarea><?= ($old['mode'] ?? '') === 'announce' ? '' : $err('body') ?>
                 <span class="field__hint">Messages are kept and cannot be deleted<?= $isTutor ? '' : '. Students can only write to the tutor, not to each other' ?>.</span></label>
             <div class="form-actions"><button type="submit" class="btn btn--small">Send</button></div>
@@ -40,6 +41,7 @@ $roles = ['student' => 'Students', 'alumni' => 'Alumni', 'partner' => 'Partner t
                             <?php foreach ($audiences as $k => $l): ?><option value="<?= e($k) ?>" <?= $a && ($old['audience'] ?? '') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
                         </select><?= $a ? $err('audience') : '' ?></label>
                     <label class="field"><span class="field__label">Subject</span><input type="text" name="subject" maxlength="150" required value="<?= e($a ? ($old['subject'] ?? '') : '') ?>"><?= $a ? $err('subject') : '' ?></label>
+                    <?= $view->partial('name_tags') ?>
                     <label class="field"><span class="field__label">Announcement</span><textarea name="body" rows="5" maxlength="4000" required><?= e($a ? ($old['body'] ?? '') : '') ?></textarea><?= $a ? $err('body') : '' ?></label>
                     <div class="form-actions"><button type="submit" class="btn btn--small btn--green">Send announcement</button></div>
                 </form>
@@ -47,3 +49,4 @@ $roles = ['student' => 'Students', 'alumni' => 'Alumni', 'partner' => 'Partner t
         <?php endif; ?>
     </div>
 </section>
+<script src="<?= e($asset('js/name-tags.js')) ?>" defer></script>

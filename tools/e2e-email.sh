@@ -150,6 +150,21 @@ post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=guardians --
 check "guardians get their own copies"     "guardian.en@example.com guardian.ny@example.com" "$(sql "SELECT GROUP_CONCAT(to_email ORDER BY to_email SEPARATOR ' ') FROM mail_queue WHERE subject='E2E Guardians'")"
 sql "DELETE FROM mail_queue WHERE subject IN ('E2E Form 1 news', 'E2E Guardians')"
 
+echo "Name tags in emails"
+sql "UPDATE users SET honorific='Dr', email='tutor.title@example.com', email_notifications=1 WHERE phone='+265999123456'"
+check "profile offers a title"            'action="/profile/title"' "$(curl -s -b "$TJ" "$BASE/profile")"
+check "a bad title is refused"            "Choose a title from the list" "$(post "$TJ" /profile /profile/title --data-urlencode "title=Sir" >/dev/null; cat "$WORK/last.html")"
+post "$TJ" /profile /profile/title --data-urlencode "title=Mrs" >/dev/null
+check "title saved"                       "Mrs" "$(sql "SELECT honorific FROM users WHERE phone='+265999123456'")"
+check "email page has the name buttons"   'data-name-tag="student_first_name"' "$(curl -s -b "$TJ" "$BASE/studio/mail")"
+post "$TJ" /studio/mail /studio/mail/compose --data-urlencode group=guardians --data-urlencode form=0 --data-urlencode "subject=E2E About {student_first_name}" --data-urlencode "body=Dear {full_name}, {student_first_name} did well this week." >/dev/null
+check "guardian email names the student"  "Mail did well this week" "$(sql "SELECT text_body FROM mail_queue WHERE subject='E2E About Mail' AND to_email='guardian.en@example.com'")"
+check "  subject filled too"              "E2E About Mail" "$(sql "SELECT subject FROM mail_queue WHERE to_email='guardian.en@example.com' AND subject LIKE 'E2E About%'")"
+check "  names green and bold in the HTML" '<strong style="color:#157A52;font-weight:700">Mail</strong>' "$(sql "SELECT html_body FROM mail_queue WHERE subject='E2E About Mail' AND to_email='guardian.en@example.com'")"
+refute "  no hidden markers in the text"   "$(printf '\xee\x80\x80')" "$(sql "SELECT text_body FROM mail_queue WHERE subject='E2E About Mail' AND to_email='guardian.en@example.com'")"
+sql "DELETE FROM mail_queue WHERE subject LIKE 'E2E About%'"
+sql "UPDATE users SET honorific=NULL, email='tutor.me@example.com', email_notifications=0 WHERE phone='+265999123456'"
+
 echo "Emailing an invitation letter"
 check "bad address refused"                "That email address does not look right" "$(post "$TJ" /studio/invitations /studio/invitations --data-urlencode type=teacher_invitation --data-urlencode title=Mr --data-urlencode "full_name=E2E Mail Teacher" --data-urlencode "school=Mzuzu Secondary" --data-urlencode "subjects[]=physics" --data-urlencode "email=nope" >/dev/null; cat "$WORK/last.html")"
 check "letter written"                     "303" "$(post "$TJ" /studio/invitations /studio/invitations --data-urlencode type=teacher_invitation --data-urlencode title=Mr --data-urlencode "full_name=E2E Mail Teacher" --data-urlencode "school=Mzuzu Secondary" --data-urlencode "subjects[]=physics" --data-urlencode "email=teacher.invite@example.com")"

@@ -3,6 +3,7 @@
  * @var array<string, mixed> $user
  * @var string|null $error
  * @var string|null $emailError
+ * @var string|null $titleError
  */
 $roles = ['tutor' => 'Admin', 'team' => 'SMART Circle Team', 'student' => 'Student', 'partner' => 'Partner teacher', 'alumni' => 'Alumni'];
 ?>
@@ -27,6 +28,20 @@ $roles = ['tutor' => 'Admin', 'team' => 'SMART Circle Team', 'student' => 'Stude
         </form>
         <?php if (!empty($user['avatar_at'])): ?>
             <form method="post" action="/profile/photo/remove" class="inline-form"><?= $csrf->field() ?><button type="submit" class="btn btn--small btn--ghost">Remove my picture</button></form>
+        <?php endif; ?>
+        <?php if ($user['role'] !== 'student'): ?>
+            <form method="post" action="/profile/title" class="form card" id="title">
+                <?= $csrf->field() ?>
+                <h2 class="h3">How should we address you?</h2>
+                <label class="field field--short"><span class="field__label">Title</span>
+                    <select name="title">
+                        <option value="">No title (use my name)</option>
+                        <?php foreach (\SmartCircle\Support\NameTags::TITLES as $t): ?><option value="<?= e($t) ?>" <?= ($user['honorific'] ?? '') === $t ? 'selected' : '' ?>><?= e($t) ?></option><?php endforeach; ?>
+                    </select>
+                    <?php if (!empty($titleError)): ?><span class="field__error"><?= e($titleError) ?></span><?php endif; ?>
+                    <span class="field__hint">Messages and emails can then greet you as, for example, “<?= e(\SmartCircle\Support\NameTags::values(['full_name' => (string) $user['full_name'], 'title' => $user['honorific'] ?? 'Mr'])['title_surname']) ?>”.</span></label>
+                <div class="form-actions"><button type="submit" class="btn btn--small">Save</button></div>
+            </form>
         <?php endif; ?>
         <form method="post" action="/profile/email" class="form card" id="email">
             <?= $csrf->field() ?>

@@ -1206,3 +1206,16 @@ details.card > summary, details.seats-card > summary { min-height: 44px; display
 .insert-pop__row label { display: grid; gap: 2px; font-size: .85rem; }
 .insert-pop__row input { width: 5rem; }
 .drawpad__shapes { flex: 1 1 200px; min-width: 0; max-width: 100%; }
+
+/* ---------- One-click name tags (messages and emails) ---------- */
+.name-tag { color: var(--green-text); font-weight: 700; }
+.name-tag--slot { display: inline-block; padding: 0 8px; border: 1.5px dashed var(--green); border-radius: 999px; background: var(--green-tint); font-size: .9em; line-height: 1.6; }
+.name-tags { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 8px; font-size: .9rem; }
+.name-tags[hidden] { display: none; }
+.name-tags__label { flex: 0 0 100%; font-weight: 700; color: var(--ink); }
+.name-tags__group { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.name-tags__who { color: var(--slate); font-size: .82rem; flex: 0 0 100%; }
+.name-tag-btn { min-height: 36px; padding: 4px 12px; border: 1.5px solid var(--green); border-radius: 999px; background: var(--green-tint); color: var(--green-text); font: inherit; font-weight: 700; cursor: pointer; }
+.name-tag-btn:hover, .name-tag-btn:focus-visible { background: var(--green); color: var(--on-brand); }
+.name-tags__hint { flex: 0 0 100%; color: var(--slate); font-size: .82rem; }
+.title-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
